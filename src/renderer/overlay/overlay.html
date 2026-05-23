@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SLA Overlay</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        cursor: default;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      :root {
+        --border-color: transparent;
+        --border-width: 0px;
+        --pulse-duration: 1.4s;
+      }
+      .frame {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        box-sizing: border-box;
+        border: var(--border-width) solid var(--border-color);
+        transition: border-color 200ms ease, border-width 200ms ease;
+      }
+      .frame.pulsing {
+        /* 11 × 1.4s ≈ 15s of attention-grab, then settles to a solid border */
+        animation: pulse var(--pulse-duration) ease-in-out 11 forwards;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="frame" class="frame"></div>
+    <script src="./overlay.js"></script>
+  </body>
+</html>

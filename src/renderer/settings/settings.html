@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SLA Overlay — Settings</title>
+    <link rel="stylesheet" href="./settings.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>SLA Overlay</h1>
+        <p class="muted">Ambient JSM SLA awareness. Polls JSM, flashes screen border on triggers.</p>
+      </header>
+
+      <section>
+        <h2>JSM Connection</h2>
+        <label>
+          Site URL
+          <input id="siteUrl" type="url" placeholder="https://your-company.atlassian.net" />
+        </label>
+        <label>
+          Account email
+          <input id="email" type="email" placeholder="you@company.com" />
+        </label>
+        <label>
+          API token
+          <input id="apiToken" type="password" placeholder="Atlassian API token" />
+          <small class="muted">
+            Create at id.atlassian.com → Security → API tokens
+          </small>
+        </label>
+        <div class="row">
+          <button id="testConnection" class="primary">Test connection</button>
+          <span id="testResult" class="status"></span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Field detection</h2>
+        <p class="muted">
+          We auto-detect the "Major Incident" field by name and any SLA fields by schema type.
+          Override the Major Incident field ID below if your instance uses a different name.
+        </p>
+        <label>
+          Major Incident field ID override (optional)
+          <input id="majorIncidentFieldId" placeholder="customfield_10XXX" />
+        </label>
+        <div class="row">
+          <button id="resolveFields">Detect fields now</button>
+          <span id="fieldsResult" class="status"></span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Watch list</h2>
+        <p class="muted">Monitor tickets assigned to specific users, or anyone in a group.</p>
+
+        <h3>Users</h3>
+        <div class="row">
+          <input id="userSearch" placeholder="Search by name or email…" />
+          <button id="userSearchBtn">Search</button>
+        </div>
+        <ul id="searchResults" class="results"></ul>
+        <ul id="watchList" class="watchlist"></ul>
+
+        <h3>Groups</h3>
+        <p class="muted">
+          JQL <code>assignee in membersOf(group)</code>. Catches tickets assigned to any group member.
+        </p>
+        <div class="row">
+          <input id="groupSearch" placeholder="Search group names…" />
+          <button id="groupSearchBtn">Search</button>
+        </div>
+        <ul id="groupResults" class="results"></ul>
+        <ul id="watchGroups" class="watchlist"></ul>
+      </section>
+
+      <section>
+        <h2>Triggers</h2>
+        <p class="muted">
+          Each trigger has its own on/off toggle, color, and condition. When a trigger is on, its
+          configuration applies. Disabled triggers don't fire alerts and don't pulse.
+        </p>
+        <ul id="triggers" class="conditions"></ul>
+        <div class="row">
+          <button id="addSlaTrigger">+ Add SLA trigger</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Polling</h2>
+        <label>
+          Poll interval (seconds)
+          <input id="pollIntervalSeconds" type="number" min="10" max="600" />
+        </label>
+      </section>
+
+      <footer>
+        <button id="save" class="primary">Save & apply</button>
+        <span id="saveResult" class="status"></span>
+      </footer>
+    </main>
+
+    <script src="./settings.js"></script>
+  </body>
+</html>

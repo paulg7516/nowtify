@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Triggering tickets</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background: #1a1d24;
+        color: #e6e8ec;
+        font-size: 13px;
+      }
+      header {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 12px 14px;
+        border-bottom: 1px solid #2a2e38;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        flex: 1;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+        padding: 8px 14px;
+        border-bottom: 1px solid #2a2e38;
+        flex-wrap: wrap;
+      }
+      button {
+        background: #2a2e38;
+        color: #e6e8ec;
+        border: 1px solid #3a4050;
+        border-radius: 5px;
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #353a47;
+      }
+      button.danger {
+        border-color: #b91c1c;
+        color: #fca5a5;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      li {
+        padding: 12px 14px;
+        border-bottom: 1px solid #232733;
+        display: grid;
+        grid-template-columns: 8px 1fr auto;
+        gap: 10px;
+        align-items: start;
+      }
+      .swatch {
+        width: 8px;
+        height: 100%;
+        min-height: 28px;
+        border-radius: 4px;
+      }
+      .meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .key {
+        font-weight: 600;
+        font-size: 12px;
+        color: #93c5fd;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .key:hover {
+        text-decoration: underline;
+      }
+      .summary {
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sub {
+        font-size: 11px;
+        color: #93989f;
+      }
+      .row-actions button {
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      .empty {
+        padding: 24px 14px;
+        text-align: center;
+        color: #93989f;
+      }
+      .tabs {
+        display: flex;
+        gap: 0;
+        padding: 0 14px;
+        border-bottom: 1px solid #2a2e38;
+        background: #16191f;
+      }
+      .tab {
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #93989f;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 120ms, border-color 120ms;
+      }
+      .tab:hover {
+        color: #e6e8ec;
+      }
+      .tab.active {
+        color: #e6e8ec;
+        border-bottom-color: #93c5fd;
+      }
+      .tab .count {
+        margin-left: 6px;
+        background: #2a2e38;
+        color: #c0c4cb;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 11px;
+      }
+      .tab.active .count {
+        background: #1e3a5f;
+        color: #bfdbfe;
+      }
+      .snoozed-banner {
+        padding: 8px 14px;
+        background: #4b3b1a;
+        color: #fcd34d;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 id="title">Triggering tickets</h1>
+      <button id="refresh">Refresh</button>
+    </header>
+    <div class="actions">
+      <button data-snooze="5">Snooze 5m</button>
+      <button data-snooze="15">Snooze 15m</button>
+      <button data-snooze="30">Snooze 30m</button>
+      <button data-snooze="0">End snooze</button>
+      <button id="clearDismissals" class="danger">Clear dismissals</button>
+    </div>
+    <div id="snoozedBanner" class="snoozed-banner" hidden>Snoozed — alerts suppressed.</div>
+    <div id="pausedBanner" class="snoozed-banner" hidden>All triggers off — no alerts will fire.</div>
+    <div class="tabs">
+      <div class="tab active" data-tab="active">
+        Active<span id="activeCount" class="count">0</span>
+      </div>
+      <div class="tab" data-tab="previous">
+        Previous<span id="previousCount" class="count">0</span>
+      </div>
+    </div>
+    <ul id="alerts"></ul>
+
+    <script src="./popover.js"></script>
+  </body>
+</html>
