@@ -421,6 +421,50 @@ ul.list:empty {
   margin-right: 2px;
 }
 
+/* Trigger groups: one block per trigger type (Major Incident, SLA, Approval).
+   Section header runs heading-on-left, add-button-on-right. */
+.trigger-group {
+  margin-top: 28px;
+}
+.trigger-group:first-of-type {
+  margin-top: 8px;
+}
+.trigger-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.trigger-group-heading {
+  flex: 1;
+  min-width: 0;
+}
+.trigger-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2, #555);
+  margin: 0 0 4px 0;
+}
+.trigger-group-sub {
+  font-size: 12px;
+  color: var(--text-3, #888);
+  margin: 0;
+  line-height: 1.4;
+}
+.trigger-group-empty {
+  font-size: 13px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius, 8px);
+  text-align: center;
+}
+
 .trigger-list {
   list-style: none;
   padding: 0;

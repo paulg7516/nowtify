@@ -209,15 +209,28 @@ const APPROVAL_PRESETS = [
 ];
 
 function renderTriggers() {
-  const list = el('triggers');
-  list.innerHTML = '';
   const triggers = workingConfig.triggers || [];
-  if (triggers.length === 0) {
-    list.innerHTML = '<li class="muted">No triggers yet. Add one above to start watching for alerts.</li>';
-    return;
-  }
+  const groups = {
+    major: { list: el('triggers-major'), emptyMessage: 'No Major Incident trigger configured.' },
+    sla: { list: el('triggers-sla'), emptyMessage: 'No SLA triggers yet - click Add SLA trigger above.' },
+    approval: { list: el('triggers-approval'), emptyMessage: 'No approval triggers yet - click Add approval trigger above.' },
+  };
+  for (const g of Object.values(groups)) g.list.innerHTML = '';
+
   for (const trig of triggers) {
-    list.appendChild(renderTriggerCard(trig));
+    const group = groups[trig.type];
+    if (!group) continue;
+    group.list.appendChild(renderTriggerCard(trig));
+  }
+
+  // Per-group empty states so a section without triggers still reads clearly.
+  for (const g of Object.values(groups)) {
+    if (g.list.children.length === 0) {
+      const emptyLi = document.createElement('li');
+      emptyLi.className = 'muted trigger-group-empty';
+      emptyLi.textContent = g.emptyMessage;
+      g.list.appendChild(emptyLi);
+    }
   }
 }
 
@@ -255,12 +268,7 @@ function renderTriggerCard(trig) {
   const pills = document.createElement('div');
   pills.className = 'trigger-pills';
 
-  // Type badge
-  const badge = document.createElement('span');
-  badge.className = `type-badge ${trig.type === 'major' ? 'major' : trig.type === 'approval' ? 'approval' : ''}`;
-  badge.textContent =
-    trig.type === 'major' ? 'Major Incident' : trig.type === 'approval' ? 'Approval' : 'SLA';
-  pills.appendChild(badge);
+  // No type badge: the section header already conveys the trigger type.
 
   // Color chip (whole pill is the picker affordance)
   pills.appendChild(buildColorChip(trig));

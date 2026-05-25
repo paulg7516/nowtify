@@ -132,22 +132,46 @@
 
         <!-- TRIGGERS -->
         <section id="section-triggers" class="panel" hidden>
-          <div class="panel-header panel-header-row">
-            <div>
-              <h2>Triggers</h2>
-              <p class="panel-sub">Each trigger fires independently. Toggle one off to silence it without removing it.</p>
+          <div class="panel-header">
+            <h2>Triggers</h2>
+            <p class="panel-sub">Each trigger fires independently. Toggle one off to silence it without removing it.</p>
+          </div>
+
+          <div class="trigger-group">
+            <div class="trigger-group-header">
+              <div class="trigger-group-heading">
+                <h3 class="trigger-group-title">Major Incident</h3>
+                <p class="trigger-group-sub">Fires instance-wide when any open ticket is flagged as a Major Incident.</p>
+              </div>
             </div>
-            <div class="trigger-add-actions">
-              <button id="addApprovalTrigger" class="btn btn-ghost btn-sm">
-                <span class="btn-icon">+</span> Add approval trigger
-              </button>
+            <ul id="triggers-major" class="trigger-list"></ul>
+          </div>
+
+          <div class="trigger-group">
+            <div class="trigger-group-header">
+              <div class="trigger-group-heading">
+                <h3 class="trigger-group-title">SLA</h3>
+                <p class="trigger-group-sub">Fires for watched users when an SLA is about to breach or already has.</p>
+              </div>
               <button id="addSlaTrigger" class="btn btn-primary btn-sm">
                 <span class="btn-icon">+</span> Add SLA trigger
               </button>
             </div>
+            <ul id="triggers-sla" class="trigger-list"></ul>
           </div>
 
-          <ul id="triggers" class="trigger-list"></ul>
+          <div class="trigger-group">
+            <div class="trigger-group-header">
+              <div class="trigger-group-heading">
+                <h3 class="trigger-group-title">Approval</h3>
+                <p class="trigger-group-sub">Fires when you have pending approvals (REQ, PCR, Change) waiting in JSM.</p>
+              </div>
+              <button id="addApprovalTrigger" class="btn btn-primary btn-sm">
+                <span class="btn-icon">+</span> Add approval trigger
+              </button>
+            </div>
+            <ul id="triggers-approval" class="trigger-list"></ul>
+          </div>
         </section>
 
         <!-- SYNC INTERVAL -->
