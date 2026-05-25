@@ -73,6 +73,30 @@ function lockdownConfigFile() {
 if (app.isReady()) lockdownConfigFile();
 else app.whenReady().then(lockdownConfigFile);
 
+// Trigger backfill: electron-store only applies `defaults` for missing
+// top-level keys, so users upgrading from an earlier build (where the
+// triggers array already exists) never receive new default triggers we add
+// later. On startup, ensure every entry in defaults.triggers exists in the
+// user's config; insert any that are missing, preserving their existing
+// triggers + customizations. Match by trigger id - that's the stable
+// identity, label/color may have been customized.
+function backfillDefaultTriggers() {
+  const existing = store.get('triggers');
+  if (!Array.isArray(existing)) {
+    store.set('triggers', defaults.triggers);
+    return;
+  }
+  const existingIds = new Set(existing.map((t) => t && t.id));
+  const missing = defaults.triggers.filter((t) => !existingIds.has(t.id));
+  if (missing.length === 0) return;
+  store.set('triggers', [...existing, ...missing]);
+  console.log(
+    '[store] backfilled default triggers:',
+    missing.map((t) => t.id).join(', '),
+  );
+}
+backfillDefaultTriggers();
+
 /* ------------------------ API token encryption ------------------------ *
  * The Atlassian API token is the only secret we hold. Everything else
  * (siteUrl, email, watch list, triggers) is non-sensitive config.
