@@ -7,10 +7,31 @@ const stateBar = el('stateBar');
 const stateText = el('stateText');
 const title = el('title');
 const syncTimeEl = el('syncTime');
+const tabsEl = el('tabs');
+const tabCountIncidents = el('tabCountIncidents');
+const tabCountApprovals = el('tabCountApprovals');
 
 let currentState = { alerts: [], status: 'idle', snoozed: false };
 let lastSyncAt = null;
 let snoozeUntilMs = 0;
+let activeTab = 'incidents'; // 'incidents' | 'approvals'
+
+// Incident triggers (major + sla) sit together because they share urgency
+// semantics: something is on fire and needs attention. Approval triggers are
+// the proactive grooming queue and live on their own tab.
+function tabFor(alert) {
+  return alert && alert.trigType === 'approval' ? 'approvals' : 'incidents';
+}
+
+for (const btn of tabsEl.querySelectorAll('button[data-tab]')) {
+  btn.onclick = () => {
+    activeTab = btn.dataset.tab;
+    for (const b of tabsEl.querySelectorAll('button[data-tab]')) {
+      b.classList.toggle('active', b.dataset.tab === activeTab);
+    }
+    renderList(currentState);
+  };
+}
 
 /* ----------- Footer actions ----------- */
 el('refresh').onclick = () => api.pokeEngine();
@@ -89,20 +110,51 @@ function render(state) {
     title.textContent = 'Nowtify';
   }
 
-  // List body
+  // Update tab counts (both always visible) and auto-select the tab with
+  // content on first non-empty render so the user doesn't land on an empty
+  // tab while the other has alerts.
+  const incidentCount = alerts.filter((a) => tabFor(a) === 'incidents').length;
+  const approvalCount = alerts.filter((a) => tabFor(a) === 'approvals').length;
+  tabCountIncidents.textContent = String(incidentCount);
+  tabCountApprovals.textContent = String(approvalCount);
+
+  // If the currently active tab is empty but the other has items, switch.
+  // This avoids the dead-tab UX where the user clicks the tray icon and
+  // sees an empty list even though alerts exist on the other tab.
+  const activeCount = activeTab === 'incidents' ? incidentCount : approvalCount;
+  const otherCount = activeTab === 'incidents' ? approvalCount : incidentCount;
+  if (activeCount === 0 && otherCount > 0) {
+    activeTab = activeTab === 'incidents' ? 'approvals' : 'incidents';
+    for (const b of tabsEl.querySelectorAll('button[data-tab]')) {
+      b.classList.toggle('active', b.dataset.tab === activeTab);
+    }
+  }
+
+  renderList(state);
+}
+
+function renderList(state) {
+  const alerts = state.alerts || [];
+  const visible = alerts.filter((a) => tabFor(a) === activeTab);
+
   list.innerHTML = '';
-  if (alerts.length === 0) {
+  if (visible.length === 0) {
     renderEmpty(state);
     return;
   }
-  for (const a of alerts) {
+  for (const a of visible) {
     list.appendChild(renderAlertRow(a));
   }
 }
 
 function renderEmpty(state) {
-  let titleText = 'All quiet';
-  let message = 'No tickets matching your triggers right now.';
+  // Tab-aware empty state so "no incidents" doesn't read as "nothing to do"
+  // when there are approvals on the other tab.
+  let titleText = activeTab === 'approvals' ? 'No pending approvals' : 'All quiet';
+  let message =
+    activeTab === 'approvals'
+      ? 'Nothing waiting on your approval right now.'
+      : 'No incidents matching your triggers right now.';
   if (state.status === 'paused') {
     titleText = 'All triggers off';
     message = 'Turn one on in Settings to start watching.';

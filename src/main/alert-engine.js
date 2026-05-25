@@ -180,6 +180,7 @@ class AlertEngine extends EventEmitter {
           pulse: Boolean(trig.pulse),
           severity: 100,
           jsmUrl,
+          trigType: 'major',
           meetingUrl: conn ? conn.url : null,
           meetingType: conn ? conn.type : null,
         });
@@ -214,6 +215,7 @@ class AlertEngine extends EventEmitter {
           // the popover list. Capped to keep below SLA-breach severity.
           severity: Math.min(70, 30 + Math.floor(ageHours)),
           jsmUrl,
+          trigType: 'approval',
         });
       }
     }
@@ -239,6 +241,7 @@ class AlertEngine extends EventEmitter {
             severity: severityFor(trig, parsed),
             remainingMinutes: parsed.remainingMinutes,
             jsmUrl,
+            trigType: 'sla',
           });
         }
       }
