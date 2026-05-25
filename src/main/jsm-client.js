@@ -77,6 +77,66 @@ class JsmClient {
     return this.request('/rest/api/3/field');
   }
 
+  // Atlassian Cloud assigns each tenant a UUID exposed via the undocumented
+  // /_edge/tenant_info endpoint. Required by the chatplatform routes below.
+  async getCloudId() {
+    if (this._cloudId) return this._cloudId;
+    try {
+      const data = await this.request('/_edge/tenant_info');
+      this._cloudId = data && data.cloudId;
+      return this._cloudId || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Look up the Microsoft Teams meeting URL for a given JSM issue.
+   * Uses Atlassian's chatplatform gateway (the same endpoint JSM's web UI
+   * calls to render the "Microsoft Teams: Join CASE-575" link in the
+   * Details panel). Authenticated by the same Basic auth (email + API
+   * token) we already use - no separate JSM Ops token required.
+   *
+   * Returns the full https://teams.microsoft.com/l/meetup-join/... URL,
+   * or null if no Teams conversation exists for the issue.
+   */
+  /**
+   * Returns { url, type } for the Teams conversation attached to the issue,
+   * or null if none exists. `type` is JSM's conversationType field, e.g.:
+   *   - "msteams-meeting" → a scheduled video meeting (Join button = video)
+   *   - "msteams-channel" / "msteams-chat" → a chat surface (Join button = chat bubble)
+   */
+  async getTeamsConnection({ issueId, projectId }) {
+    if (!issueId || !projectId) return null;
+    const cloudId = await this.getCloudId();
+    if (!cloudId) return null;
+    const path = `/gateway/api/chatplatform/opsgenie/${cloudId}/api/internal-api/v3/chat/issue-state`;
+    try {
+      const data = await this.request(path, {
+        query: {
+          issuerType: 'jsm-issue',
+          issuerId: String(issueId),
+          chatType: 'msteams',
+          entityType: 'jsm-project',
+          entityId: String(projectId),
+          appType: 'jsm-msteams-app',
+        },
+      });
+      const conv =
+        data &&
+        data.data &&
+        Array.isArray(data.data.conversations) &&
+        data.data.conversations.find((c) => c && c.chatType === 'msteams');
+      if (!conv || !conv.conversationLink) return null;
+      return {
+        url: conv.conversationLink,
+        type: conv.conversationType || 'msteams-meeting',
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   async getIssue(issueKey, { fields = ['status'] } = {}) {
     try {
       return await this.request(`/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {

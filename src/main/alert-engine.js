@@ -94,6 +94,7 @@ class AlertEngine extends EventEmitter {
       'priority',
       'assignee',
       'status',
+      'project',
       ...(fields.majorIncidentFieldId ? [fields.majorIncidentFieldId] : []),
       ...fields.slaFieldIds.map((f) => f.id),
     ];
@@ -132,11 +133,28 @@ class AlertEngine extends EventEmitter {
       return watchee ? watchee.displayName : (assignee && assignee.displayName) || 'Unassigned';
     };
 
+    // For Major Incident tickets, fetch the Teams meeting URL in parallel.
+    // JSM's chat platform stores one per ticket via the msteams integration.
+    const truthMajorIssues = majorIssues.filter((iss) =>
+      parseMajorIncident((iss.fields || {})[fields.majorIncidentFieldId]),
+    );
+    const connByKey = new Map();
+    await Promise.all(
+      truthMajorIssues.map(async (iss) => {
+        const projectId = iss.fields && iss.fields.project && iss.fields.project.id;
+        const conn = await this.client.getTeamsConnection({
+          issueId: iss.id,
+          projectId,
+        });
+        if (conn) connByKey.set(iss.key, conn);
+      }),
+    );
+
     // Evaluate Major Incident triggers (instance-wide).
-    for (const issue of majorIssues) {
+    for (const issue of truthMajorIssues) {
       const fmap = issue.fields || {};
-      if (!parseMajorIncident(fmap[fields.majorIncidentFieldId])) continue;
       const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
+      const conn = connByKey.get(issue.key) || null;
       for (const trig of majorTriggers) {
         alerts.push({
           ticketKey: issue.key,
@@ -148,6 +166,8 @@ class AlertEngine extends EventEmitter {
           pulse: Boolean(trig.pulse),
           severity: 100,
           jsmUrl,
+          meetingUrl: conn ? conn.url : null,
+          meetingType: conn ? conn.type : null,
         });
       }
     }
