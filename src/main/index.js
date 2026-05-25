@@ -1,4 +1,7 @@
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { spawn } = require('child_process');
 const { app, BrowserWindow, Notification, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
@@ -316,9 +319,88 @@ app.whenReady().then(() => {
   }
 });
 
+/**
+ * Install a downloaded update by bypassing Squirrel.Mac entirely.
+ *
+ * Squirrel.Mac (which electron-updater uses on macOS) requires the new app
+ * bundle to carry a valid Developer ID code signature - it validates the
+ * signature before performing the swap and bails silently if the bundle is
+ * unsigned. Since Nowtify is currently shipped unsigned (see SECURITY.md H2),
+ * autoUpdater.quitAndInstall() looks like it works but actually relaunches
+ * the OLD bundle with no error surface.
+ *
+ * Workaround: write a tiny detached bash helper that waits for our process
+ * to exit, then replaces the .app bundle with the downloaded ZIP and
+ * relaunches. The helper outlives this process via setsid/detached spawn so
+ * macOS doesn't kill it when the parent dies. Helper output goes to a log
+ * in tmp for post-mortem debugging.
+ *
+ * The integrity of the downloaded ZIP itself is already verified by
+ * electron-updater against the SHA-512 in latest-mac.yml, so we don't
+ * re-validate it here.
+ */
+function performUnsignedUpdate(zipPath, newVersion) {
+  // process.execPath is /Applications/Nowtify.app/Contents/MacOS/Nowtify
+  // - climb three dirs to get the .app bundle root.
+  const appBundlePath = path.dirname(path.dirname(path.dirname(process.execPath)));
+  const tmpDir = path.join(os.tmpdir(), `nowtify-install-${Date.now()}`);
+  const helperPath = path.join(os.tmpdir(), `nowtify-install-${Date.now()}.sh`);
+  const logPath = path.join(os.tmpdir(), 'nowtify-install.log');
+  const pid = process.pid;
+  const sh = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
+
+  const script = `#!/bin/bash
+exec >>${sh(logPath)} 2>&1
+echo "[$(date)] install helper starting v${newVersion}"
+echo "  pid=${pid} bundle=${appBundlePath} zip=${zipPath}"
+
+# Wait for parent to exit (up to 30s)
+for i in $(seq 1 60); do
+  if ! kill -0 ${pid} 2>/dev/null; then break; fi
+  sleep 0.5
+done
+sleep 1
+
+# Extract to staging dir
+mkdir -p ${sh(tmpDir)}
+cd ${sh(tmpDir)} || exit 1
+if ! unzip -q -o ${sh(zipPath)}; then
+  echo "FAILED: unzip ${zipPath}"
+  exit 1
+fi
+if [ ! -d ${sh(path.join(tmpDir, 'Nowtify.app'))} ]; then
+  echo "FAILED: Nowtify.app not found in extracted ZIP"
+  ls -la ${sh(tmpDir)}
+  exit 1
+fi
+
+# Swap bundle
+rm -rf ${sh(appBundlePath)}
+mv ${sh(path.join(tmpDir, 'Nowtify.app'))} ${sh(appBundlePath)}
+xattr -dr com.apple.quarantine ${sh(appBundlePath)} 2>/dev/null || true
+rm -rf ${sh(tmpDir)}
+
+# Launch new version
+open ${sh(appBundlePath)}
+echo "[$(date)] install helper done"
+`;
+
+  fs.writeFileSync(helperPath, script, { mode: 0o755 });
+
+  const child = spawn('/bin/bash', [helperPath], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+  console.log('[updater] manual install helper spawned, pid', child.pid);
+}
+
 function setupAutoUpdater() {
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // Squirrel.Mac can't install unsigned updates on quit either - disable so
+  // updates only apply via our manual helper (triggered by the Restart-now
+  // dialog button).
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.on('update-available', (info) => {
     console.log('[updater] update available:', info.version);
   });
@@ -364,21 +446,30 @@ function setupAutoUpdater() {
       message: `Version ${info.version} is ready to install.`,
       detail:
         'Click Restart now to apply the update immediately.\n\n' +
-        'If you choose Later, the update will install the next time you fully ' +
-        'quit Nowtify. Note: closing this window does not quit the app - ' +
-        'right-click the Nowtify icon in the menu bar and choose Quit.',
+        'If you choose Later, you can install it from the Settings window ' +
+        'when ready. Closing this window does not quit the app.',
       buttons: ['Restart now', 'Later'],
       defaultId: 0,
       cancelId: 1,
     });
 
-    // Re-hide the dock if it was hidden before, so the app goes back to
-    // pure menu-bar mode after the user dismisses the dialog.
-    if (dockWasHidden && process.platform === 'darwin' && app.dock && app.dock.hide) {
+    if (response === 0) {
+      // Bypass Squirrel.Mac (which silently fails for unsigned bundles) and
+      // hand the swap off to a detached bash helper that takes over after we
+      // quit. See performUnsignedUpdate doc-comment.
+      const zipPath = info && (info.downloadedFile || info.path);
+      if (zipPath) {
+        performUnsignedUpdate(zipPath, info.version);
+        app.quit();
+      } else {
+        console.warn('[updater] no downloadedFile path on info, falling back to quitAndInstall');
+        autoUpdater.quitAndInstall();
+      }
+    } else if (dockWasHidden && process.platform === 'darwin' && app.dock && app.dock.hide) {
+      // Re-hide the dock only on the Later path. On Restart, we're about to
+      // quit so the dock hide is pointless and racing the install helper.
       app.dock.hide();
     }
-
-    if (response === 0) autoUpdater.quitAndInstall();
   });
   autoUpdater.on('error', (err) => {
     console.warn('[updater] error:', err.message || err);
