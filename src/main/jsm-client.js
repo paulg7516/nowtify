@@ -235,6 +235,33 @@ class JsmClient {
   }
 
   /**
+   * Returns issues where the authenticated user is a current approver and
+   * the issue is still unresolved. JSM evaluates `approver = currentUser()`
+   * server-side against the API token's owner, so each install naturally
+   * gets that user's own approval queue with no extra config.
+   */
+  async searchMyPendingApprovals({ fields }) {
+    const body = {
+      jql: 'approver = currentUser() AND resolution = Unresolved ORDER BY updated DESC',
+      fields: fields && fields.length ? fields : ['summary', 'assignee', 'status', 'created'],
+      maxResults: 100,
+    };
+    try {
+      const data = await this.request('/rest/api/3/search/jql', { method: 'POST', body });
+      return (data && data.issues) || [];
+    } catch (err) {
+      // Some Jira instances don't support the `approver` JQL function
+      // (Software-only projects, very old Server licenses). Don't blow up
+      // the whole engine tick - just yield no approvals.
+      if (/approver/i.test(err.message || '')) {
+        console.warn('[jsm-client] approver JQL not supported on this site:', err.message);
+        return [];
+      }
+      throw err;
+    }
+  }
+
+  /**
    * JQL search for open tickets assigned to any of the given accountIds
    * OR to any member of the given group names. Uses /search/jql.
    */

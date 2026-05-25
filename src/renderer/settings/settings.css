@@ -558,6 +558,16 @@ ul.list:empty {
   background: var(--danger-soft);
   color: var(--danger);
 }
+.type-badge.approval {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+}
+
+.trigger-add-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
 /* Color chip */
 .color-chip {

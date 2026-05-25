@@ -71,6 +71,7 @@ class AlertEngine extends EventEmitter {
     const enabledTriggers = allTriggers.filter((t) => t.enabled);
     const majorTriggers = enabledTriggers.filter((t) => t.type === 'major');
     const slaTriggers = enabledTriggers.filter((t) => t.type === 'sla');
+    const approvalTriggers = enabledTriggers.filter((t) => t.type === 'approval');
     const snoozed = store.isSnoozed();
     const snoozeUntilMs = store.get('snoozeUntil') || 0;
     const anyEnabled = enabledTriggers.length > 0;
@@ -126,6 +127,19 @@ class AlertEngine extends EventEmitter {
       }
     }
 
+    // 3) Personal approval queue (JSM evaluates approver = currentUser()
+    //    against the configured API token's owner).
+    let approvalIssues = [];
+    if (approvalTriggers.length) {
+      try {
+        approvalIssues = await this.client.searchMyPendingApprovals({
+          fields: ['summary', 'assignee', 'status', 'created'],
+        });
+      } catch (err) {
+        this.emit('error', err);
+      }
+    }
+
     const alerts = [];
 
     const nameFor = (assignee) => {
@@ -168,6 +182,38 @@ class AlertEngine extends EventEmitter {
           jsmUrl,
           meetingUrl: conn ? conn.url : null,
           meetingType: conn ? conn.type : null,
+        });
+      }
+    }
+
+    // Evaluate approval triggers. Each enabled approval trigger fires per
+    // matching ticket; ageThresholdHours filters out approvals that haven't
+    // sat in the queue long enough yet.
+    const nowMs = Date.now();
+    for (const issue of approvalIssues) {
+      const fmap = issue.fields || {};
+      const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
+      const createdMs = fmap.created ? Date.parse(fmap.created) : nowMs;
+      const ageHours = (nowMs - createdMs) / 3_600_000;
+      for (const trig of approvalTriggers) {
+        const threshold = Number(trig.ageThresholdHours) || 0;
+        if (threshold > 0 && ageHours < threshold) continue;
+        const ageLabel =
+          threshold > 0
+            ? `Pending approval (${threshold}+ hours)`
+            : `Pending approval`;
+        alerts.push({
+          ticketKey: issue.key,
+          ticketSummary: fmap.summary || '',
+          assigneeName: nameFor(fmap.assignee),
+          conditionId: `${trig.id}`,
+          conditionLabel: ageLabel,
+          color: trig.color,
+          pulse: Boolean(trig.pulse),
+          // Severity scales with age so older approvals sort to the top of
+          // the popover list. Capped to keep below SLA-breach severity.
+          severity: Math.min(70, 30 + Math.floor(ageHours)),
+          jsmUrl,
         });
       }
     }
@@ -228,7 +274,7 @@ class AlertEngine extends EventEmitter {
 
     // One-line tick summary.
     console.log(
-      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
+      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
     );
   }
 

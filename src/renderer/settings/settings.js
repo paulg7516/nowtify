@@ -201,6 +201,13 @@ const SLA_PRESETS = [
   { label: 'SLA breach in 24 hours', thresholdMinutes: 1440 },
 ];
 
+const APPROVAL_PRESETS = [
+  { label: 'Any pending approval', ageThresholdHours: 0 },
+  { label: 'Pending 2+ hours', ageThresholdHours: 2 },
+  { label: 'Pending 4+ hours', ageThresholdHours: 4 },
+  { label: 'Pending 24+ hours', ageThresholdHours: 24 },
+];
+
 function renderTriggers() {
   const list = el('triggers');
   list.innerHTML = '';
@@ -250,8 +257,9 @@ function renderTriggerCard(trig) {
 
   // Type badge
   const badge = document.createElement('span');
-  badge.className = `type-badge ${trig.type === 'major' ? 'major' : ''}`;
-  badge.textContent = trig.type === 'major' ? 'Major Incident' : 'SLA';
+  badge.className = `type-badge ${trig.type === 'major' ? 'major' : trig.type === 'approval' ? 'approval' : ''}`;
+  badge.textContent =
+    trig.type === 'major' ? 'Major Incident' : trig.type === 'approval' ? 'Approval' : 'SLA';
   pills.appendChild(badge);
 
   // Color chip (whole pill is the picker affordance)
@@ -262,8 +270,12 @@ function renderTriggerCard(trig) {
 
   body.appendChild(pills);
 
-  // Column 3: delete (only for deletable triggers)
-  const isLocked = trig.type === 'major' && trig.id === 'major-incident';
+  // Column 3: delete (only for deletable triggers). The default Major
+  // Incident and Pending Approvals triggers are locked - users can disable
+  // but not delete them, since they're the headline use cases.
+  const isLocked =
+    (trig.type === 'major' && trig.id === 'major-incident') ||
+    (trig.type === 'approval' && trig.id === 'pending-approvals');
   let trailing;
   if (isLocked) {
     trailing = document.createElement('span');
@@ -303,10 +315,27 @@ function buildTriggerTitle(trig) {
     span.textContent = trig.label || 'Major Incident = true';
     return span;
   }
+  if (trig.type === 'approval') {
+    return buildPresetSelect({
+      trig,
+      presets: APPROVAL_PRESETS,
+      valueKey: 'ageThresholdHours',
+      ariaLabel: 'Approval age threshold',
+    });
+  }
+  return buildPresetSelect({
+    trig,
+    presets: SLA_PRESETS,
+    valueKey: 'thresholdMinutes',
+    ariaLabel: 'SLA condition',
+  });
+}
+
+function buildPresetSelect({ trig, presets, valueKey, ariaLabel }) {
   const select = document.createElement('select');
   select.className = 'trigger-title-select';
-  select.setAttribute('aria-label', 'SLA condition');
-  const matched = SLA_PRESETS.find((p) => p.thresholdMinutes === trig.thresholdMinutes);
+  select.setAttribute('aria-label', ariaLabel);
+  const matched = presets.find((p) => p[valueKey] === trig[valueKey]);
   if (!matched) {
     const opt = document.createElement('option');
     opt.value = '__custom__';
@@ -314,22 +343,22 @@ function buildTriggerTitle(trig) {
     opt.selected = true;
     select.appendChild(opt);
   }
-  for (const preset of SLA_PRESETS) {
+  for (const preset of presets) {
     const opt = document.createElement('option');
-    opt.value = String(preset.thresholdMinutes);
+    opt.value = String(preset[valueKey]);
     opt.textContent = preset.label;
-    if (matched && preset.thresholdMinutes === matched.thresholdMinutes) opt.selected = true;
+    if (matched && preset[valueKey] === matched[valueKey]) opt.selected = true;
     select.appendChild(opt);
   }
   select.onchange = async () => {
     if (select.value === '__custom__') return;
-    const preset = SLA_PRESETS.find((p) => String(p.thresholdMinutes) === select.value);
+    const preset = presets.find((p) => String(p[valueKey]) === select.value);
     if (!preset) return;
     trig.label = preset.label;
-    trig.thresholdMinutes = preset.thresholdMinutes;
+    trig[valueKey] = preset[valueKey];
     const next = await api.updateTrigger(trig.id, {
       label: preset.label,
-      thresholdMinutes: preset.thresholdMinutes,
+      [valueKey]: preset[valueKey],
     });
     workingConfig.triggers = next;
     await api.pokeEngine();
@@ -390,6 +419,23 @@ el('addSlaTrigger').onclick = async () => {
     color: '#ffaa00',
     pulse: true,
     thresholdMinutes: preset.thresholdMinutes,
+  };
+  const next = await api.addTrigger(trigger);
+  workingConfig.triggers = next;
+  renderTriggers();
+  await api.pokeEngine();
+};
+
+el('addApprovalTrigger').onclick = async () => {
+  const preset = APPROVAL_PRESETS.find((p) => p.ageThresholdHours === 4) || APPROVAL_PRESETS[0];
+  const trigger = {
+    id: `approval-${Date.now()}`,
+    type: 'approval',
+    label: preset.label,
+    enabled: true,
+    color: '#a855f7',
+    pulse: true,
+    ageThresholdHours: preset.ageThresholdHours,
   };
   const next = await api.addTrigger(trigger);
   workingConfig.triggers = next;
