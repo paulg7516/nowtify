@@ -9,9 +9,9 @@
     "icon": "electron scripts/generate-icon.js",
     "dist": "electron-builder --mac --universal",
     "release": "electron-builder --mac --universal --publish always",
-    "ship": "npm version patch --no-git-tag-version && npm run release",
-    "ship:minor": "npm version minor --no-git-tag-version && npm run release",
-    "ship:major": "npm version major --no-git-tag-version && npm run release"
+    "ship": "bash scripts/ship.sh patch",
+    "ship:minor": "bash scripts/ship.sh minor",
+    "ship:major": "bash scripts/ship.sh major"
   },
   "license": "UNLICENSED",
   "private": true,
