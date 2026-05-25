@@ -2,104 +2,165 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>SLA Overlay — Settings</title>
+    <title>Nowtify - Settings</title>
     <link rel="stylesheet" href="./settings.css" />
   </head>
   <body>
-    <main>
-      <header>
-        <h1>SLA Overlay</h1>
-        <p class="muted">Ambient JSM SLA awareness. Polls JSM, flashes screen border on triggers.</p>
-      </header>
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 120 120" aria-hidden="true">
+          <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.32"/>
+          <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.62"/>
+          <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+        </svg>
+        <span class="brand-name">Nowtify</span>
+      </div>
+      <div class="connection-pill" id="connectionPill" data-state="unknown">
+        <span class="pill-dot"></span>
+        <span id="connectionLabel">Not connected</span>
+      </div>
+    </header>
 
-      <section>
-        <h2>JSM Connection</h2>
-        <label>
-          Site URL
-          <input id="siteUrl" type="url" placeholder="https://your-company.atlassian.net" />
-        </label>
-        <label>
-          Account email
-          <input id="email" type="email" placeholder="you@company.com" />
-        </label>
-        <label>
-          API token
-          <input id="apiToken" type="password" placeholder="Atlassian API token" />
-          <small class="muted">
-            Create at id.atlassian.com → Security → API tokens
-          </small>
-        </label>
-        <div class="row">
-          <button id="testConnection" class="primary">Test connection</button>
-          <span id="testResult" class="status"></span>
-        </div>
-      </section>
+    <div class="layout">
+      <nav class="sidebar" aria-label="Settings sections">
+        <button class="nav-item active" data-section="connection">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="8" cy="8" r="6"/>
+            <line x1="2" y1="8" x2="14" y2="8"/>
+            <path d="M 8 2 c -2.5 1.8 -2.5 10.4 0 12"/>
+            <path d="M 8 2 c 2.5 1.8 2.5 10.4 0 12"/>
+          </svg>
+          Connection
+        </button>
+        <button class="nav-item" data-section="watch">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="6" cy="6" r="2.4"/>
+            <path d="M 1.5 13 c 0 -2.7 2 -4.2 4.5 -4.2 s 4.5 1.5 4.5 4.2"/>
+            <circle cx="11.5" cy="5" r="1.9" opacity="0.55"/>
+            <path d="M 11 9.5 c 2 0 3.5 1.5 3.5 3.5" opacity="0.55"/>
+          </svg>
+          Watch list
+        </button>
+        <button class="nav-item" data-section="triggers">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M 4 11 V 7 a 4 4 0 0 1 8 0 v 4 l 1.2 1.5 H 2.8 z"/>
+            <path d="M 6.5 13.5 a 1.5 1.5 0 0 0 3 0"/>
+          </svg>
+          Triggers
+        </button>
+        <button class="nav-item" data-section="sync">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M 13 6 a 5 5 0 0 0 -9 -1"/>
+            <polyline points="13 2 13 6 9 6"/>
+            <path d="M 3 10 a 5 5 0 0 0 9 1"/>
+            <polyline points="3 14 3 10 7 10"/>
+          </svg>
+          Sync interval
+        </button>
+      </nav>
 
-      <section>
-        <h2>Field detection</h2>
-        <p class="muted">
-          We auto-detect the "Major Incident" field by name and any SLA fields by schema type.
-          Override the Major Incident field ID below if your instance uses a different name.
-        </p>
-        <label>
-          Major Incident field ID override (optional)
-          <input id="majorIncidentFieldId" placeholder="customfield_10XXX" />
-        </label>
-        <div class="row">
-          <button id="resolveFields">Detect fields now</button>
-          <span id="fieldsResult" class="status"></span>
-        </div>
-      </section>
+      <main class="content">
+        <!-- CONNECTION -->
+        <section id="section-connection" class="panel">
+          <div class="panel-header">
+            <h2>JSM connection</h2>
+            <p class="panel-sub">Atlassian credentials. Each install is per-user, no shared state.</p>
+          </div>
 
-      <section>
-        <h2>Watch list</h2>
-        <p class="muted">Monitor tickets assigned to specific users, or anyone in a group.</p>
+          <div class="card">
+            <div class="field">
+              <label for="siteUrl">Site URL</label>
+              <input id="siteUrl" type="url" placeholder="https://your-company.atlassian.net" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="email">Account email</label>
+              <input id="email" type="email" placeholder="you@company.com" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="apiToken">API token</label>
+              <input id="apiToken" type="password" placeholder="Atlassian API token" autocomplete="off" />
+              <p class="hint">
+                Generate token:
+                <a href="#" id="apiTokenLink">https://id.atlassian.com/manage-profile/security/api-tokens</a>
+              </p>
+            </div>
+            <div class="actions">
+              <button id="testConnection" class="btn btn-primary">Test connection</button>
+              <span id="testResult" class="status"></span>
+            </div>
+          </div>
 
-        <h3>Users</h3>
-        <div class="row">
-          <input id="userSearch" placeholder="Search by name or email…" />
-          <button id="userSearchBtn">Search</button>
-        </div>
-        <ul id="searchResults" class="results"></ul>
-        <ul id="watchList" class="watchlist"></ul>
+        </section>
 
-        <h3>Groups</h3>
-        <p class="muted">
-          JQL <code>assignee in membersOf(group)</code>. Catches tickets assigned to any group member.
-        </p>
-        <div class="row">
-          <input id="groupSearch" placeholder="Search group names…" />
-          <button id="groupSearchBtn">Search</button>
-        </div>
-        <ul id="groupResults" class="results"></ul>
-        <ul id="watchGroups" class="watchlist"></ul>
-      </section>
+        <!-- WATCH LIST -->
+        <section id="section-watch" class="panel" hidden>
+          <div class="panel-header">
+            <h2>Watch list</h2>
+            <p class="panel-sub">Add people you want to be alerted about when their tickets are about to breach SLA.</p>
+          </div>
 
-      <section>
-        <h2>Triggers</h2>
-        <p class="muted">
-          Each trigger has its own on/off toggle, color, and condition. When a trigger is on, its
-          configuration applies. Disabled triggers don't fire alerts and don't pulse.
-        </p>
-        <ul id="triggers" class="conditions"></ul>
-        <div class="row">
-          <button id="addSlaTrigger">+ Add SLA trigger</button>
-        </div>
-      </section>
+          <div class="card">
+            <div class="card-header">
+              <h3>Users</h3>
+            </div>
+            <div class="inline-search">
+              <input id="userSearch" type="text" placeholder="Search by name or email…" autocomplete="off" />
+              <button id="userSearchBtn" class="btn btn-ghost">Search</button>
+            </div>
+            <ul id="searchResults" class="list"></ul>
+            <div class="divider"></div>
+            <p class="card-sub">Currently watching</p>
+            <ul id="watchList" class="list"></ul>
+          </div>
 
-      <section>
-        <h2>Polling</h2>
-        <label>
-          Poll interval (seconds)
-          <input id="pollIntervalSeconds" type="number" min="10" max="600" />
-        </label>
-      </section>
+          <div class="card">
+            <div class="card-header">
+              <h3>Groups</h3>
+              <p class="card-sub">Add groups so you get notified about anyone in them whose ticket SLAs are drifting.</p>
+            </div>
+            <div class="inline-search">
+              <input id="groupSearch" type="text" placeholder="Search group names…" autocomplete="off" />
+              <button id="groupSearchBtn" class="btn btn-ghost">Search</button>
+            </div>
+            <ul id="groupResults" class="list"></ul>
+            <div class="divider"></div>
+            <p class="card-sub">Currently watching</p>
+            <ul id="watchGroups" class="list"></ul>
+          </div>
+        </section>
 
-      <footer>
-        <button id="save" class="primary">Save & apply</button>
-        <span id="saveResult" class="status"></span>
-      </footer>
-    </main>
+        <!-- TRIGGERS -->
+        <section id="section-triggers" class="panel" hidden>
+          <div class="panel-header panel-header-row">
+            <div>
+              <h2>Triggers</h2>
+              <p class="panel-sub">Each trigger fires independently. Toggle one off to silence it without removing it.</p>
+            </div>
+            <button id="addSlaTrigger" class="btn btn-primary btn-sm">
+              <span class="btn-icon">+</span> Add SLA trigger
+            </button>
+          </div>
+
+          <ul id="triggers" class="trigger-list"></ul>
+        </section>
+
+        <!-- SYNC INTERVAL -->
+        <section id="section-sync" class="panel" hidden>
+          <div class="panel-header">
+            <h2>Sync interval</h2>
+            <p class="panel-sub">How often Nowtify re-queries JSM. Shorter = faster reaction to new alerts, more API calls.</p>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <label for="pollIntervalSeconds">Interval (seconds)</label>
+              <input id="pollIntervalSeconds" type="number" min="10" max="600" />
+              <p class="hint">Click the menu bar icon → <strong>Refresh now</strong> for an out-of-band sync regardless of the interval.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
 
     <script src="./settings.js"></script>
   </body>

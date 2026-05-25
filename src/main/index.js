@@ -1,6 +1,8 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, shell, Menu, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
+
+const BRAND_ICON_PATH = path.join(__dirname, '..', '..', 'build', 'icon.png');
 
 const store = require('./store');
 const { AlertEngine } = require('./alert-engine');
@@ -15,6 +17,26 @@ app.on('window-all-closed', (e) => {
 
 if (process.platform === 'darwin') {
   app.dock.hide();
+}
+
+// In dev (unpackaged) mode the OS shows the default Electron icon for the
+// dock, Cmd+Tab, and any native dialogs the app spawns. Override it with our
+// real brand icon so the experience matches the packaged build.
+function applyBrandIcon() {
+  // Packaged builds already have the right icon baked into the .app bundle
+  // via the .icns file. Only the dev runtime (which uses the generic Electron
+  // bundle from node_modules) needs the runtime override.
+  if (app.isPackaged) return;
+  if (process.platform !== 'darwin') return;
+  const img = nativeImage.createFromPath(BRAND_ICON_PATH);
+  if (img.isEmpty()) {
+    console.warn('[brand-icon] failed to load:', BRAND_ICON_PATH);
+    return;
+  }
+  if (app.dock && app.dock.setIcon) {
+    app.dock.setIcon(img);
+    console.log('[brand-icon] dock icon set:', img.getSize());
+  }
 }
 
 let overlay;
@@ -41,7 +63,8 @@ function openSettings() {
   settingsWin = new BrowserWindow({
     width: 780,
     height: 760,
-    title: 'SLA Overlay — Settings',
+    title: 'Nowtify - Settings',
+    icon: BRAND_ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'settings-preload.js'),
       contextIsolation: true,
@@ -110,8 +133,11 @@ function wireIpc() {
     return fields;
   });
   ipcMain.handle('settings:poke-engine', () => engine.pokeNow());
+  ipcMain.handle('settings:open-external', (_e, url) => {
+    if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url);
+  });
 
-  // Triggers CRUD — broadcasts back to settings so all UIs stay in sync.
+  // Triggers CRUD - broadcasts back to settings so all UIs stay in sync.
   ipcMain.handle('settings:set-trigger-enabled', (_e, { triggerId, enabled }) => {
     const next = store.setTriggerEnabled(triggerId, enabled);
     broadcastTriggers(next);
@@ -138,21 +164,18 @@ function wireIpc() {
   ipcMain.handle('popover:open-ticket', (_e, url) => {
     if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url);
   });
-  ipcMain.handle('popover:dismiss-alert', (_e, { ticketKey, conditionId }) => {
-    store.dismissTicket(ticketKey, conditionId);
+  ipcMain.handle('popover:snooze', (_e, value) => {
+    // Accept either a numeric minutes value or the string 'indefinite'.
+    if (value === 'indefinite') store.setSnooze('indefinite');
+    else store.setSnooze(Number(value) || 0);
   });
-  ipcMain.handle('popover:undismiss-alert', (_e, { ticketKey, conditionId }) => {
-    store.undismissTicket(ticketKey, conditionId);
-  });
-  ipcMain.handle('popover:snooze', (_e, minutes) => {
-    store.setSnooze(Number(minutes) || 0);
-  });
-  ipcMain.handle('popover:clear-dismissals', () => store.clearDismissals());
   ipcMain.handle('popover:poke-engine', () => engine.pokeNow());
+  ipcMain.handle('popover:open-settings', () => openSettings());
 }
 
 app.whenReady().then(() => {
-  // Minimal app menu — needed on macOS so Cmd+C/V/X/A keyboard shortcuts
+  applyBrandIcon();
+  // Minimal app menu - needed on macOS so Cmd+C/V/X/A keyboard shortcuts
   // work inside renderer windows (they're wired through Edit role items).
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -181,10 +204,6 @@ app.whenReady().then(() => {
     onOpenSettings: openSettings,
     onSnooze: (minutes) => {
       store.setSnooze(minutes);
-      engine.pokeNow();
-    },
-    onClearDismissals: () => {
-      store.clearDismissals();
       engine.pokeNow();
     },
     onPoke: () => engine.pokeNow(),
@@ -248,7 +267,7 @@ function setupAutoUpdater() {
     console.log('[updater] downloaded:', info.version);
     const { response } = await dialog.showMessageBox({
       type: 'info',
-      title: 'SLA Overlay update ready',
+      title: 'Nowtify update ready',
       message: `Version ${info.version} is ready to install.`,
       detail: 'Restart now to apply, or it will install automatically when you quit.',
       buttons: ['Restart now', 'Later'],

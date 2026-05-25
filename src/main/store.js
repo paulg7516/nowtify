@@ -39,7 +39,6 @@ const defaults = {
   ],
   pollIntervalSeconds: 30,
   snoozeUntil: 0,
-  dismissedTickets: {},
 };
 
 const store = new Store({
@@ -89,8 +88,17 @@ function removeGroup(groupName) {
   return next;
 }
 
+// Snooze accepts:
+//   - a positive minute count (e.g. 15) → paused until now + N minutes
+//   - 0 (or anything falsy) → resume immediately
+//   - 'indefinite' → paused effectively forever, until manually resumed
+const INDEFINITE_SNOOZE = Number.MAX_SAFE_INTEGER;
+
 function setSnooze(minutes) {
-  const until = minutes > 0 ? Date.now() + minutes * 60_000 : 0;
+  let until;
+  if (minutes === 'indefinite') until = INDEFINITE_SNOOZE;
+  else if (minutes > 0) until = Date.now() + minutes * 60_000;
+  else until = 0;
   store.set('snoozeUntil', until);
   return until;
 }
@@ -98,27 +106,6 @@ function setSnooze(minutes) {
 function isSnoozed() {
   const until = store.get('snoozeUntil') || 0;
   return until > Date.now();
-}
-
-function dismissTicket(ticketKey, conditionId) {
-  const dismissed = store.get('dismissedTickets') || {};
-  dismissed[`${ticketKey}:${conditionId}`] = Date.now();
-  store.set('dismissedTickets', dismissed);
-}
-
-function undismissTicket(ticketKey, conditionId) {
-  const dismissed = store.get('dismissedTickets') || {};
-  delete dismissed[`${ticketKey}:${conditionId}`];
-  store.set('dismissedTickets', dismissed);
-}
-
-function isDismissed(ticketKey, conditionId) {
-  const dismissed = store.get('dismissedTickets') || {};
-  return Boolean(dismissed[`${ticketKey}:${conditionId}`]);
-}
-
-function clearDismissals() {
-  store.set('dismissedTickets', {});
 }
 
 function setTriggerEnabled(triggerId, enabled) {
@@ -160,10 +147,6 @@ module.exports = {
   removeGroup,
   setSnooze,
   isSnoozed,
-  dismissTicket,
-  undismissTicket,
-  isDismissed,
-  clearDismissals,
   setTriggerEnabled,
   updateTrigger,
   addTrigger,

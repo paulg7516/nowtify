@@ -111,8 +111,8 @@ class JsmClient {
 
   /**
    * Instance-wide search for open tickets where the Major Incident field is
-   * "true". The field's underlying type varies per instance — boolean toggle,
-   * option-select (Yes/No), labels, etc. — so we try each common shape and
+   * "true". The field's underlying type varies per instance - boolean toggle,
+   * option-select (Yes/No), labels, etc. - so we try each common shape and
    * union the results. Individual query failures are tolerated (a wrong-type
    * predicate against a typed field will error; another will succeed).
    */

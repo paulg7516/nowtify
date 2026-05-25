@@ -21,4 +21,5 @@ contextBridge.exposeInMainWorld('settingsApi', {
   onTriggersUpdated: (cb) => {
     ipcRenderer.on('settings:triggers-updated', (_event, triggers) => cb(triggers));
   },
+  openExternal: (url) => ipcRenderer.invoke('settings:open-external', url),
 });

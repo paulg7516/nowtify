@@ -6,7 +6,7 @@ let wasAlerting = false;
 
 function applyState(state) {
   currentState = state;
-  // While a resolved flash is in progress, don't clobber it — it'll restore
+  // While a resolved flash is in progress, don't clobber it - it'll restore
   // the current state when it ends.
   if (resolvedTimer) return;
   paint(state);
@@ -18,7 +18,7 @@ function paint(state) {
     document.documentElement.style.setProperty('--border-color', color);
     document.documentElement.style.setProperty('--border-width', '6px');
     if (pulse && !wasAlerting) {
-      // Fresh transition into alerting — restart the 15s pulse.
+      // Fresh transition into alerting - restart the 15s pulse.
       frame.classList.remove('pulsing');
       void frame.offsetWidth; // force reflow so the animation restarts
       frame.classList.add('pulsing');

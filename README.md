@@ -35,9 +35,9 @@ Lives in the macOS menu bar. No browser tab, no dashboard.
    - **Site URL:** `https://your-company.atlassian.net`
    - **Account email:** the email of the Atlassian account that owns the API token
    - **API token:** paste it
-   - Click **Test connection** — you should see "Connected as Your Name".
-   - Click **Detect fields now** — this auto-discovers your Major Incident custom field and SLA fields. If your Major Incident field is named something other than literally "Major Incident", paste its field ID (e.g. `customfield_10210`) into the override box.
-   - **Search and add** the users you want to watch (yourself counts — add yourself).
+   - Click **Test connection** - you should see "Connected as Your Name".
+   - Click **Detect fields now** - this auto-discovers your Major Incident custom field and SLA fields. If your Major Incident field is named something other than literally "Major Incident", paste its field ID (e.g. `customfield_10210`) into the override box.
+   - **Search and add** the users you want to watch (yourself counts - add yourself).
    - Tune SLA conditions and colors as needed.
    - Click **Save & apply**.
 
@@ -45,21 +45,21 @@ Lives in the macOS menu bar. No browser tab, no dashboard.
 
 - **`AlertEngine`** polls JSM every N seconds. JQL: `assignee in (...) AND statusCategory != Done`. Reads Major Incident + SLA custom fields off each returned issue. Evaluates each trigger condition. Computes overall overlay state (highest-severity alert wins, pulsing if any alert pulses).
 - **`OverlayWindows`** creates one transparent click-through always-on-top BrowserWindow per display. CSS-only border with an optional pulse animation. Receives state updates over IPC.
-- **`TrayManager`** lives in the menu bar. Status dot reflects current state (green idle, red alerting, yellow snoozed). Left-click opens a popover listing each triggering ticket — click a ticket key to open it in your browser. Right-click for the full menu (Snooze, Clear dismissals, Settings, Quit).
+- **`TrayManager`** lives in the menu bar. Status dot reflects current state (green idle, red alerting, yellow snoozed). Left-click opens a popover listing each triggering ticket - click a ticket key to open it in your browser. Right-click for the full menu (Snooze, Clear dismissals, Settings, Quit).
 - **`store.js`** persists config + snooze + dismissal state via `electron-store` (JSON file in your app data dir).
 
 ## Trigger rules
 
 - A Major Incident alert fires the moment the field flips to `true` and stays until either the field flips back to `false` *or* you dismiss it.
 - An SLA alert fires when remaining time on any ongoing SLA cycle drops below a condition's `thresholdMinutes`. A condition with `thresholdMinutes = 0` matches breached cycles only.
-- **Dismiss** is per `(ticket, condition)` — dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
+- **Dismiss** is per `(ticket, condition)` - dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
 - **Snooze** suppresses the overlay border entirely for the chosen duration. Alerts still accumulate in the popover so you can see what fired while snoozed.
 
 ## Notes / known POC limits
 
-- Single user, single machine: each agent runs their own copy with their own API token. There is no central poller — the app talks to JSM directly.
+- Single user, single machine: each agent runs their own copy with their own API token. There is no central poller - the app talks to JSM directly.
 - Screen-share auto-hide is **not implemented**. If you share your whole desktop and a P1 fires, the border is visible to viewers. Deferred until POC validates.
-- No central watch-list sync — your watch list is local to each install.
+- No central watch-list sync - your watch list is local to each install.
 - Tested only on macOS. Tray icon uses macOS named system images (`NSStatusAvailable`/`NSStatusUnavailable`/`NSStatusPartiallyAvailable`); on other platforms the tray icon will be blank until a fallback is added.
 
 ## Distributing to your team

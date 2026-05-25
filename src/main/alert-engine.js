@@ -59,7 +59,9 @@ class AlertEngine extends EventEmitter {
   }
 
   async tick() {
+    console.log('[engine] tick start');
     if (!this.client || !this.client.isConfigured()) {
+      console.log('[engine] early exit: client not configured');
       this.emitState({ status: 'idle', color: null, pulse: false, alerts: [] });
       return;
     }
@@ -70,9 +72,11 @@ class AlertEngine extends EventEmitter {
     const majorTriggers = enabledTriggers.filter((t) => t.type === 'major');
     const slaTriggers = enabledTriggers.filter((t) => t.type === 'sla');
     const snoozed = store.isSnoozed();
+    const snoozeUntilMs = store.get('snoozeUntil') || 0;
     const anyEnabled = enabledTriggers.length > 0;
 
     if (!anyEnabled) {
+      console.log('[engine] early exit: no triggers enabled');
       this.emitState(computeOverallState([], { snoozed, anyEnabled }));
       return;
     }
@@ -129,8 +133,6 @@ class AlertEngine extends EventEmitter {
     };
 
     // Evaluate Major Incident triggers (instance-wide).
-    // Push every matching alert; tag with `dismissed` rather than filtering,
-    // so the popover can show both Active and Previous (dismissed) tabs.
     for (const issue of majorIssues) {
       const fmap = issue.fields || {};
       if (!parseMajorIncident(fmap[fields.majorIncidentFieldId])) continue;
@@ -146,7 +148,6 @@ class AlertEngine extends EventEmitter {
           pulse: Boolean(trig.pulse),
           severity: 100,
           jsmUrl,
-          dismissed: store.isDismissed(issue.key, trig.id),
         });
       }
     }
@@ -166,32 +167,30 @@ class AlertEngine extends EventEmitter {
             ticketSummary: fmap.summary || '',
             assigneeName: nameFor(fmap.assignee),
             conditionId: key,
-            conditionLabel: `${slaField.name} — ${trig.label}`,
+            conditionLabel: `${slaField.name} - ${trig.label}`,
             color: trig.color,
             pulse: Boolean(trig.pulse),
             severity: severityFor(trig, parsed),
             remainingMinutes: parsed.remainingMinutes,
             jsmUrl,
-            dismissed: store.isDismissed(issue.key, key),
           });
         }
       }
     }
 
-    const state = computeOverallState(alerts, { snoozed, anyEnabled });
+    const state = computeOverallState(alerts, { snoozed, snoozeUntilMs, anyEnabled });
     this.emitState(state);
 
     // Detect resolutions: tickets that were active last tick are gone now,
     // AND their actual status moved to a Done category. Fires a one-shot
-    // green pulse via the 'resolved' event.
-    const currentActiveKeys = new Set(
-      alerts.filter((a) => !a.dismissed).map((a) => a.ticketKey),
-    );
+    // green pulse via the 'resolved' event - but only when NOT paused.
+    // Pause means "no border activity at all," red or green.
+    const currentActiveKeys = new Set(alerts.map((a) => a.ticketKey));
     const disappeared = [...this.previousActiveKeys].filter(
       (k) => !currentActiveKeys.has(k),
     );
     this.previousActiveKeys = currentActiveKeys;
-    if (disappeared.length > 0) {
+    if (disappeared.length > 0 && !snoozed) {
       const resolvedKeys = [];
       await Promise.all(
         disappeared.map(async (key) => {
@@ -246,22 +245,24 @@ function severityFor(cond, parsed) {
   return 50;
 }
 
-function computeOverallState(alerts, { snoozed, anyEnabled }) {
-  // The overlay border reflects ACTIVE (non-dismissed) alerts only.
-  // The popover sees all alerts (so it can split into Active vs Previous tabs).
-  const activeAlerts = alerts.filter((a) => !a.dismissed);
-  const base = { alerts, snoozed: Boolean(snoozed), anyEnabled: Boolean(anyEnabled) };
+function computeOverallState(alerts, { snoozed, snoozeUntilMs, anyEnabled }) {
+  const base = {
+    alerts,
+    snoozed: Boolean(snoozed),
+    snoozeUntilMs: snoozeUntilMs || 0,
+    anyEnabled: Boolean(anyEnabled),
+  };
   if (!anyEnabled) {
     return { status: 'paused', color: null, pulse: false, ...base };
   }
-  if (activeAlerts.length === 0) {
+  if (alerts.length === 0) {
     return { status: 'idle', color: null, pulse: false, ...base };
   }
   if (snoozed) {
     return { status: 'snoozed', color: null, pulse: false, ...base };
   }
-  const top = activeAlerts.slice().sort((a, b) => b.severity - a.severity)[0];
-  const pulse = activeAlerts.some((a) => a.pulse);
+  const top = alerts.slice().sort((a, b) => b.severity - a.severity)[0];
+  const pulse = alerts.some((a) => a.pulse);
   return { status: 'alerting', color: top.color, pulse, ...base };
 }
 

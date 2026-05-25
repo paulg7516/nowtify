@@ -2,72 +2,249 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Triggering tickets</title>
+    <title>Nowtify - Alerts</title>
     <style>
-      * {
+      :root {
+        --bg: #14161c;
+        --surface: #1b1e26;
+        --surface-2: #232733;
+        --surface-3: #2c313e;
+        --border: #2a2e38;
+        --border-strong: #3a4050;
+        --text: #e6e8ec;
+        --text-2: #b5b8bf;
+        --text-3: #7c818b;
+        --text-4: #5a5f69;
+        --accent: #8b96ff;
+        --accent-soft: rgba(139, 150, 255, 0.16);
+        --success: #4ade80;
+        --warning: #fbbf24;
+        --danger: #f87171;
+        --radius: 8px;
+        --radius-sm: 6px;
+        --transition: 140ms ease;
+      }
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: var(--bg);
       }
       body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        background: #1a1d24;
-        color: #e6e8ec;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui,
+          sans-serif;
+        color: var(--text);
         font-size: 13px;
-      }
-      header {
+        line-height: 1.45;
+        -webkit-user-select: none;
+        user-select: none;
         display: flex;
-        gap: 8px;
-        align-items: center;
-        padding: 12px 14px;
-        border-bottom: 1px solid #2a2e38;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
       }
-      header h1 {
-        margin: 0;
-        font-size: 14px;
+
+      /* ============ Header ============ */
+      header.app-header {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 13px 16px 11px;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand-mark {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        display: block;
+      }
+      .header-title {
+        font-size: 13px;
         font-weight: 600;
+        letter-spacing: -0.005em;
+        color: var(--text);
         flex: 1;
       }
-      .actions {
-        display: flex;
-        gap: 6px;
-        padding: 8px 14px;
-        border-bottom: 1px solid #2a2e38;
-        flex-wrap: wrap;
-      }
-      button {
-        background: #2a2e38;
-        color: #e6e8ec;
-        border: 1px solid #3a4050;
-        border-radius: 5px;
-        padding: 4px 10px;
-        font-size: 12px;
-        cursor: pointer;
-      }
-      button:hover {
-        background: #353a47;
-      }
-      button.danger {
-        border-color: #b91c1c;
-        color: #fca5a5;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      li {
-        padding: 12px 14px;
-        border-bottom: 1px solid #232733;
+      .icon-btn {
         display: grid;
-        grid-template-columns: 8px 1fr auto;
-        gap: 10px;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-3);
+        border: 0;
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+      }
+      .icon-btn:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+      .icon-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ============ State banner (snoozed / paused) ============ */
+      .state-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        font-size: 12px;
+        font-weight: 500;
+        flex-shrink: 0;
+        background: var(--surface);
+        color: var(--text-2);
+        border-bottom: 1px solid var(--border);
+        transition: background 200ms ease, color 200ms ease;
+      }
+      .state-banner .state-banner-dot {
+        background: var(--success);
+      }
+      .state-banner.snoozed {
+        background: rgba(251, 191, 36, 0.08);
+        color: var(--warning);
+        border-bottom: 1px solid rgba(251, 191, 36, 0.15);
+      }
+      .state-banner.snoozed .state-banner-dot {
+        background: currentColor;
+      }
+      .state-banner.paused {
+        background: rgba(248, 113, 113, 0.08);
+        color: var(--danger);
+        border-bottom: 1px solid rgba(248, 113, 113, 0.15);
+      }
+      .state-banner.paused .state-banner-dot {
+        background: currentColor;
+      }
+      .chevron-sm {
+        width: 8px;
+        height: 5px;
+        opacity: 0.75;
+      }
+      /* Banner-positioned dropdown opens DOWNWARD (default opens upward) */
+      .banner-dropdown {
+        position: relative;
+      }
+      .banner-dropdown .dropdown-menu {
+        bottom: auto;
+        top: calc(100% + 4px);
+        right: 0;
+        left: auto;
+      }
+      .state-banner-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+      }
+      .banner-text {
+        flex: 1;
+      }
+      .banner-action {
+        background: transparent;
+        color: inherit;
+        border: 1px solid currentColor;
+        border-radius: 5px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        opacity: 0.85;
+        transition: opacity var(--transition), background var(--transition);
+      }
+      .banner-action:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* ============ Tabs ============ */
+      .tabs {
+        display: flex;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--border);
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .tabs[hidden] {
+        display: none;
+      }
+      .tab {
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-3);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: color var(--transition), border-color var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: transparent;
+        border-top: 0;
+        border-left: 0;
+        border-right: 0;
+        font-family: inherit;
+      }
+      .tab:hover {
+        color: var(--text-2);
+      }
+      .tab.active {
+        color: var(--text);
+        border-bottom-color: var(--accent);
+      }
+      .tab .count {
+        background: var(--surface-2);
+        color: var(--text-2);
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        min-width: 18px;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .tab.active .count {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      /* ============ Body (alerts list or empty state) ============ */
+      .body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      ul.alerts {
+        list-style: none;
+      }
+      .alerts li {
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: 4px 1fr auto;
+        gap: 11px;
         align-items: start;
       }
+      .alerts li:last-child {
+        border-bottom: 0;
+      }
       .swatch {
-        width: 8px;
-        height: 100%;
-        min-height: 28px;
-        border-radius: 4px;
+        width: 4px;
+        min-height: 36px;
+        border-radius: 2px;
+        align-self: stretch;
       }
       .meta {
         display: flex;
@@ -77,99 +254,213 @@
       }
       .key {
         font-weight: 600;
-        font-size: 12px;
-        color: #93c5fd;
+        font-size: 11px;
+        color: var(--accent);
         text-decoration: none;
         cursor: pointer;
+        letter-spacing: 0.01em;
       }
       .key:hover {
         text-decoration: underline;
       }
       .summary {
         font-size: 13px;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .sub {
         font-size: 11px;
-        color: #93989f;
+        color: var(--text-3);
+        margin-top: 2px;
+      }
+      .row-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
       .row-actions button {
         font-size: 11px;
-        padding: 3px 8px;
-      }
-      .empty {
-        padding: 24px 14px;
-        text-align: center;
-        color: #93989f;
-      }
-      .tabs {
-        display: flex;
-        gap: 0;
-        padding: 0 14px;
-        border-bottom: 1px solid #2a2e38;
-        background: #16191f;
-      }
-      .tab {
-        padding: 10px 14px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #93989f;
+        padding: 4px 9px;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--text-3);
+        border: 1px solid transparent;
         cursor: pointer;
-        border-bottom: 2px solid transparent;
-        transition: color 120ms, border-color 120ms;
+        font-family: inherit;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
       }
-      .tab:hover {
-        color: #e6e8ec;
+      .row-actions button:hover {
+        background: var(--surface-2);
+        color: var(--text);
+        border-color: var(--border-strong);
       }
-      .tab.active {
-        color: #e6e8ec;
-        border-bottom-color: #93c5fd;
+
+      /* ============ Empty state ============ */
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 40px 24px;
+        text-align: center;
+        height: 100%;
+        min-height: 200px;
       }
-      .tab .count {
-        margin-left: 6px;
-        background: #2a2e38;
-        color: #c0c4cb;
-        padding: 1px 6px;
-        border-radius: 8px;
-        font-size: 11px;
+      .empty-mark {
+        width: 56px;
+        height: 56px;
+        opacity: 0.4;
       }
-      .tab.active .count {
-        background: #1e3a5f;
-        color: #bfdbfe;
+      .empty-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-2);
+        letter-spacing: -0.005em;
       }
-      .snoozed-banner {
-        padding: 8px 14px;
-        background: #4b3b1a;
-        color: #fcd34d;
+      .empty-message {
         font-size: 12px;
+        color: var(--text-3);
+        max-width: 32ch;
+        line-height: 1.5;
+      }
+
+      /* ============ Footer ============ */
+      footer.app-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+        flex-shrink: 0;
+        font-size: 11px;
+        color: var(--text-3);
+      }
+      .sync-time {
+        flex: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ============ Dropdown (snooze) ============ */
+      .dropdown {
+        position: relative;
+      }
+      .footer-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 9px;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--text-2);
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 500;
+        font-family: inherit;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+      }
+      .footer-btn:hover {
+        background: var(--surface-2);
+        color: var(--text);
+        border-color: var(--border-strong);
+      }
+      .footer-btn.danger:hover {
+        background: rgba(248, 113, 113, 0.12);
+        border-color: rgba(248, 113, 113, 0.35);
+        color: var(--danger);
+      }
+      .footer-btn svg.chevron {
+        width: 9px;
+        height: 9px;
+        opacity: 0.7;
+      }
+      .dropdown-menu {
+        position: absolute;
+        bottom: calc(100% + 4px);
+        left: 0;
+        min-width: 140px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 4px;
+        box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5),
+          0 2px 6px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+      }
+      .dropdown-menu[hidden] {
+        display: none;
+      }
+      .dropdown-menu button {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 6px 10px;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--text);
+        border: 0;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: inherit;
+        text-align: left;
+      }
+      .dropdown-menu button:hover {
+        background: var(--surface-3);
+      }
+      .dropdown-menu button.muted {
+        color: var(--text-3);
       }
     </style>
   </head>
   <body>
-    <header>
-      <h1 id="title">Triggering tickets</h1>
-      <button id="refresh">Refresh</button>
+    <header class="app-header">
+      <svg class="brand-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="32" y="34" width="56" height="11" rx="3" fill="#a5b4fc" opacity="0.35"/>
+        <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#a5b4fc" opacity="0.65"/>
+        <rect x="20" y="72" width="80" height="20" rx="5" fill="#a5b4fc"/>
+      </svg>
+      <span class="header-title" id="title">Nowtify</span>
+      <button id="refresh" class="icon-btn" title="Sync now" aria-label="Sync now">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 13 6 a 5 5 0 0 0 -9 -1"/>
+          <polyline points="13 2 13 6 9 6"/>
+          <path d="M 3 10 a 5 5 0 0 0 9 1"/>
+          <polyline points="3 14 3 10 7 10"/>
+        </svg>
+      </button>
     </header>
-    <div class="actions">
-      <button data-snooze="5">Snooze 5m</button>
-      <button data-snooze="15">Snooze 15m</button>
-      <button data-snooze="30">Snooze 30m</button>
-      <button data-snooze="0">End snooze</button>
-      <button id="clearDismissals" class="danger">Clear dismissals</button>
-    </div>
-    <div id="snoozedBanner" class="snoozed-banner" hidden>Snoozed — alerts suppressed.</div>
-    <div id="pausedBanner" class="snoozed-banner" hidden>All triggers off — no alerts will fire.</div>
-    <div class="tabs">
-      <div class="tab active" data-tab="active">
-        Active<span id="activeCount" class="count">0</span>
+
+    <div id="stateBar" class="state-banner">
+      <span class="state-banner-dot"></span>
+      <span id="stateText" class="banner-text">Pulse alerts active</span>
+      <div class="dropdown banner-dropdown" id="pauseDropdown">
+        <button class="banner-action" id="pauseBtn" type="button">
+          <span id="pauseBtnLabel">Pause</span>
+          <svg id="pauseBtnChevron" class="chevron-sm" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 1 1 L 5 5 L 9 1"/>
+          </svg>
+        </button>
+        <div class="dropdown-menu" id="pauseMenu" hidden>
+          <button data-pause="5" type="button">For 5 minutes</button>
+          <button data-pause="15" type="button">For 15 minutes</button>
+          <button data-pause="30" type="button">For 30 minutes</button>
+          <button data-pause="indefinite" type="button">Until I resume</button>
+        </div>
       </div>
-      <div class="tab" data-tab="previous">
-        Previous<span id="previousCount" class="count">0</span>
-      </div>
     </div>
-    <ul id="alerts"></ul>
+
+    <div class="body" id="body">
+      <ul id="alerts" class="alerts"></ul>
+    </div>
+
+    <footer class="app-footer">
+      <span class="sync-time" id="syncTime">Not synced yet</span>
+      <button id="openSettings" class="footer-btn" type="button">Settings</button>
+    </footer>
 
     <script src="./popover.js"></script>
   </body>

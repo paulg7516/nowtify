@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c7cff"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="3" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!--
+    Apple macOS template: 824×824 squircle centered in a 1024 canvas
+    (100px transparent padding on each side). Below: scale 0.8047,
+    translate 100,100. Content authored against full 1024 grid.
+  -->
+  <g transform="translate(100 100) scale(0.8047)">
+    <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+    <g filter="url(#softShadow)">
+      <rect x="332" y="340" width="360" height="68"  rx="34" fill="#ffffff" opacity="0.55"/>
+      <rect x="282" y="448" width="460" height="92"  rx="46" fill="#ffffff" opacity="0.80"/>
+      <rect x="232" y="580" width="560" height="120" rx="60" fill="#ffffff"/>
+    </g>
+  </g>
+</svg>

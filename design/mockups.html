@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nowtify · Brand exploration</title>
+    <style>
+      :root {
+        /* Brand */
+        --indigo: #4f46e5;
+        --indigo-1: #6366f1;
+        --indigo-2: #4338ca;
+        --pink: #ec4899;
+
+        /* States */
+        --state-idle: #6b7280;
+        --state-alert: #ef4444;
+        --state-snooze: #f59e0b;
+        --state-paused: #9ca3af;
+
+        /* Paper system */
+        --paper: #f8f5ed;
+        --paper-edge: #ede7d8;
+        --ink: #1a1815;
+        --ink-2: #3d3a34;
+        --ink-3: #76716a;
+        --ink-4: #a8a39b;
+        --hairline: #d8d2c4;
+        --hairline-strong: #b8b1a0;
+        --surface: #ffffff;
+        --stage-bg: linear-gradient(180deg, #e4dfd0 0%, #d8d2c2 100%);
+        --grid-line: rgba(216, 210, 196, 0.55);
+
+        /* Type */
+        --display: 'Optima', 'Hoefler Text', 'Iowan Old Style', Charter, Georgia, serif;
+        --body: 'Avenir Next', 'Avenir', 'Helvetica Neue', system-ui, sans-serif;
+        --mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      }
+
+      [data-theme='dark'] {
+        --paper: #100f0c;
+        --paper-edge: #1e1c18;
+        --ink: #f5f1e6;
+        --ink-2: #c8c2b3;
+        --ink-3: #8a857a;
+        --ink-4: #5d5950;
+        --hairline: #2c2924;
+        --hairline-strong: #423e36;
+        --surface: #1c1a17;
+        --stage-bg: linear-gradient(180deg, #1f1d18 0%, #15130f 100%);
+        --grid-line: rgba(56, 52, 44, 0.45);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        background: var(--paper);
+      }
+
+      body {
+        font-family: var(--body);
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.55;
+        letter-spacing: -0.005em;
+        background: var(--paper);
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Subtle grid backdrop, like a designer's drawing pad */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 64px 64px;
+        opacity: 0.45;
+        pointer-events: none;
+        z-index: 0;
+        transition: background 0.4s ease;
+      }
+      html {
+        transition: background 0.4s ease;
+      }
+      body {
+        transition: color 0.4s ease;
+      }
+
+      /* Side rail with vertical text */
+      body::after {
+        content: 'NOWTIFY / DESIGN REVIEW / VOL. 1';
+        position: fixed;
+        top: 50%;
+        right: 16px;
+        transform: translateY(-50%) rotate(180deg);
+        writing-mode: vertical-rl;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        color: var(--ink-4);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      main {
+        position: relative;
+        z-index: 2;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 64px 64px 96px;
+      }
+
+      /* ============== Title block ============== */
+      .title-block {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 48px;
+        align-items: end;
+        border-bottom: 1px solid var(--ink);
+        padding-bottom: 36px;
+        margin-bottom: 80px;
+      }
+      .title-block h1 {
+        font-family: var(--display);
+        font-size: clamp(48px, 7vw, 96px);
+        line-height: 0.92;
+        letter-spacing: -0.025em;
+        font-weight: 400;
+        color: var(--ink);
+      }
+      .title-block h1 em {
+        font-style: italic;
+        color: var(--indigo);
+      }
+      .title-block .lede {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 17px;
+        line-height: 1.45;
+        color: var(--ink-2);
+        max-width: 38ch;
+      }
+      .meta-strip {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        font-family: var(--mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--ink-3);
+        padding-top: 24px;
+        border-top: 1px solid var(--hairline);
+        margin-top: 24px;
+      }
+      .meta-strip dt {
+        color: var(--ink-4);
+      }
+      .meta-strip dd {
+        color: var(--ink);
+      }
+
+      /* Top eyebrow */
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 24px;
+      }
+      .eyebrow .dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--indigo);
+        margin: 0 10px 2px 0;
+        vertical-align: middle;
+      }
+
+      /* ============== Section ============== */
+      section {
+        margin-top: 96px;
+      }
+      .section-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 32px;
+        align-items: end;
+        border-bottom: 1px solid var(--ink);
+        padding-bottom: 18px;
+        margin-bottom: 48px;
+      }
+      .section-num {
+        font-family: var(--display);
+        font-size: 88px;
+        line-height: 0.85;
+        color: var(--ink);
+        letter-spacing: -0.04em;
+        font-feature-settings: 'lnum' 1;
+      }
+      .section-head h2 {
+        font-family: var(--display);
+        font-size: 44px;
+        line-height: 1;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .section-head .count {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        text-align: right;
+        line-height: 1.5;
+      }
+      .section-head .count strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 18px;
+        letter-spacing: 0;
+        color: var(--ink);
+        font-weight: 400;
+        margin-top: 4px;
+      }
+
+      /* ============== Logo Card ============== */
+      .logo-card {
+        display: grid;
+        grid-template-columns: 80px 1fr 1fr 1fr;
+        gap: 32px;
+        padding: 36px 0 36px;
+        border-bottom: 1px solid var(--hairline);
+        align-items: start;
+      }
+      .logo-card:last-child {
+        border-bottom: none;
+      }
+      .card-num {
+        font-family: var(--display);
+        font-size: 56px;
+        line-height: 0.9;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+        font-feature-settings: 'lnum' 1;
+      }
+      .card-num::after {
+        content: '';
+        display: block;
+        width: 24px;
+        height: 1px;
+        background: var(--ink);
+        margin-top: 12px;
+      }
+      .card-meta {
+        padding-top: 6px;
+      }
+      .card-name {
+        font-family: var(--display);
+        font-size: 28px;
+        line-height: 1.05;
+        letter-spacing: -0.015em;
+        margin-bottom: 12px;
+      }
+      .card-blurb {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        margin-bottom: 24px;
+        max-width: 30ch;
+      }
+      .spec-list {
+        display: grid;
+        gap: 4px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--ink-3);
+      }
+      .spec-list span:first-child {
+        color: var(--ink-4);
+      }
+      .spec-list div {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        gap: 8px;
+      }
+      .spec-list strong {
+        color: var(--ink);
+        font-weight: 400;
+      }
+
+      /* Mark display - large logo with subtle backdrop */
+      .mark-frame {
+        position: relative;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        transition: background 0.4s ease, border-color 0.4s ease;
+      }
+      .mark-frame::before,
+      .mark-frame::after {
+        content: '';
+        position: absolute;
+        background: var(--hairline-strong);
+      }
+      .mark-frame::before {
+        top: 12px;
+        left: 12px;
+        width: 12px;
+        height: 1px;
+        box-shadow: 0 11px 0 var(--hairline-strong);
+      }
+      .mark-frame::after {
+        top: 12px;
+        left: 12px;
+        width: 1px;
+        height: 12px;
+        box-shadow: 11px 0 0 var(--hairline-strong);
+      }
+      .mark-frame .corner-br {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        width: 12px;
+        height: 1px;
+        background: var(--hairline-strong);
+      }
+      .mark-frame .corner-br::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        height: 12px;
+        background: var(--hairline-strong);
+      }
+      .mark-frame svg {
+        width: 60%;
+        height: 60%;
+      }
+      .mark-frame-label {
+        position: absolute;
+        bottom: 8px;
+        left: 14px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-4);
+      }
+
+      .application {
+        display: grid;
+        gap: 14px;
+      }
+      .application-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        padding: 18px 22px;
+        transition: background 0.4s ease, border-color 0.4s ease;
+      }
+      .application-row .mark {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+      }
+      .application-row .mark svg {
+        width: 100%;
+        height: 100%;
+      }
+      .wordmark {
+        font-family: var(--display);
+        font-size: 24px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .wordmark em {
+        font-style: italic;
+        color: var(--indigo);
+      }
+
+      /* App icon - approximated macOS squircle */
+      .app-icon-stage {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        padding: 18px;
+        background: var(--stage-bg);
+        border: 1px solid var(--hairline-strong);
+        transition: background 0.4s ease, border-color 0.4s ease;
+      }
+      .app-icon {
+        width: 128px;
+        height: 128px;
+        border-radius: 28.8px; /* 22.5% of 128, approximates macOS squircle */
+        display: grid;
+        place-items: center;
+        box-shadow: 0 12px 24px -8px rgba(26, 24, 21, 0.35),
+          0 2px 4px rgba(26, 24, 21, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        position: relative;
+        overflow: hidden;
+      }
+      .app-icon svg {
+        width: 64%;
+        height: 64%;
+        position: relative;
+        z-index: 1;
+      }
+      .app-icon-caption {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      /* App icon backgrounds, per concept */
+      .icon-bg-paper {
+        background: #fefcf7;
+      }
+      .icon-bg-indigo {
+        background: linear-gradient(155deg, #6366f1, #4338ca);
+      }
+      .icon-bg-gradient {
+        background: linear-gradient(155deg, #6366f1 0%, #8b5cf6 45%, #ec4899 100%);
+      }
+      .icon-bg-cream-indigo {
+        background: radial-gradient(120% 90% at 30% 20%, #ffffff 0%, #f8f5ed 60%, #ede7d8 100%);
+      }
+      .icon-bg-noir {
+        background: linear-gradient(155deg, #1a1815, #3d3a34);
+      }
+
+      /* ============== Tray icon card ============== */
+      .tray-card {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 32px;
+        padding: 40px 0;
+        border-bottom: 1px solid var(--hairline);
+      }
+      .tray-card:last-child {
+        border-bottom: none;
+      }
+      .tray-body {
+        display: grid;
+        gap: 28px;
+      }
+      .tray-header {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .tray-header .card-name {
+        margin-bottom: 0;
+      }
+      .tray-header .card-blurb {
+        margin-bottom: 0;
+        font-size: 14px;
+        max-width: 56ch;
+      }
+
+      .state-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .state-cell {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        padding: 22px 16px 18px;
+        display: grid;
+        gap: 14px;
+        place-items: center;
+        text-align: center;
+        position: relative;
+        transition: background 0.4s ease, border-color 0.4s ease;
+      }
+      .state-cell .swatch {
+        width: 64px;
+        height: 64px;
+        display: grid;
+        place-items: center;
+      }
+      .state-cell .swatch svg {
+        width: 100%;
+        height: 100%;
+      }
+      .state-cell .label {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .state-cell .state-dot {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--state-current, var(--ink-4));
+      }
+      .state-cell[data-state='idle'] {
+        --state-current: var(--state-idle);
+      }
+      .state-cell[data-state='alerting'] {
+        --state-current: var(--state-alert);
+      }
+      .state-cell[data-state='snoozed'] {
+        --state-current: var(--state-snooze);
+      }
+      .state-cell[data-state='paused'] {
+        --state-current: var(--state-paused);
+      }
+
+      /* Color of glyph per state */
+      .glyph-idle { color: var(--ink-2); }
+      .glyph-alerting { color: var(--state-alert); }
+      .glyph-snoozed { color: var(--state-snooze); }
+      .glyph-paused { color: var(--state-paused); }
+
+      /* ============== Theme toggle ============== */
+      .theme-toggle {
+        display: inline-flex;
+        background: var(--paper-edge);
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        padding: 3px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        transition: background 0.4s ease, border-color 0.4s ease;
+      }
+      .theme-toggle button {
+        border: 0;
+        background: transparent;
+        color: var(--ink-3);
+        padding: 6px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        transition: background 0.25s ease, color 0.25s ease;
+      }
+      .theme-toggle button.active {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .theme-toggle button:hover:not(.active) {
+        color: var(--ink);
+      }
+
+      /* Menu bar mockup */
+      .menubar-stage {
+        background: linear-gradient(180deg, #2a2a2e 0%, #1c1c1f 100%);
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--hairline-strong);
+      }
+      .menubar-stage-label {
+        position: absolute;
+        bottom: 10px;
+        right: 12px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.35);
+        pointer-events: none;
+      }
+      .menubar {
+        height: 24px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%),
+          rgba(20, 20, 22, 0.92);
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        gap: 18px;
+        backdrop-filter: blur(20px);
+        color: rgba(255, 255, 255, 0.85);
+        font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .menubar .app-name {
+        font-weight: 600;
+      }
+      .menubar .menu-items {
+        display: flex;
+        gap: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 400;
+        font-size: 13px;
+      }
+      .menubar .spacer {
+        flex: 1;
+      }
+      .menubar .tray-cluster {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .menubar .tray-cluster svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+      .menubar .system-icon {
+        opacity: 0.85;
+      }
+      .menubar .clock {
+        font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.9;
+      }
+      .menubar .nowtify-tray {
+        position: relative;
+        padding: 0 2px;
+      }
+      .menubar .nowtify-tray::after {
+        content: '';
+        position: absolute;
+        inset: -4px -4px -4px -4px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        border-radius: 3px;
+        pointer-events: none;
+      }
+      .menubar-strip {
+        padding: 26px 12px 12px;
+        position: relative;
+      }
+      .menubar-strip-eyebrow {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      .menubar-grid {
+        display: grid;
+        gap: 12px;
+        padding: 18px 0;
+      }
+      .strip-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        padding-left: 12px;
+      }
+
+      /* ============== Footer ============== */
+      footer {
+        margin-top: 120px;
+        padding-top: 36px;
+        border-top: 1px solid var(--ink);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: end;
+      }
+      footer .end {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 28px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      footer .signoff {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        text-align: right;
+        line-height: 1.7;
+      }
+      footer .signoff strong {
+        color: var(--ink);
+        font-weight: 400;
+      }
+
+      /* Section recap row above tray icons */
+      .recap {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin: 0 0 48px;
+        padding: 24px 0;
+        border-top: 1px solid var(--hairline);
+        border-bottom: 1px solid var(--hairline);
+      }
+      .recap-item {
+        display: grid;
+        gap: 6px;
+      }
+      .recap-item .label {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-4);
+      }
+      .recap-item .value {
+        font-family: var(--display);
+        font-size: 16px;
+        letter-spacing: -0.005em;
+        color: var(--ink);
+      }
+      .recap-item .swatchbar {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .recap-item .swatchbar span {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+
+      /* Section subdivider (between camera-leaning marks and the alternative direction) */
+      .subdivider {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 32px;
+        margin: 56px 0 12px;
+        padding-top: 32px;
+        border-top: 1px solid var(--ink);
+      }
+      .subdivider .ribbon {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--indigo);
+      }
+      .subdivider h3 {
+        font-family: var(--display);
+        font-size: 30px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin: 6px 0 10px;
+      }
+      .subdivider p {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        max-width: 56ch;
+      }
+
+      /* Wordmark mark (concept 13) - uses dotless i (U+0131) with an indigo dot overlay */
+      .wm-mark {
+        position: relative;
+        font-family: var(--display);
+        font-size: 52px;
+        font-weight: 500;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        line-height: 1;
+        white-space: nowrap;
+        display: inline-block;
+      }
+      .wm-mark .wm-dot {
+        position: absolute;
+        top: -2px;
+        left: 56.5%;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--indigo);
+        box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.18);
+      }
+      .wm-mark.wm-mark-sm {
+        font-size: 22px;
+      }
+      .wm-mark.wm-mark-sm .wm-dot {
+        width: 7px;
+        height: 7px;
+        top: -1px;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+      }
+      .wm-mark.wm-mark-app {
+        font-size: 30px;
+        color: var(--indigo);
+      }
+      .wm-mark.wm-mark-app .wm-dot {
+        width: 10px;
+        height: 10px;
+        top: -2px;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.25);
+      }
+
+      @media (max-width: 980px) {
+        main { padding: 36px; }
+        .title-block { grid-template-columns: 1fr; }
+        .logo-card { grid-template-columns: 60px 1fr; }
+        .logo-card > div:nth-child(3),
+        .logo-card > div:nth-child(4) { grid-column: 2; }
+        .tray-card { grid-template-columns: 60px 1fr; }
+        .state-row { grid-template-columns: repeat(2, 1fr); }
+      }
+
+      /* Tasteful entrance: stagger reveal on load */
+      .reveal {
+        opacity: 0;
+        transform: translateY(8px);
+        animation: rise 0.6s cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
+      }
+      @keyframes rise {
+        to { opacity: 1; transform: none; }
+      }
+      .reveal:nth-child(1) { animation-delay: 0s; }
+      .reveal:nth-child(2) { animation-delay: 0.08s; }
+      .reveal:nth-child(3) { animation-delay: 0.16s; }
+      .reveal:nth-child(4) { animation-delay: 0.24s; }
+      .reveal:nth-child(5) { animation-delay: 0.32s; }
+
+      /* Subtle pulse on the alerting tray cells, for life */
+      @keyframes pulse-alert {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+      .state-cell[data-state='alerting'] .swatch svg {
+        animation: pulse-alert 1.6s ease-in-out infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- ============== TITLE BLOCK ============== -->
+      <div class="title-block">
+        <div>
+          <div class="eyebrow"><span class="dot"></span>VOLUME 01 · BRAND EXPLORATION</div>
+          <h1>
+            Now<em>tify.</em><br />
+            Five marks,<br />
+            four pulses.
+          </h1>
+        </div>
+        <div>
+          <div class="theme-toggle" role="group" aria-label="Theme">
+            <button data-set-theme="light" class="active" type="button">Light</button>
+            <button data-set-theme="dark" type="button">Dark</button>
+          </div>
+          <p class="lede">
+            A working document for picking the visual identity of an ambient JSM alerting tool that
+            lives in the menu bar and on the edge of your screen.
+          </p>
+          <dl class="meta-strip">
+            <dt>Project</dt><dd>Nowtify</dd>
+            <dt>Owner</dt><dd>Paul Gerios</dd>
+            <dt>Date</dt><dd>2026-05-23</dd>
+            <dt>Status</dt><dd>For review</dd>
+            <dt>Marks</dt><dd>13 logos</dd>
+            <dt>Glyphs</dt><dd>6 × 4 states</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============== SECTION 01 - LOGOS ============== -->
+      <section>
+        <div class="section-head">
+          <div class="section-num">01</div>
+          <h2>Logo concepts</h2>
+          <div class="count">Thirteen marks<strong>Pick one to advance</strong></div>
+        </div>
+
+        <!-- ── 01 Pulse-N ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">01</div>
+          <div class="card-meta">
+            <div class="card-name">Pulse-N</div>
+            <p class="card-blurb">
+              A custom "N" whose diagonal stroke breaks into an EKG-style heartbeat. Ties the name
+              to the behavior in a single mark.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>32px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <rect x="24" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+              <rect x="82" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+              <path
+                d="M 31 28 L 47 56 L 54 36 L 62 80 L 70 56 L 89 92"
+                stroke="#4f46e5"
+                stroke-width="13"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <rect x="24" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+                  <rect x="82" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+                  <path
+                    d="M 31 28 L 47 56 L 54 36 L 62 80 L 70 56 L 89 92"
+                    stroke="#4f46e5"
+                    stroke-width="13"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-cream-indigo">
+                <svg viewBox="0 0 120 120">
+                  <rect x="24" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+                  <rect x="82" y="18" width="14" height="84" rx="3" fill="#4f46e5" />
+                  <path
+                    d="M 31 28 L 47 56 L 54 36 L 62 80 L 70 56 L 89 92"
+                    stroke="#4f46e5"
+                    stroke-width="13"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 02 Concentric ring sweep ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">02</div>
+          <div class="card-meta">
+            <div class="card-name">Sonar sweep</div>
+            <p class="card-blurb">
+              Three nested arcs radiating from a quiet origin. A pure ambient-signal metaphor.
+              Reads at any size, doesn't need text.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Standalone mark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>16px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="28" cy="92" r="7" fill="#4f46e5" />
+              <path
+                d="M 28 65 A 27 27 0 0 1 55 92"
+                stroke="#4f46e5"
+                stroke-width="3.5"
+                fill="none"
+                opacity="0.45"
+                stroke-linecap="round"
+              />
+              <path
+                d="M 28 40 A 52 52 0 0 1 80 92"
+                stroke="#4f46e5"
+                stroke-width="3.5"
+                fill="none"
+                opacity="0.72"
+                stroke-linecap="round"
+              />
+              <path
+                d="M 28 14 A 78 78 0 0 1 106 92"
+                stroke="#4f46e5"
+                stroke-width="3.5"
+                fill="none"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="28" cy="92" r="7" fill="#4f46e5" />
+                  <path
+                    d="M 28 65 A 27 27 0 0 1 55 92"
+                    stroke="#4f46e5"
+                    stroke-width="3.5"
+                    fill="none"
+                    opacity="0.45"
+                  />
+                  <path
+                    d="M 28 40 A 52 52 0 0 1 80 92"
+                    stroke="#4f46e5"
+                    stroke-width="3.5"
+                    fill="none"
+                    opacity="0.72"
+                  />
+                  <path
+                    d="M 28 14 A 78 78 0 0 1 106 92"
+                    stroke="#4f46e5"
+                    stroke-width="3.5"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-indigo">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="28" cy="92" r="7" fill="#fff" />
+                  <path
+                    d="M 28 65 A 27 27 0 0 1 55 92"
+                    stroke="#fff"
+                    stroke-width="3.5"
+                    fill="none"
+                    opacity="0.55"
+                  />
+                  <path
+                    d="M 28 40 A 52 52 0 0 1 80 92"
+                    stroke="#fff"
+                    stroke-width="3.5"
+                    fill="none"
+                    opacity="0.78"
+                  />
+                  <path
+                    d="M 28 14 A 78 78 0 0 1 106 92"
+                    stroke="#fff"
+                    stroke-width="3.5"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 03 Corner frame ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">03</div>
+          <div class="card-meta">
+            <div class="card-name">Corner frame</div>
+            <p class="card-blurb">
+              Four brackets imply the screen, the way a viewfinder does. A glowing dot in one
+              corner is the alert. Most literal of the five.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>24px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <path
+                d="M 20 38 L 20 20 L 38 20"
+                stroke="#4f46e5"
+                stroke-width="5"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M 82 20 L 100 20 L 100 38"
+                stroke="#4f46e5"
+                stroke-width="5"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M 20 82 L 20 100 L 38 100"
+                stroke="#4f46e5"
+                stroke-width="5"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M 82 100 L 100 100 L 100 82"
+                stroke="#4f46e5"
+                stroke-width="5"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="100" cy="20" r="14" fill="#4f46e5" opacity="0.22" />
+              <circle cx="100" cy="20" r="9" fill="#4f46e5" opacity="0.4" />
+              <circle cx="100" cy="20" r="5" fill="#4f46e5" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <path d="M 20 38 L 20 20 L 38 20" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 20 L 100 20 L 100 38" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 20 82 L 20 100 L 38 100" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 100 L 100 100 L 100 82" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="100" cy="20" r="9" fill="#4f46e5" opacity="0.45" />
+                  <circle cx="100" cy="20" r="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-paper">
+                <svg viewBox="0 0 120 120">
+                  <path d="M 20 38 L 20 20 L 38 20" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 20 L 100 20 L 100 38" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 20 82 L 20 100 L 38 100" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 100 L 100 100 L 100 82" stroke="#4f46e5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="100" cy="20" r="14" fill="#4f46e5" opacity="0.22" />
+                  <circle cx="100" cy="20" r="9" fill="#4f46e5" opacity="0.45" />
+                  <circle cx="100" cy="20" r="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 04 Notification orb ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">04</div>
+          <div class="card-meta">
+            <div class="card-name">Notification orb</div>
+            <p class="card-blurb">
+              A glowing gradient circle with a soft halo. The safe, polished, brand-builder choice.
+              Animates beautifully on launch.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Standalone mark</strong></div>
+              <div><span>Fill</span><strong>Indigo → Pink</strong></div>
+              <div><span>Best at</span><strong>32px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <radialGradient id="orb1" cx="40%" cy="35%">
+                  <stop offset="0%" stop-color="#a5b4fc" />
+                  <stop offset="40%" stop-color="#6366f1" />
+                  <stop offset="100%" stop-color="#ec4899" />
+                </radialGradient>
+                <filter id="halo1" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" />
+                </filter>
+              </defs>
+              <circle cx="60" cy="60" r="44" fill="url(#orb1)" opacity="0.32" filter="url(#halo1)" />
+              <circle cx="60" cy="60" r="32" fill="url(#orb1)" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <defs>
+                    <radialGradient id="orb1b" cx="40%" cy="35%">
+                      <stop offset="0%" stop-color="#a5b4fc" />
+                      <stop offset="40%" stop-color="#6366f1" />
+                      <stop offset="100%" stop-color="#ec4899" />
+                    </radialGradient>
+                  </defs>
+                  <circle cx="60" cy="60" r="38" fill="url(#orb1b)" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-noir">
+                <svg viewBox="0 0 120 120">
+                  <defs>
+                    <radialGradient id="orb1c" cx="40%" cy="35%">
+                      <stop offset="0%" stop-color="#c7d2fe" />
+                      <stop offset="40%" stop-color="#6366f1" />
+                      <stop offset="100%" stop-color="#ec4899" />
+                    </radialGradient>
+                    <filter id="halo1c" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="8" />
+                    </filter>
+                  </defs>
+                  <circle cx="60" cy="60" r="52" fill="url(#orb1c)" opacity="0.32" filter="url(#halo1c)" />
+                  <circle cx="60" cy="60" r="36" fill="url(#orb1c)" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 05 Diamond spark ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">05</div>
+          <div class="card-meta">
+            <div class="card-name">Diamond spark</div>
+            <p class="card-blurb">
+              A clean rhombus with two sparkle marks radiating from one corner. Tech, slightly
+              playful. The most "icon-like" of the marks.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>20px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <rect
+                x="40"
+                y="40"
+                width="44"
+                height="44"
+                fill="#4f46e5"
+                transform="rotate(45 62 62)"
+                rx="4"
+              />
+              <line x1="92" y1="22" x2="106" y2="8" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="104" y1="36" x2="112" y2="36" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="92" y1="46" x2="92" y2="54" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <rect x="40" y="40" width="44" height="44" fill="#4f46e5" transform="rotate(45 62 62)" rx="4" />
+                  <line x1="92" y1="22" x2="106" y2="8" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="104" y1="36" x2="112" y2="36" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-paper">
+                <svg viewBox="0 0 120 120">
+                  <rect x="40" y="40" width="44" height="44" fill="#4f46e5" transform="rotate(45 62 62)" rx="4" />
+                  <line x1="92" y1="22" x2="106" y2="8" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="104" y1="36" x2="112" y2="36" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="92" y1="46" x2="92" y2="54" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 06 Pulse ring ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">06</div>
+          <div class="card-meta">
+            <div class="card-name">Pulse ring</div>
+            <p class="card-blurb">
+              A quiet circle interrupted at the top by one heartbeat. Combines the ambient sonar
+              metaphor and the EKG spike in a single shape.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Standalone mark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>24px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <path
+                d="M 35 35 L 45 35 L 52 22 L 60 50 L 68 22 L 75 35 L 85 35 A 35 35 0 1 1 35 35"
+                stroke="#4f46e5"
+                stroke-width="6"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <path
+                    d="M 35 35 L 45 35 L 52 22 L 60 50 L 68 22 L 75 35 L 85 35 A 35 35 0 1 1 35 35"
+                    stroke="#4f46e5"
+                    stroke-width="6"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-indigo">
+                <svg viewBox="0 0 120 120">
+                  <path
+                    d="M 35 35 L 45 35 L 52 22 L 60 50 L 68 22 L 75 35 L 85 35 A 35 35 0 1 1 35 35"
+                    stroke="#ffffff"
+                    stroke-width="6"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 07 Bracket pulse ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">07</div>
+          <div class="card-meta">
+            <div class="card-name">Bracket pulse</div>
+            <p class="card-blurb">
+              The IDE bracket grammar with a pulse held inside. Coder-native, structured. Pairs
+              naturally with the bracket-cursor tray glyph.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>20px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <path
+                d="M 38 25 L 25 25 L 25 95 L 38 95"
+                stroke="#4f46e5"
+                stroke-width="7"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M 82 25 L 95 25 L 95 95 L 82 95"
+                stroke="#4f46e5"
+                stroke-width="7"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="60" cy="60" r="16" fill="#4f46e5" opacity="0.18" />
+              <circle cx="60" cy="60" r="11" fill="#4f46e5" opacity="0.38" />
+              <circle cx="60" cy="60" r="7" fill="#4f46e5" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <path d="M 38 25 L 25 25 L 25 95 L 38 95" stroke="#4f46e5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 25 L 95 25 L 95 95 L 82 95" stroke="#4f46e5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="60" cy="60" r="11" fill="#4f46e5" opacity="0.38" />
+                  <circle cx="60" cy="60" r="7" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-cream-indigo">
+                <svg viewBox="0 0 120 120">
+                  <path d="M 38 25 L 25 25 L 25 95 L 38 95" stroke="#4f46e5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 82 25 L 95 25 L 95 95 L 82 95" stroke="#4f46e5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="60" cy="60" r="16" fill="#4f46e5" opacity="0.22" />
+                  <circle cx="60" cy="60" r="11" fill="#4f46e5" opacity="0.45" />
+                  <circle cx="60" cy="60" r="7" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 08 Beacon ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">08</div>
+          <div class="card-meta">
+            <div class="card-name">Beacon</div>
+            <p class="card-blurb">
+              Radial beams emanating from a central source. Active and energetic; reads as "this
+              thing is broadcasting right now."
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Standalone mark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>32px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="9" fill="#4f46e5" />
+              <line x1="60" y1="44" x2="60" y2="12" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="71" y1="49" x2="88" y2="32" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round" opacity="0.75" />
+              <line x1="49" y1="49" x2="32" y2="32" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round" opacity="0.75" />
+              <line x1="76" y1="60" x2="100" y2="60" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" opacity="0.55" />
+              <line x1="44" y1="60" x2="20" y2="60" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" opacity="0.55" />
+              <line x1="71" y1="71" x2="84" y2="84" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round" opacity="0.4" />
+              <line x1="49" y1="71" x2="36" y2="84" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round" opacity="0.4" />
+              <line x1="60" y1="76" x2="60" y2="92" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round" opacity="0.4" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="9" fill="#4f46e5" />
+                  <line x1="60" y1="44" x2="60" y2="14" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="71" y1="49" x2="86" y2="34" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round" opacity="0.75" />
+                  <line x1="49" y1="49" x2="34" y2="34" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round" opacity="0.75" />
+                  <line x1="76" y1="60" x2="96" y2="60" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" opacity="0.55" />
+                  <line x1="44" y1="60" x2="24" y2="60" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" opacity="0.55" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-noir">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="10" fill="#ec4899" />
+                  <circle cx="60" cy="60" r="18" fill="#ec4899" opacity="0.18" />
+                  <line x1="60" y1="42" x2="60" y2="10" stroke="#a5b4fc" stroke-width="5" stroke-linecap="round" />
+                  <line x1="73" y1="49" x2="90" y2="32" stroke="#a5b4fc" stroke-width="4.5" stroke-linecap="round" opacity="0.85" />
+                  <line x1="47" y1="49" x2="30" y2="32" stroke="#a5b4fc" stroke-width="4.5" stroke-linecap="round" opacity="0.85" />
+                  <line x1="78" y1="60" x2="104" y2="60" stroke="#a5b4fc" stroke-width="4" stroke-linecap="round" opacity="0.65" />
+                  <line x1="42" y1="60" x2="16" y2="60" stroke="#a5b4fc" stroke-width="4" stroke-linecap="round" opacity="0.65" />
+                  <line x1="73" y1="71" x2="86" y2="84" stroke="#a5b4fc" stroke-width="3.5" stroke-linecap="round" opacity="0.5" />
+                  <line x1="47" y1="71" x2="34" y2="84" stroke="#a5b4fc" stroke-width="3.5" stroke-linecap="round" opacity="0.5" />
+                  <line x1="60" y1="78" x2="60" y2="94" stroke="#a5b4fc" stroke-width="3.5" stroke-linecap="round" opacity="0.5" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 09 Reticle ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">09</div>
+          <div class="card-meta">
+            <div class="card-name">Reticle</div>
+            <p class="card-blurb">
+              A crosshair locked on its target. The most tactical / monitoring-oriented of the
+              marks. Best for teams who frame ops as defense.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>20px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="34" stroke="#4f46e5" stroke-width="4" fill="none" />
+              <line x1="60" y1="14" x2="60" y2="28" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="60" y1="92" x2="60" y2="106" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="14" y1="60" x2="28" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <line x1="92" y1="60" x2="106" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+              <circle cx="60" cy="60" r="5" fill="#4f46e5" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="34" stroke="#4f46e5" stroke-width="4" fill="none" />
+                  <line x1="60" y1="14" x2="60" y2="28" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="60" y1="92" x2="60" y2="106" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="14" y1="60" x2="28" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="92" y1="60" x2="106" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <circle cx="60" cy="60" r="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-paper">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="34" stroke="#4f46e5" stroke-width="4" fill="none" />
+                  <line x1="60" y1="14" x2="60" y2="28" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="60" y1="92" x2="60" y2="106" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="14" y1="60" x2="28" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <line x1="92" y1="60" x2="106" y2="60" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" />
+                  <circle cx="60" cy="60" r="14" fill="#4f46e5" opacity="0.18" />
+                  <circle cx="60" cy="60" r="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+        <!-- ────────── SUBSECTION: away from surveillance ────────── -->
+        <div class="subdivider">
+          <div class="ribbon">↳ 10 / 13</div>
+          <div>
+            <h3>Beyond surveillance</h3>
+            <p>
+              The first nine drift into camera-and-scope vocabulary because the product watches
+              things. The four below do the opposite: signal, glow, badge, type. Less "monitoring
+              you," more "telling you."
+            </p>
+          </div>
+        </div>
+
+        <!-- ── 10 Horizontal waveform ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">10</div>
+          <div class="card-meta">
+            <div class="card-name">Horizontal waveform</div>
+            <p class="card-blurb">
+              An EKG line stretched flat across the mark. Reads as a transmission, not a capture.
+              Pairs naturally with the Pulse waveform tray glyph.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>24px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <path
+                d="M 10 60 L 36 60 L 44 60 L 52 36 L 60 88 L 68 24 L 76 84 L 84 60 L 110 60"
+                stroke="#4f46e5"
+                stroke-width="6"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="10" cy="60" r="4" fill="#4f46e5" />
+              <circle cx="110" cy="60" r="4" fill="#4f46e5" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <path
+                    d="M 10 60 L 36 60 L 44 60 L 52 36 L 60 88 L 68 24 L 76 84 L 84 60 L 110 60"
+                    stroke="#4f46e5"
+                    stroke-width="6"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="10" cy="60" r="4" fill="#4f46e5" />
+                  <circle cx="110" cy="60" r="4" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-noir">
+                <svg viewBox="0 0 120 120">
+                  <path
+                    d="M 10 60 L 36 60 L 44 60 L 52 36 L 60 88 L 68 24 L 76 84 L 84 60 L 110 60"
+                    stroke="#a5b4fc"
+                    stroke-width="6"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="10" cy="60" r="4" fill="#a5b4fc" />
+                  <circle cx="110" cy="60" r="4" fill="#a5b4fc" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 11 Aurora glow ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">11</div>
+          <div class="card-meta">
+            <div class="card-name">Aurora glow</div>
+            <p class="card-blurb">
+              A soft, irregular glow - not a perfect circle. Organic, atmospheric, alive. The
+              Notification orb if it forgot to be geometric.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Standalone mark</strong></div>
+              <div><span>Fill</span><strong>Indigo → Pink</strong></div>
+              <div><span>Best at</span><strong>40px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <radialGradient id="aurora1" cx="40%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#c7d2fe" />
+                  <stop offset="35%" stop-color="#6366f1" />
+                  <stop offset="80%" stop-color="#ec4899" />
+                  <stop offset="100%" stop-color="#ec4899" stop-opacity="0.2" />
+                </radialGradient>
+                <filter id="aurora1f" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <path
+                d="M 32 48 C 28 28 50 18 68 24 C 90 30 100 50 96 70 C 92 90 70 102 50 96 C 30 90 22 70 32 48 Z"
+                fill="url(#aurora1)"
+                opacity="0.35"
+                filter="url(#aurora1f)"
+              />
+              <path
+                d="M 36 50 C 34 32 52 24 66 28 C 84 32 92 48 90 66 C 88 84 70 94 54 90 C 38 86 30 70 36 50 Z"
+                fill="url(#aurora1)"
+              />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <defs>
+                    <radialGradient id="aurora1b" cx="40%" cy="35%" r="65%">
+                      <stop offset="0%" stop-color="#c7d2fe" />
+                      <stop offset="35%" stop-color="#6366f1" />
+                      <stop offset="80%" stop-color="#ec4899" />
+                    </radialGradient>
+                  </defs>
+                  <path
+                    d="M 36 50 C 34 32 52 24 66 28 C 84 32 92 48 90 66 C 88 84 70 94 54 90 C 38 86 30 70 36 50 Z"
+                    fill="url(#aurora1b)"
+                  />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-noir">
+                <svg viewBox="0 0 120 120">
+                  <defs>
+                    <radialGradient id="aurora1c" cx="40%" cy="35%" r="65%">
+                      <stop offset="0%" stop-color="#e0e7ff" />
+                      <stop offset="35%" stop-color="#6366f1" />
+                      <stop offset="80%" stop-color="#ec4899" />
+                      <stop offset="100%" stop-color="#ec4899" stop-opacity="0" />
+                    </radialGradient>
+                    <filter id="aurora1d" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="7" />
+                    </filter>
+                  </defs>
+                  <path
+                    d="M 28 46 C 24 24 50 14 70 20 C 94 26 104 48 100 70 C 96 94 70 106 48 100 C 26 94 18 70 28 46 Z"
+                    fill="url(#aurora1c)"
+                    opacity="0.4"
+                    filter="url(#aurora1d)"
+                  />
+                  <path
+                    d="M 36 50 C 34 32 52 24 66 28 C 84 32 92 48 90 66 C 88 84 70 94 54 90 C 38 86 30 70 36 50 Z"
+                    fill="url(#aurora1c)"
+                  />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 12 Notification stack ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">12</div>
+          <div class="card-meta">
+            <div class="card-name">Notification stack</div>
+            <p class="card-blurb">
+              Three bars stacked like the iOS notification grouping. Native UX vocabulary; no one
+              has to learn what it means. Friendly, not tactical.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Mark + wordmark</strong></div>
+              <div><span>Fill</span><strong>#4F46E5</strong></div>
+              <div><span>Best at</span><strong>20px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28" />
+              <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55" />
+              <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5" />
+            </svg>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="mark">
+                <svg viewBox="0 0 120 120">
+                  <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28" />
+                  <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55" />
+                  <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="wordmark">Now<em>tify</em></div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-cream-indigo">
+                <svg viewBox="0 0 120 120">
+                  <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.3" />
+                  <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.6" />
+                  <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5" />
+                </svg>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 13 Wordmark (pulse-i) ─────────────────── -->
+        <div class="logo-card reveal">
+          <div class="card-num">13</div>
+          <div class="card-meta">
+            <div class="card-name">Wordmark</div>
+            <p class="card-blurb">
+              The wordmark IS the mark. The "i" dot becomes the pulse. No separate icon. The most
+              type-forward / agency option. Pairs with N monogram tray.
+            </p>
+            <div class="spec-list">
+              <div><span>Type</span><strong>Wordmark only</strong></div>
+              <div><span>Fill</span><strong>Ink + indigo pulse</strong></div>
+              <div><span>Best at</span><strong>32px and up</strong></div>
+            </div>
+          </div>
+          <div class="mark-frame">
+            <div class="wm-mark">
+              Nowt&#305;fy
+              <span class="wm-dot"></span>
+            </div>
+            <span class="corner-br"></span>
+            <span class="mark-frame-label">120 × 120</span>
+          </div>
+          <div class="application">
+            <div class="application-row">
+              <div class="wm-mark wm-mark-sm">
+                Nowt&#305;fy
+                <span class="wm-dot"></span>
+              </div>
+            </div>
+            <div class="app-icon-stage">
+              <div class="app-icon icon-bg-paper">
+                <div class="wm-mark wm-mark-app">
+                  Nowt&#305;fy
+                  <span class="wm-dot"></span>
+                </div>
+              </div>
+              <div class="app-icon-caption">/Applications · 128 px</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== SECTION 02 - TRAY ICONS ============== -->
+      <section>
+        <div class="section-head">
+          <div class="section-num">02</div>
+          <h2>Tray icons</h2>
+          <div class="count">Six families · twenty-four glyphs<strong>One for the menu bar</strong></div>
+        </div>
+
+        <div class="recap">
+          <div class="recap-item">
+            <span class="label">Canvas</span>
+            <span class="value">18 × 18 px</span>
+            <span class="value" style="font-size: 11px; color: var(--ink-3); font-family: var(--mono); letter-spacing: 0.18em; text-transform: uppercase">Mac status bar</span>
+          </div>
+          <div class="recap-item">
+            <span class="label">States</span>
+            <span class="value">Idle · Alerting · Snoozed · Paused</span>
+          </div>
+          <div class="recap-item">
+            <span class="label">State color</span>
+            <div class="swatchbar">
+              <span style="background: #6b7280" title="idle"></span>
+              <span style="background: #ef4444" title="alerting"></span>
+              <span style="background: #f59e0b" title="snoozed"></span>
+              <span style="background: #9ca3af" title="paused"></span>
+            </div>
+          </div>
+          <div class="recap-item">
+            <span class="label">Stroke</span>
+            <span class="value">1.4 px, round</span>
+          </div>
+        </div>
+
+        <!-- ── Bell family ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">01</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">Bell family</div>
+              <p class="card-blurb">
+                The universal grammar of notifications. No one has to learn what it means. Familiar
+                without being boring if the silhouette is right.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                    <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                    <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" fill="none" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                    <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" />
+                    <text x="13.2" y="6.4" font-family="-apple-system, system-ui, sans-serif" font-size="5" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">Z</text>
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                    <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" />
+                    <line x1="3" y1="15.5" x2="15" y2="2.5" stroke-width="1.6" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Finder</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                          <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" />
+                        </svg>
+                      </span>
+                      <svg class="system-icon" viewBox="0 0 18 18" fill="currentColor"><rect x="2" y="7" width="13" height="4" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="3" y="8" width="9" height="2" fill="rgba(255,255,255,0.9)"/></svg>
+                      <svg class="system-icon" viewBox="0 0 18 18"><path d="M 3 11 Q 9 5 15 11" stroke="rgba(255,255,255,0.7)" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M 5.5 13 Q 9 9 12.5 13" stroke="rgba(255,255,255,0.7)" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="9" cy="14.5" r="0.9" fill="rgba(255,255,255,0.9)"/></svg>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Finder</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span><span>View</span><span>Go</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="#ef4444" stroke="#ef4444" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M 4.6 12 V 8 a 4.4 4.4 0 0 1 8.8 0 v 4 l 1.2 1.5 h -11.2 l 1.2 -1.5 z" />
+                          <path d="M 7.5 15 a 1.5 1.5 0 0 0 3 0" fill="none" />
+                        </svg>
+                      </span>
+                      <svg class="system-icon" viewBox="0 0 18 18" fill="currentColor"><rect x="2" y="7" width="13" height="4" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="3" y="8" width="9" height="2" fill="rgba(255,255,255,0.9)"/></svg>
+                      <svg class="system-icon" viewBox="0 0 18 18"><path d="M 3 11 Q 9 5 15 11" stroke="rgba(255,255,255,0.7)" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pulse waveform ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">02</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">Pulse waveform</div>
+              <p class="card-blurb">
+                The icon as a tiny EKG. Reinforces the Pulse-N mark. The waveform changes with the
+                state - feels alive in a way the bell can't.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                    <line x1="3" y1="9" x2="15" y2="9" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 2.5 9 L 6 9 L 7.5 4 L 9.5 14 L 11.5 7 L 13 9 L 15.5 9" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                    <path d="M 3 9 Q 5 7 7 9 T 11 9 T 15 9" />
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2">
+                    <line x1="3" y1="9" x2="15" y2="9" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Safari</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span><span>View</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round">
+                          <line x1="3" y1="9" x2="15" y2="9" />
+                        </svg>
+                      </span>
+                      <svg class="system-icon" viewBox="0 0 18 18"><rect x="2" y="7" width="13" height="4" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="3" y="8" width="9" height="2" fill="rgba(255,255,255,0.9)"/></svg>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Safari</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M 2.5 9 L 6 9 L 7.5 4 L 9.5 14 L 11.5 7 L 13 9 L 15.5 9" />
+                        </svg>
+                      </span>
+                      <svg class="system-icon" viewBox="0 0 18 18"><rect x="2" y="7" width="13" height="4" rx="1" fill="rgba(255,255,255,0.7)"/><rect x="3" y="8" width="9" height="2" fill="rgba(255,255,255,0.9)"/></svg>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Concentric ring ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">03</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">Concentric ring</div>
+              <p class="card-blurb">
+                An abstract sonar/ping that pairs with the Sonar sweep logo (02) for a complete
+                identity. Most "designed" feel; least semantic on its own.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3">
+                    <circle cx="9" cy="9" r="5.5" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18">
+                    <circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3" />
+                    <circle cx="9" cy="9" r="2.4" fill="currentColor" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="1.6 1.6">
+                    <circle cx="9" cy="9" r="5.5" />
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5">
+                    <circle cx="9" cy="9" r="5.5" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Slack</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span><span>View</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#9ca3af" stroke-width="1.3"><circle cx="9" cy="9" r="5.5" /></svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Slack</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18">
+                          <circle cx="9" cy="9" r="5.5" fill="none" stroke="#ef4444" stroke-width="1.3" />
+                          <circle cx="9" cy="9" r="2.4" fill="#ef4444" />
+                        </svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── N monogram ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">04</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">N monogram</div>
+              <p class="card-blurb">
+                The brand letter in the menu bar. Pairs with Pulse-N (01). Brand-forward but states
+                are color-only - tougher for colorblind readers.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18" fill="currentColor">
+                    <path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18" fill="currentColor">
+                    <path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18" fill="currentColor">
+                    <path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" />
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Linear</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="#9ca3af"><path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" /></svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Linear</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="#ef4444"><path d="M 3 3 L 5.4 3 L 12.6 12 L 12.6 3 L 15 3 L 15 15 L 12.6 15 L 5.4 6 L 5.4 15 L 3 15 Z" /></svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Bracket cursor (pairs with Bracket pulse logo 07) ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">05</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">Bracket cursor</div>
+              <p class="card-blurb">
+                Pairs with the Bracket pulse mark (07). Reads as a cursor or capture frame. State
+                is communicated by what's between the brackets.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                    <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                    <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                    <circle cx="9" cy="9" r="2.4" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                    <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                    <circle cx="6.6" cy="9" r="0.9" fill="currentColor" stroke="none" />
+                    <circle cx="9" cy="9" r="0.9" fill="currentColor" stroke="none" />
+                    <circle cx="11.4" cy="9" r="0.9" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                    <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                    <line x1="3" y1="15" x2="15" y2="3" stroke-width="1.5" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Terminal</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span><span>View</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                          <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                        </svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Terminal</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18" fill="none" stroke="#ef4444" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M 6 4 L 4 4 L 4 14 L 6 14" />
+                          <path d="M 12 4 L 14 4 L 14 14 L 12 14" />
+                          <circle cx="9" cy="9" r="2.4" fill="#ef4444" stroke="none" />
+                        </svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Beacon dot (pairs with Beacon logo 08) ─────────────────── -->
+        <div class="tray-card reveal">
+          <div class="card-num">06</div>
+          <div class="tray-body">
+            <div class="tray-header">
+              <div class="card-name">Beacon dot</div>
+              <p class="card-blurb">
+                Pairs with the Beacon mark (08). Quiet dot in idle, explodes outward with rays when
+                alerting. Most "alive" of the families.
+              </p>
+            </div>
+            <div class="state-row">
+              <div class="state-cell" data-state="idle">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-idle">
+                  <svg viewBox="0 0 18 18">
+                    <circle cx="9" cy="9" r="2.5" fill="currentColor" />
+                  </svg>
+                </div>
+                <div class="label">Idle</div>
+              </div>
+              <div class="state-cell" data-state="alerting">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-alerting">
+                  <svg viewBox="0 0 18 18">
+                    <circle cx="9" cy="9" r="2.4" fill="currentColor" />
+                    <line x1="9" y1="2.5" x2="9" y2="5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                    <line x1="9" y1="13" x2="9" y2="15.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                    <line x1="2.5" y1="9" x2="5" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                    <line x1="13" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                    <line x1="4.4" y1="4.4" x2="6.2" y2="6.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+                    <line x1="11.8" y1="11.8" x2="13.6" y2="13.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+                    <line x1="11.8" y1="6.2" x2="13.6" y2="4.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+                    <line x1="4.4" y1="13.6" x2="6.2" y2="11.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+                  </svg>
+                </div>
+                <div class="label">Alerting</div>
+              </div>
+              <div class="state-cell" data-state="snoozed">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-snoozed">
+                  <svg viewBox="0 0 18 18">
+                    <circle cx="7" cy="11" r="2.4" fill="currentColor" />
+                    <path d="M 10.5 5 L 14 5 L 10.5 8 L 14 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <div class="label">Snoozed</div>
+              </div>
+              <div class="state-cell" data-state="paused">
+                <span class="state-dot"></span>
+                <div class="swatch glyph-paused">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3">
+                    <circle cx="9" cy="9" r="2.5" />
+                  </svg>
+                </div>
+                <div class="label">Paused</div>
+              </div>
+            </div>
+            <div class="menubar-stage">
+              <div class="menubar-strip">
+                <div class="menubar-strip-eyebrow">As it appears in the macOS menu bar · 1× scale</div>
+                <div class="menubar-grid">
+                  <div class="strip-label">Idle</div>
+                  <div class="menubar">
+                    <span class="app-name">Zed</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18">
+                          <circle cx="9" cy="9" r="2.5" fill="#9ca3af" />
+                        </svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:32 PM</span>
+                    </div>
+                  </div>
+                  <div class="strip-label">Alerting</div>
+                  <div class="menubar">
+                    <span class="app-name">Zed</span>
+                    <div class="menu-items"><span>File</span><span>Edit</span></div>
+                    <span class="spacer"></span>
+                    <div class="tray-cluster">
+                      <span class="nowtify-tray">
+                        <svg viewBox="0 0 18 18">
+                          <circle cx="9" cy="9" r="2.4" fill="#ef4444" />
+                          <line x1="9" y1="2.5" x2="9" y2="5" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round" />
+                          <line x1="9" y1="13" x2="9" y2="15.5" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round" />
+                          <line x1="2.5" y1="9" x2="5" y2="9" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round" />
+                          <line x1="13" y1="9" x2="15.5" y2="9" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round" />
+                          <line x1="4.4" y1="4.4" x2="6.2" y2="6.2" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+                          <line x1="11.8" y1="11.8" x2="13.6" y2="13.6" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+                          <line x1="11.8" y1="6.2" x2="13.6" y2="4.4" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+                          <line x1="4.4" y1="13.6" x2="6.2" y2="11.8" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" opacity="0.75" />
+                        </svg>
+                      </span>
+                      <span class="clock">Sat Jan 27 4:33 PM</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== FOOTER ============== -->
+      <footer>
+        <div class="end">end of document.</div>
+        <div class="signoff">
+          <strong>Nowtify Brand Exploration · Vol. 01</strong><br />
+          Prepared 2026-05-23 · Five marks, four glyph families<br />
+          Marks are inline SVG · Reproducible at any size
+        </div>
+      </footer>
+    </main>
+    <script>
+      (function () {
+        const buttons = document.querySelectorAll('[data-set-theme]');
+        const apply = (theme) => {
+          document.documentElement.dataset.theme = theme;
+          buttons.forEach((b) => b.classList.toggle('active', b.dataset.setTheme === theme));
+        };
+        buttons.forEach((btn) => btn.addEventListener('click', () => apply(btn.dataset.setTheme)));
+        apply('light');
+      })();
+    </script>
+  </body>
+</html>

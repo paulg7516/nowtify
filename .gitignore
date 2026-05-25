@@ -2,3 +2,8 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# Intermediate iconset directory used by iconutil to build icon.icns -
+# the .icns itself is committed (electron-builder needs it), the iconset
+# is just scratch.
+build/icon.iconset/
