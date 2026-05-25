@@ -1,5 +1,5 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, Notification, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 /* ----- security helpers ----- */
@@ -327,15 +327,57 @@ function setupAutoUpdater() {
   });
   autoUpdater.on('update-downloaded', async (info) => {
     console.log('[updater] downloaded:', info.version);
-    const { response } = await dialog.showMessageBox({
+
+    // Menu-bar apps (LSUIElement: true) have no dock icon, which means
+    // dialog.showMessageBox can appear without focus on a random space and
+    // get missed entirely. Surface the dock + steal focus for the duration
+    // of the dialog so the user actually sees it.
+    const dockWasHidden =
+      process.platform === 'darwin' && app.dock && !app.dock.isVisible();
+    if (process.platform === 'darwin' && app.dock && app.dock.show) {
+      app.dock.show();
+    }
+    if (app.focus) app.focus({ steal: true });
+
+    // Fire a native macOS notification as a fallback signal in case the
+    // dialog still gets buried (other-Space focus, Do-Not-Disturb off, etc).
+    // Clicking the notification triggers the install just like the dialog.
+    if (Notification.isSupported()) {
+      try {
+        const n = new Notification({
+          title: 'Nowtify update ready',
+          body: `Version ${info.version} is ready - click to restart now.`,
+          silent: false,
+        });
+        n.on('click', () => autoUpdater.quitAndInstall());
+        n.show();
+      } catch (_) {}
+    }
+
+    // If the user has the Settings window open, anchor the dialog to it so
+    // it appears as a sheet rather than a free-floating window.
+    const parent =
+      settingsWin && !settingsWin.isDestroyed() ? settingsWin : undefined;
+    const { response } = await dialog.showMessageBox(parent, {
       type: 'info',
       title: 'Nowtify update ready',
       message: `Version ${info.version} is ready to install.`,
-      detail: 'Restart now to apply, or it will install automatically when you quit.',
+      detail:
+        'Click Restart now to apply the update immediately.\n\n' +
+        'If you choose Later, the update will install the next time you fully ' +
+        'quit Nowtify. Note: closing this window does not quit the app - ' +
+        'right-click the Nowtify icon in the menu bar and choose Quit.',
       buttons: ['Restart now', 'Later'],
       defaultId: 0,
       cancelId: 1,
     });
+
+    // Re-hide the dock if it was hidden before, so the app goes back to
+    // pure menu-bar mode after the user dismisses the dialog.
+    if (dockWasHidden && process.platform === 'darwin' && app.dock && app.dock.hide) {
+      app.dock.hide();
+    }
+
     if (response === 0) autoUpdater.quitAndInstall();
   });
   autoUpdater.on('error', (err) => {
