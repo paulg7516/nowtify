@@ -10,8 +10,20 @@ class JsmClient {
     this.apiToken = apiToken || '';
   }
 
+  // Reject anything that isn't HTTPS so we never send Basic-auth credentials
+  // (email + token) over a cleartext connection. Atlassian Cloud is always
+  // https; this guards against a misconfigured siteUrl downgrading auth.
+  isHttpsSite() {
+    if (!this.siteUrl) return false;
+    try {
+      return new URL(this.siteUrl).protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
   isConfigured() {
-    return Boolean(this.siteUrl && this.email && this.apiToken);
+    return Boolean(this.siteUrl && this.email && this.apiToken && this.isHttpsSite());
   }
 
   authHeader() {
@@ -21,8 +33,16 @@ class JsmClient {
   }
 
   async request(path, { method = 'GET', body, query } = {}) {
-    if (!this.isConfigured()) throw new Error('JSM client not configured');
+    if (!this.isConfigured()) {
+      if (this.siteUrl && !this.isHttpsSite()) {
+        throw new Error('JSM site URL must use https:// - refusing to send credentials over http');
+      }
+      throw new Error('JSM client not configured');
+    }
     const url = new URL(path.startsWith('http') ? path : `${this.siteUrl}${path}`);
+    if (url.protocol !== 'https:') {
+      throw new Error('JSM request blocked: non-https URL ' + url.toString().slice(0, 200));
+    }
     if (query) {
       for (const [k, v] of Object.entries(query)) {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));

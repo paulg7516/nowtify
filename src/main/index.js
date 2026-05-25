@@ -2,6 +2,60 @@ const path = require('path');
 const { app, BrowserWindow, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+/* ----- security helpers ----- */
+
+// Top-level config keys the renderer is allowed to write via settings:save.
+// Anything else (e.g. snoozeUntil, future internal state) is rejected so a
+// compromised renderer cannot scribble arbitrary keys into the store.
+const ALLOWED_SAVE_KEYS = new Set([
+  'jsm',
+  'watchList',
+  'watchGroups',
+  'triggers',
+  'pollIntervalSeconds',
+]);
+
+// Hostnames the app is allowed to hand to the user's default browser via
+// shell.openExternal. URLs come from JSM API responses (browse URLs, Teams
+// meeting URLs) so a JSM admin could otherwise smuggle arbitrary http(s)
+// destinations into ticket data. Limited to: the configured JSM site,
+// Atlassian's account-management origin (for the API-token help link), and
+// Microsoft Teams' meeting-join origin.
+function isAllowedExternalHost(urlString) {
+  let u;
+  try {
+    u = new URL(urlString);
+  } catch (_) {
+    return false;
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+  const host = u.hostname.toLowerCase();
+  // Configured JSM site (e.g. xolv-sandbox.atlassian.net)
+  const jsmHost = (() => {
+    try {
+      const cfg = require('./store').get('jsm') || {};
+      return cfg.siteUrl ? new URL(cfg.siteUrl).hostname.toLowerCase() : '';
+    } catch (_) {
+      return '';
+    }
+  })();
+  if (jsmHost && host === jsmHost) return true;
+  // Atlassian identity (API-token management page)
+  if (host === 'id.atlassian.com') return true;
+  // Microsoft Teams meeting / chat endpoints
+  if (host === 'teams.microsoft.com' || host.endsWith('.teams.microsoft.com')) return true;
+  return false;
+}
+
+function safeOpenExternal(url) {
+  if (typeof url !== 'string') return;
+  if (!isAllowedExternalHost(url)) {
+    console.warn('[security] blocked openExternal for', url.slice(0, 200));
+    return;
+  }
+  shell.openExternal(url);
+}
+
 const BRAND_ICON_PATH = path.join(__dirname, '..', '..', 'build', 'icon.png');
 
 const store = require('./store');
@@ -95,6 +149,10 @@ function wireIpc() {
   ipcMain.handle('settings:save', (_e, patch) => {
     if (!patch || typeof patch !== 'object') return store.getAll();
     for (const [key, value] of Object.entries(patch)) {
+      if (!ALLOWED_SAVE_KEYS.has(key)) {
+        console.warn('[security] rejected settings:save for disallowed key', key);
+        continue;
+      }
       store.set(key, value);
     }
     engine.rebuildClient();
@@ -102,7 +160,15 @@ function wireIpc() {
   });
   ipcMain.handle('settings:test-connection', async (_e, creds) => {
     try {
-      const client = new JsmClient(creds);
+      // If the renderer omits the token (because the field is blank and a
+      // token is already stored), fall back to the stored one. The token
+      // never round-trips through the renderer.
+      const merged = { ...(creds || {}) };
+      if (!merged.apiToken) {
+        const stored = store.get('jsm') || {};
+        merged.apiToken = stored.apiToken || '';
+      }
+      const client = new JsmClient(merged);
       const user = await client.getMyself();
       return {
         ok: true,
@@ -133,9 +199,7 @@ function wireIpc() {
     return fields;
   });
   ipcMain.handle('settings:poke-engine', () => engine.pokeNow());
-  ipcMain.handle('settings:open-external', (_e, url) => {
-    if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url);
-  });
+  ipcMain.handle('settings:open-external', (_e, url) => safeOpenExternal(url));
 
   // Triggers CRUD - broadcasts back to settings so all UIs stay in sync.
   ipcMain.handle('settings:set-trigger-enabled', (_e, { triggerId, enabled }) => {
@@ -161,9 +225,7 @@ function wireIpc() {
 
   // Popover
   ipcMain.handle('popover:get-state', () => engine.getState());
-  ipcMain.handle('popover:open-ticket', (_e, url) => {
-    if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url);
-  });
+  ipcMain.handle('popover:open-ticket', (_e, url) => safeOpenExternal(url));
   ipcMain.handle('popover:snooze', (_e, value) => {
     // Accept either a numeric minutes value or the string 'indefinite'.
     if (value === 'indefinite') store.setSnooze('indefinite');

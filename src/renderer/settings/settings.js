@@ -93,13 +93,20 @@ async function load() {
   workingConfig = await api.getConfig();
   el('siteUrl').value = workingConfig.jsm.siteUrl || '';
   el('email').value = workingConfig.jsm.email || '';
-  el('apiToken').value = workingConfig.jsm.apiToken || '';
+  // The main process never returns the real API token (encrypted at rest,
+  // redacted in transit). When a token is stored we leave the input empty
+  // and signal "already set" via the placeholder. Empty submissions are
+  // preserved as the existing value by the main process.
+  el('apiToken').value = '';
+  el('apiToken').placeholder = workingConfig.jsm.hasApiToken
+    ? '•••••••• saved - leave blank to keep'
+    : 'Atlassian API token';
   el('pollIntervalSeconds').value = workingConfig.pollIntervalSeconds || 30;
   renderWatchList();
   renderWatchGroups();
   renderTriggers();
 
-  if (workingConfig.jsm.siteUrl && workingConfig.jsm.email && workingConfig.jsm.apiToken) {
+  if (workingConfig.jsm.siteUrl && workingConfig.jsm.email && workingConfig.jsm.hasApiToken) {
     setConnectionState('unknown', 'Configured');
   } else {
     setConnectionState('unknown', 'Not connected');
@@ -461,7 +468,11 @@ async function doUserSearch() {
       target.appendChild(li);
     }
   } catch (err) {
-    target.innerHTML = `<li class="muted">${err.message || err}</li>`;
+    target.innerHTML = '';
+    const errLi = document.createElement('li');
+    errLi.className = 'muted';
+    errLi.textContent = String(err && err.message ? err.message : err);
+    target.appendChild(errLi);
   }
 }
 
@@ -503,7 +514,11 @@ async function doGroupSearch() {
       target.appendChild(li);
     }
   } catch (err) {
-    target.innerHTML = `<li class="muted">${err.message || err}</li>`;
+    target.innerHTML = '';
+    const errLi = document.createElement('li');
+    errLi.className = 'muted';
+    errLi.textContent = String(err && err.message ? err.message : err);
+    target.appendChild(errLi);
   }
 }
 
