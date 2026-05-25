@@ -148,19 +148,23 @@ function renderList(state) {
 }
 
 function renderEmpty(state) {
-  // Tab-aware empty state so "no incidents" doesn't read as "nothing to do"
-  // when there are approvals on the other tab.
-  let titleText = activeTab === 'approvals' ? 'No pending approvals' : 'All quiet';
-  let message =
-    activeTab === 'approvals'
-      ? 'Nothing waiting on your approval right now.'
-      : 'No incidents matching your triggers right now.';
+  // Empty state describes what's in the active tab. The snoozed/paused
+  // status is already shown in the banner at the top, so we don't repeat
+  // it here - that would just obscure what the user is actually looking at
+  // ("are there approvals waiting or not?").
+  let titleText;
+  let message;
   if (state.status === 'paused') {
+    // No triggers enabled at all - nothing is being polled. Different from
+    // snoozed (which still polls, just doesn't pulse the border).
     titleText = 'All triggers off';
     message = 'Turn one on in Settings to start watching.';
-  } else if (state.snoozed) {
-    titleText = 'Pulse alerts paused';
-    message = 'Polling continues in the background. Click Resume above to bring the pulse back.';
+  } else if (activeTab === 'approvals') {
+    titleText = 'No approvals';
+    message = 'No pending approvals assigned to you have been identified.';
+  } else {
+    titleText = 'No incidents';
+    message = 'No tickets are currently triggering an incident alert.';
   }
   list.innerHTML = `
     <div class="empty">
