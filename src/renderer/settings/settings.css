@@ -289,6 +289,14 @@ input[type='number'] {
 }
 
 /* Buttons */
+/* Ensure the HTML hidden attribute actually hides, even when an element
+   has an explicit display property set elsewhere. Browser default
+   ([hidden] { display: none }) loses to .btn { display: inline-flex }
+   by specificity, so we need an explicit override. */
+[hidden] {
+  display: none !important;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
