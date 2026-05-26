@@ -38,6 +38,25 @@ echo "  package.json now at v$VERSION"
 echo "→ Publishing v$VERSION to GitHub Releases (this takes ~2-3 min)…"
 npm run release
 
+# 2b. Wait for GitHub CDN to make latest-mac.yml globally readable. The
+#     upload completes (electron-builder reports success) before the file
+#     is reachable through GitHub's redirect/CDN layer. If we report
+#     "shipped" before that, any installed app that polls in the next
+#     minute hits a 404 on the manifest and surfaces a scary stack trace.
+MANIFEST_URL="https://github.com/paulg7516/nowtify/releases/download/v$VERSION/latest-mac.yml"
+echo "→ Waiting for CDN propagation of $MANIFEST_URL…"
+for i in $(seq 1 36); do
+  STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$MANIFEST_URL")
+  if [ "$STATUS" = "200" ]; then
+    echo "  Manifest reachable after $((i * 5))s"
+    break
+  fi
+  if [ "$i" = "36" ]; then
+    echo "  ⚠️  Manifest still 404 after 3 minutes - check release manually"
+  fi
+  sleep 5
+done
+
 # 3. Commit any pending source changes (including the version bump) and
 #    push so the GitHub source matches what's shipping
 echo "→ Committing + pushing source…"
