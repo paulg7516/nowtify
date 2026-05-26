@@ -564,6 +564,76 @@ el('connectionBtn').onclick = async () => {
   }
 };
 
+/* ---------------- Updates diagnostic panel ---------------- */
+
+function formatRelativeTime(ms) {
+  if (!ms) return 'never this session';
+  const delta = Date.now() - ms;
+  if (delta < 5_000) return 'just now';
+  if (delta < 60_000) return `${Math.floor(delta / 1000)}s ago`;
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
+  const h = Math.floor(delta / 3_600_000);
+  return `${h}h ago`;
+}
+
+function renderUpdaterStatus(status) {
+  if (!status) return;
+  el('updaterCurrentVersion').textContent = status.currentVersion
+    ? `v${status.currentVersion}`
+    : 'unknown';
+  el('updaterLastCheck').textContent = formatRelativeTime(status.lastCheckedAt);
+  el('updaterStatusText').textContent = (status.result && status.result.message) || '-';
+
+  const dot = el('updaterDot');
+  const type = status.result && status.result.type;
+  dot.dataset.state = type || 'never';
+
+  // Show "Restart + install now" only when an update has been downloaded
+  // and is ready to apply. Hidden in all other states.
+  el('updaterInstallBtn').hidden = type !== 'downloaded';
+
+  // Disable Check button while a check or download is in flight to avoid
+  // racing requests.
+  const checkBtn = el('updaterCheckBtn');
+  if (type === 'checking' || type === 'downloading' || type === 'available') {
+    checkBtn.disabled = true;
+    checkBtn.textContent =
+      type === 'downloading' ? 'Downloading…' : type === 'available' ? 'Found update…' : 'Checking…';
+  } else {
+    checkBtn.disabled = false;
+    checkBtn.textContent = 'Check for updates now';
+  }
+}
+
+el('updaterCheckBtn').onclick = async () => {
+  const status = await api.checkForUpdates();
+  renderUpdaterStatus(status);
+};
+
+el('updaterInstallBtn').onclick = async () => {
+  el('updaterInstallBtn').disabled = true;
+  el('updaterInstallBtn').textContent = 'Installing…';
+  await api.installUpdateNow();
+  // The app will quit shortly after this; if it doesn't, re-enable the
+  // button so the user can retry.
+  setTimeout(() => {
+    el('updaterInstallBtn').disabled = false;
+    el('updaterInstallBtn').textContent = 'Restart + install now';
+  }, 5000);
+};
+
+// Initial fetch + subscribe to live status updates from main.
+api.getUpdateStatus().then(renderUpdaterStatus).catch(() => {});
+if (api.onUpdaterStatus) {
+  api.onUpdaterStatus(renderUpdaterStatus);
+}
+
+// Refresh the relative "Last check" timestamp every 30s so it stays accurate
+// without requiring a manual reload.
+setInterval(() => {
+  api.getUpdateStatus().then(renderUpdaterStatus).catch(() => {});
+}, 30_000);
+
 /* ---------------- Watch list / Group search ---------------- */
 el('userSearchBtn').onclick = doUserSearch;
 el('userSearch').addEventListener('keydown', (e) => {

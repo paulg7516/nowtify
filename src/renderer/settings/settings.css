@@ -626,6 +626,56 @@ ul.list:empty {
   align-items: center;
 }
 
+/* Updates diagnostic panel - small label/value rows + status dot */
+.updater-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.updater-row:last-of-type {
+  border-bottom: 0;
+}
+.updater-label {
+  flex: 0 0 130px;
+  font-size: 12px;
+  color: var(--text-3, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+.updater-value {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.updater-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #9ca3af;
+}
+.updater-dot[data-state='up-to-date'] {
+  background: #22c55e;
+}
+.updater-dot[data-state='checking'],
+.updater-dot[data-state='downloading'],
+.updater-dot[data-state='available'] {
+  background: #f59e0b;
+}
+.updater-dot[data-state='downloaded'] {
+  background: #4f46e5;
+}
+.updater-dot[data-state='error'] {
+  background: #ef4444;
+}
+
 /* Color chip */
 .color-chip {
   position: relative;

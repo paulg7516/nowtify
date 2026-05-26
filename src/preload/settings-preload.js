@@ -5,6 +5,12 @@ contextBridge.exposeInMainWorld('settingsApi', {
   saveConfig: (patch) => ipcRenderer.invoke('settings:save', patch),
   testConnection: (creds) => ipcRenderer.invoke('settings:test-connection', creds),
   disconnect: () => ipcRenderer.invoke('settings:disconnect'),
+  getUpdateStatus: () => ipcRenderer.invoke('settings:get-update-status'),
+  checkForUpdates: () => ipcRenderer.invoke('settings:check-for-updates'),
+  installUpdateNow: () => ipcRenderer.invoke('settings:install-update-now'),
+  onUpdaterStatus: (cb) => {
+    ipcRenderer.on('settings:updater-status', (_e, status) => cb(status));
+  },
   searchUsers: (query) => ipcRenderer.invoke('settings:search-users', query),
   addWatchee: (user) => ipcRenderer.invoke('settings:add-watchee', user),
   removeWatchee: (accountId) => ipcRenderer.invoke('settings:remove-watchee', accountId),

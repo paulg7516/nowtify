@@ -58,6 +58,14 @@
           </svg>
           Sync interval
         </button>
+        <button class="nav-item" data-section="updates">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M 8 1 v 9"/>
+            <polyline points="4.5 6.5 8 10 11.5 6.5"/>
+            <path d="M 2 13 h 12"/>
+          </svg>
+          Updates
+        </button>
       </nav>
 
       <main class="content">
@@ -186,6 +194,36 @@
               <label for="pollIntervalSeconds">Interval (seconds)</label>
               <input id="pollIntervalSeconds" type="number" min="10" max="600" />
               <p class="hint">Click the menu bar icon → <strong>Refresh now</strong> for an out-of-band sync regardless of the interval.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- UPDATES (diagnostic) -->
+        <section id="section-updates" class="panel" hidden>
+          <div class="panel-header">
+            <h2>Updates</h2>
+            <p class="panel-sub">Diagnostic view of the auto-update mechanism. Use this to verify which version is installed and to troubleshoot when an update isn't applying.</p>
+          </div>
+
+          <div class="card">
+            <div class="updater-row">
+              <div class="updater-label">Current version</div>
+              <div class="updater-value" id="updaterCurrentVersion">-</div>
+            </div>
+            <div class="updater-row">
+              <div class="updater-label">Last check</div>
+              <div class="updater-value" id="updaterLastCheck">-</div>
+            </div>
+            <div class="updater-row">
+              <div class="updater-label">Status</div>
+              <div class="updater-value">
+                <span class="updater-dot" id="updaterDot"></span>
+                <span id="updaterStatusText">-</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="updaterCheckBtn" class="btn btn-primary">Check for updates now</button>
+              <button id="updaterInstallBtn" class="btn btn-primary" hidden>Restart + install now</button>
             </div>
           </div>
         </section>

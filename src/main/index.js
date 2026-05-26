@@ -101,6 +101,23 @@ let tray;
 let engine;
 let settingsWin;
 
+// Snapshot of what the auto-updater is doing so the Settings → Updates
+// panel can show a useful diagnostic readout. Mutated by autoUpdater event
+// listeners (see setupAutoUpdater) and queried via settings:get-update-status.
+const updaterStatus = {
+  currentVersion: '',
+  lastCheckedAt: 0, // epoch ms; 0 = never checked this session
+  // type values: never | checking | up-to-date | available | downloading
+  //              | downloaded | error
+  result: { type: 'never', message: 'Never checked this session', version: '' },
+};
+
+function broadcastUpdaterStatus() {
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.webContents.send('settings:updater-status', updaterStatus);
+  }
+}
+
 function broadcastTriggers(triggers) {
   if (settingsWin && !settingsWin.isDestroyed()) {
     settingsWin.webContents.send('settings:triggers-updated', triggers);
@@ -251,6 +268,46 @@ function wireIpc() {
   ipcMain.handle('popover:poke-engine', () => engine.pokeNow());
   ipcMain.handle('popover:open-settings', () => openSettings());
   ipcMain.handle('popover:get-version', () => app.getVersion());
+
+  // Updates diagnostic panel
+  ipcMain.handle('settings:get-update-status', () => updaterStatus);
+  ipcMain.handle('settings:check-for-updates', async () => {
+    if (!app.isPackaged) {
+      updaterStatus.result = {
+        type: 'error',
+        message: 'Auto-updater is disabled in dev mode (npm start)',
+        version: '',
+      };
+      broadcastUpdaterStatus();
+      return updaterStatus;
+    }
+    updaterStatus.result = { type: 'checking', message: 'Checking for updates…', version: '' };
+    broadcastUpdaterStatus();
+    try {
+      await autoUpdater.checkForUpdates();
+    } catch (err) {
+      updaterStatus.result = {
+        type: 'error',
+        message: err.message || String(err),
+        version: '',
+      };
+      updaterStatus.lastCheckedAt = Date.now();
+      broadcastUpdaterStatus();
+    }
+    return updaterStatus;
+  });
+  ipcMain.handle('settings:install-update-now', () => {
+    // The downloaded ZIP path is captured in updaterStatus.downloadedFile
+    // when update-downloaded fires (set in setupAutoUpdater below). If we
+    // have it, run our unsigned-install helper directly without going
+    // through the dialog.
+    if (updaterStatus.downloadedFile) {
+      performUnsignedUpdate(updaterStatus.downloadedFile, updaterStatus.result.version || '');
+      app.quit();
+      return true;
+    }
+    return false;
+  });
 }
 
 app.whenReady().then(() => {
@@ -416,14 +473,45 @@ function setupAutoUpdater() {
   // updates only apply via our manual helper (triggered by the Restart-now
   // dialog button).
   autoUpdater.autoInstallOnAppQuit = false;
+  updaterStatus.currentVersion = app.getVersion();
+  autoUpdater.on('checking-for-update', () => {
+    updaterStatus.result = { type: 'checking', message: 'Checking for updates…', version: '' };
+    broadcastUpdaterStatus();
+  });
   autoUpdater.on('update-available', (info) => {
     console.log('[updater] update available:', info.version);
+    updaterStatus.result = {
+      type: 'available',
+      message: `Update v${info.version} found - downloading…`,
+      version: info.version,
+    };
+    broadcastUpdaterStatus();
   });
   autoUpdater.on('update-not-available', () => {
     console.log('[updater] up to date');
+    updaterStatus.lastCheckedAt = Date.now();
+    updaterStatus.result = { type: 'up-to-date', message: 'You are on the latest version', version: '' };
+    broadcastUpdaterStatus();
+  });
+  autoUpdater.on('download-progress', (progress) => {
+    updaterStatus.result = {
+      type: 'downloading',
+      message: `Downloading update (${Math.round(progress.percent || 0)}%)`,
+      version: updaterStatus.result.version,
+      percent: progress.percent || 0,
+    };
+    broadcastUpdaterStatus();
   });
   autoUpdater.on('update-downloaded', async (info) => {
     console.log('[updater] downloaded:', info.version);
+    updaterStatus.lastCheckedAt = Date.now();
+    updaterStatus.downloadedFile = info && (info.downloadedFile || info.path);
+    updaterStatus.result = {
+      type: 'downloaded',
+      message: `Update v${info.version} downloaded - ready to install`,
+      version: info.version,
+    };
+    broadcastUpdaterStatus();
 
     // Menu-bar apps (LSUIElement: true) have no dock icon, which means
     // dialog.showMessageBox can appear without focus on a random space and
@@ -488,6 +576,13 @@ function setupAutoUpdater() {
   });
   autoUpdater.on('error', (err) => {
     console.warn('[updater] error:', err.message || err);
+    updaterStatus.lastCheckedAt = Date.now();
+    updaterStatus.result = {
+      type: 'error',
+      message: err.message || String(err),
+      version: '',
+    };
+    broadcastUpdaterStatus();
   });
 }
 
