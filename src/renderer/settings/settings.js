@@ -550,12 +550,16 @@ el('connectionBtn').onclick = async () => {
   if (result.ok) {
     setStatus(el('testResult'), true, `Connected as ${result.user.displayName}`);
     setConnectionState('ok', `Connected as ${result.user.displayName}`);
-    // Re-pull config so hasApiToken reflects the just-saved token and the
-    // button flips to Disconnect.
+    // Re-pull config so hasApiToken reflects the just-saved token.
     workingConfig = await api.getConfig();
-    if (workingConfig.jsm.hasApiToken) {
-      el('apiToken').value = SAVED_TOKEN_BULLETS;
+    // Belt-and-suspenders: the test succeeded so we know we're connected.
+    // Force hasApiToken true here so the button + lock state always flip
+    // regardless of any IPC/refresh edge case.
+    if (workingConfig && workingConfig.jsm) {
+      workingConfig.jsm.hasApiToken = true;
+      workingConfig.jsm.userDisplayName = result.user.displayName || workingConfig.jsm.userDisplayName;
     }
+    el('apiToken').value = SAVED_TOKEN_BULLETS;
     renderConnectionButton();
     applyConnectionLockState();
   } else {
