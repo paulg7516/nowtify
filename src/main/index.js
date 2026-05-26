@@ -526,15 +526,22 @@ function setupAutoUpdater() {
 
     // Fire a native macOS notification as a fallback signal in case the
     // dialog still gets buried (other-Space focus, Do-Not-Disturb off, etc).
-    // Clicking the notification triggers the install just like the dialog.
+    // Clicking the notification triggers the unsigned-install helper, same
+    // path as the Restart-now dialog button.
+    const zipPath = info && (info.downloadedFile || info.path);
     if (Notification.isSupported()) {
       try {
         const n = new Notification({
           title: 'Nowtify update ready',
-          body: `Version ${info.version} is ready - click to restart now.`,
+          body: `Version ${info.version} is ready - click to install now.`,
           silent: false,
         });
-        n.on('click', () => autoUpdater.quitAndInstall());
+        n.on('click', () => {
+          if (zipPath) {
+            performUnsignedUpdate(zipPath, info.version);
+            app.quit();
+          }
+        });
         n.show();
       } catch (_) {}
     }

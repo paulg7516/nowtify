@@ -182,7 +182,12 @@ function getJsm() {
 
 function setJsm(patch) {
   const current = store.get('jsm') || {};
+  // CRITICAL: spread `current` first so internal fields not in our known
+  // schema (notably `apiTokenEnc`, the encrypted token blob) survive any
+  // partial update. Without this, every `store.set('jsm', next)` was
+  // wiping the saved token because next only listed non-secret fields.
   const next = {
+    ...current,
     siteUrl: typeof patch.siteUrl === 'string' ? patch.siteUrl : current.siteUrl || '',
     email: typeof patch.email === 'string' ? patch.email : current.email || '',
     majorIncidentFieldId:
