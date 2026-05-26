@@ -89,18 +89,28 @@ function setConnectionState(state, label) {
 }
 
 /* ---------------- Load + save ---------------- */
+
+// Sentinel value displayed in the API token field when a token is stored.
+// The real token never leaves the main process; this just gives the field
+// a visually "filled" appearance so users see at a glance that the token
+// is persisted. On save, a value matching this sentinel (or any pure-bullet
+// string) is treated as "keep existing" rather than overwriting.
+const SAVED_TOKEN_BULLETS = '••••••••••••';
+const isJustBullets = (s) => /^•+$/.test(s || '');
+
 async function load() {
   workingConfig = await api.getConfig();
   el('siteUrl').value = workingConfig.jsm.siteUrl || '';
   el('email').value = workingConfig.jsm.email || '';
-  // The main process never returns the real API token (encrypted at rest,
-  // redacted in transit). When a token is stored we leave the input empty
-  // and signal "already set" via the placeholder. Empty submissions are
-  // preserved as the existing value by the main process.
-  el('apiToken').value = '';
-  el('apiToken').placeholder = workingConfig.jsm.hasApiToken
-    ? '•••••••• saved - leave blank to keep'
-    : 'Atlassian API token';
+  // Prefill bullets when a token is saved so the field looks populated.
+  // The real token value never round-trips through the renderer.
+  if (workingConfig.jsm.hasApiToken) {
+    el('apiToken').value = SAVED_TOKEN_BULLETS;
+    el('apiToken').placeholder = 'Atlassian API token';
+  } else {
+    el('apiToken').value = '';
+    el('apiToken').placeholder = 'Atlassian API token';
+  }
   el('pollIntervalSeconds').value = workingConfig.pollIntervalSeconds || 30;
   renderWatchList();
   renderWatchGroups();
@@ -114,11 +124,16 @@ async function load() {
 }
 
 async function persistCredsOnly() {
+  // If the field still shows the saved-bullets sentinel, send empty string
+  // so the main process keeps the existing encrypted token rather than
+  // overwriting it with bullets.
+  const raw = el('apiToken').value;
+  const apiTokenForSave = isJustBullets(raw) ? '' : raw.trim();
   workingConfig.jsm = {
     ...workingConfig.jsm,
     siteUrl: el('siteUrl').value.trim(),
     email: el('email').value.trim(),
-    apiToken: el('apiToken').value.trim(),
+    apiToken: apiTokenForSave,
   };
   await api.saveConfig({ jsm: workingConfig.jsm });
 }
@@ -460,10 +475,14 @@ function setStatus(node, ok, msg) {
 el('testConnection').onclick = async () => {
   await persistCredsOnly();
   setConnectionState('unknown', 'Testing…');
+  const raw = el('apiToken').value;
+  const apiTokenForTest = isJustBullets(raw) ? '' : raw.trim();
+  // Empty apiToken tells main to use the stored encrypted token. This lets
+  // the user click Test connection without retyping their token.
   const result = await api.testConnection({
     siteUrl: el('siteUrl').value.trim(),
     email: el('email').value.trim(),
-    apiToken: el('apiToken').value.trim(),
+    apiToken: apiTokenForTest,
   });
   if (result.ok) {
     setStatus(el('testResult'), true, `Connected as ${result.user.displayName}`);
