@@ -573,6 +573,48 @@ el('connectionBtn').onclick = async () => {
 
 /* ---------------- Updates diagnostic panel ---------------- */
 
+// Translate raw electron-updater error messages into a short, human-readable
+// title + explanation. The raw stack trace is preserved in a collapsible
+// "Show full error" details block for when actual debugging is needed.
+function formatUpdaterError(raw) {
+  const msg = String(raw || '');
+  if (!msg) return { title: 'Unknown error', detail: '' };
+
+  // 404 on the manifest file - happens when a release was just created but
+  // GitHub hasn't finished uploading all artifacts yet (typically <60s).
+  if (/Cannot find latest-mac\.yml|404.*latest-mac\.yml/i.test(msg)) {
+    return {
+      title: 'Latest release is still uploading',
+      detail:
+        'GitHub finishes uploading release artifacts within a minute or two of publishing. Wait a moment and try again.',
+    };
+  }
+  // Network unreachable
+  if (/ENOTFOUND|ECONNREFUSED|getaddrinfo|ETIMEDOUT|net::ERR_/i.test(msg)) {
+    return {
+      title: 'Cannot reach GitHub',
+      detail: 'Check your network connection and try again.',
+    };
+  }
+  // GitHub auth failure (rare for public repo, but possible)
+  if (/401|403|unauthorized/i.test(msg)) {
+    return {
+      title: 'GitHub authentication issue',
+      detail: 'The update server rejected the request. Contact the maintainer if this persists.',
+    };
+  }
+  // GitHub 5xx
+  if (/HttpError: 5\d\d/i.test(msg)) {
+    return {
+      title: 'GitHub is having issues',
+      detail: 'The update server returned an error. Try again in a few minutes.',
+    };
+  }
+  // Generic fallback
+  const firstLine = msg.split('\n')[0].slice(0, 200);
+  return { title: 'Update check failed', detail: firstLine };
+}
+
 function formatRelativeTime(ms) {
   if (!ms) return 'never this session';
   const delta = Date.now() - ms;
@@ -589,11 +631,39 @@ function renderUpdaterStatus(status) {
     ? `v${status.currentVersion}`
     : 'unknown';
   el('updaterLastCheck').textContent = formatRelativeTime(status.lastCheckedAt);
-  el('updaterStatusText').textContent = (status.result && status.result.message) || '-';
 
   const dot = el('updaterDot');
   const type = status.result && status.result.type;
   dot.dataset.state = type || 'never';
+
+  const statusText = el('updaterStatusText');
+  statusText.innerHTML = '';
+  if (type === 'error') {
+    const { title, detail } = formatUpdaterError(status.result.message);
+    const titleEl = document.createElement('div');
+    titleEl.className = 'updater-error-title';
+    titleEl.textContent = title;
+    statusText.appendChild(titleEl);
+    if (detail) {
+      const detailEl = document.createElement('div');
+      detailEl.className = 'updater-error-detail';
+      detailEl.textContent = detail;
+      statusText.appendChild(detailEl);
+    }
+    if (status.result.message && status.result.message.length > 80) {
+      const block = document.createElement('details');
+      block.className = 'updater-error-raw';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Show full error';
+      const pre = document.createElement('pre');
+      pre.textContent = status.result.message;
+      block.appendChild(summary);
+      block.appendChild(pre);
+      statusText.appendChild(block);
+    }
+  } else {
+    statusText.textContent = (status.result && status.result.message) || '-';
+  }
 
   // Show "Restart + install now" only when an update has been downloaded
   // and is ready to apply. Hidden in all other states.

@@ -684,6 +684,55 @@ ul.list:empty {
   background: #ef4444;
 }
 
+/* Error-state value uses block layout so multi-line content reads as a
+   small inline block next to the dot rather than overflowing the row. */
+.updater-row .updater-value {
+  align-items: flex-start;
+}
+.updater-row .updater-dot {
+  margin-top: 5px;
+}
+.updater-error-title {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.updater-error-detail {
+  color: var(--text-3, #6b7280);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 70ch;
+}
+.updater-error-raw {
+  margin-top: 10px;
+  font-size: 11px;
+}
+.updater-error-raw summary {
+  cursor: pointer;
+  color: var(--text-3, #6b7280);
+  user-select: none;
+  padding: 2px 0;
+}
+.updater-error-raw summary:hover {
+  color: var(--accent);
+}
+.updater-error-raw pre {
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--surface-2, #f3f4f6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  max-height: 220px;
+  overflow: auto;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-3, #6b7280);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Color chip */
 .color-chip {
   position: relative;
