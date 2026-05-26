@@ -528,7 +528,9 @@ el('connectionBtn').onclick = async () => {
     workingConfig = await api.disconnect();
     el('apiToken').value = '';
     el('apiToken').placeholder = 'Atlassian API token';
-    setStatus(el('testResult'), false, 'Disconnected');
+    // Clear any prior status text - the top-right pill already conveys
+    // "Not connected" so a second readout next to the button is redundant.
+    setStatus(el('testResult'), true, '');
     setConnectionState('unknown', 'Not connected');
     renderConnectionButton();
     applyConnectionLockState();
@@ -548,7 +550,9 @@ el('connectionBtn').onclick = async () => {
     apiToken: apiTokenForTest,
   });
   if (result.ok) {
-    setStatus(el('testResult'), true, `Connected as ${result.user.displayName}`);
+    // Top-right pill shows "Connected as <name>" - no need to repeat it
+    // next to the button. Clear any prior status text.
+    setStatus(el('testResult'), true, '');
     setConnectionState('ok', `Connected as ${result.user.displayName}`);
     // Re-pull config so hasApiToken reflects the just-saved token.
     workingConfig = await api.getConfig();
