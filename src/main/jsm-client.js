@@ -253,15 +253,24 @@ class JsmClient {
    */
   async searchMyPendingApprovals(_opts) {
     // Primary: JSM Service Desk approvals endpoint.
+    // Both parameters are required for proper user-scoped filtering:
+    //   - requestOwnership=APPROVER: limit to requests where the auth user
+    //     is an approver (default is OWNED_REQUESTS = stuff they created).
+    //   - approvalState=MY_PENDING_APPROVAL: further limit to approvals
+    //     that are currently pending the auth user's decision.
+    // Without requestOwnership, JSM returns system-wide approvals.
     try {
       const data = await this.request('/rest/servicedeskapi/request', {
         query: {
+          requestOwnership: 'APPROVER',
           approvalState: 'MY_PENDING_APPROVAL',
           limit: 100,
         },
       });
       const values = (data && data.values) || [];
-      console.log(`[jsm-client] servicedeskapi MY_PENDING_APPROVAL -> ${values.length}`);
+      console.log(
+        `[jsm-client] servicedeskapi APPROVER/MY_PENDING_APPROVAL -> ${values.length}`,
+      );
       return values.map((v) => mapServiceDeskRequestToIssue(v));
     } catch (err) {
       console.warn(
