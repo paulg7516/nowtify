@@ -235,29 +235,55 @@ class JsmClient {
   }
 
   /**
-   * Returns issues where the authenticated user is a current approver and
-   * the issue is still unresolved. JSM evaluates `approver = currentUser()`
-   * server-side against the API token's owner, so each install naturally
-   * gets that user's own approval queue with no extra config.
+   * Returns the authenticated user's pending approvals - the same list the
+   * JSM customer portal shows under "Approvals" in the user menu.
+   *
+   * Uses JSM's Service Desk REST API (`/rest/servicedeskapi/request` with
+   * `approvalState=MY_PENDING_APPROVAL`) rather than generic JQL, because:
+   *   - The portal Approvals badge count comes from this endpoint, so we
+   *     get exact parity with what the user sees in the UI.
+   *   - `approver = currentUser()` JQL fails on a lot of JSM setups
+   *     (permission scoping, custom field name differences, etc) and
+   *     silently returns 0 even when approvals exist.
+   *   - Service Desk endpoint applies the right permission model for
+   *     cross-project approvals.
+   *
+   * Falls back to JQL if the servicedesk endpoint is unavailable (e.g. the
+   * site has Software but not Service Management licensed).
    */
-  async searchMyPendingApprovals({ fields }) {
+  async searchMyPendingApprovals(_opts) {
+    // Primary: JSM Service Desk approvals endpoint.
+    try {
+      const data = await this.request('/rest/servicedeskapi/request', {
+        query: {
+          approvalState: 'MY_PENDING_APPROVAL',
+          limit: 100,
+        },
+      });
+      const values = (data && data.values) || [];
+      console.log(`[jsm-client] servicedeskapi MY_PENDING_APPROVAL -> ${values.length}`);
+      return values.map((v) => mapServiceDeskRequestToIssue(v));
+    } catch (err) {
+      console.warn(
+        '[jsm-client] servicedeskapi approvals query failed, falling back to JQL:',
+        err.message,
+      );
+    }
+
+    // Fallback: generic JQL. Less reliable but covers Software-only sites.
     const body = {
       jql: 'approver = currentUser() AND resolution = Unresolved ORDER BY updated DESC',
-      fields: fields && fields.length ? fields : ['summary', 'assignee', 'status', 'created'],
+      fields: ['summary', 'assignee', 'status', 'created'],
       maxResults: 100,
     };
     try {
       const data = await this.request('/rest/api/3/search/jql', { method: 'POST', body });
-      return (data && data.issues) || [];
+      const issues = (data && data.issues) || [];
+      console.log(`[jsm-client] fallback JQL approver=currentUser -> ${issues.length}`);
+      return issues;
     } catch (err) {
-      // Some Jira instances don't support the `approver` JQL function
-      // (Software-only projects, very old Server licenses). Don't blow up
-      // the whole engine tick - just yield no approvals.
-      if (/approver/i.test(err.message || '')) {
-        console.warn('[jsm-client] approver JQL not supported on this site:', err.message);
-        return [];
-      }
-      throw err;
+      console.warn('[jsm-client] approver JQL fallback also failed:', err.message);
+      return [];
     }
   }
 
@@ -355,6 +381,50 @@ function parseMajorIncident(raw) {
     return TRUTHY_TOKENS.has(String(v).trim().toLowerCase());
   }
   return false;
+}
+
+/**
+ * Map a Service Desk request payload into the issue-shape the alert engine
+ * expects. The servicedeskapi response is structurally different from
+ * /rest/api/3/search results (request-centric vs issue-centric), so we
+ * normalize it here so downstream code doesn't have to branch.
+ */
+function mapServiceDeskRequestToIssue(req) {
+  const fieldValues = Array.isArray(req.requestFieldValues) ? req.requestFieldValues : [];
+  const findFieldValue = (id) => {
+    const f = fieldValues.find((x) => x && x.fieldId === id);
+    return f ? f.value : null;
+  };
+  const summary = findFieldValue('summary') || req.requestType?.name || '';
+  const createdIso =
+    (req.createdDate && (req.createdDate.iso8601 || req.createdDate.epochMillis)) ||
+    new Date().toISOString();
+  const assignee = req.reporter
+    ? {
+        accountId: req.reporter.accountId,
+        displayName: req.reporter.displayName,
+      }
+    : null;
+  return {
+    id: req.issueId,
+    key: req.issueKey,
+    fields: {
+      summary: typeof summary === 'string' ? summary : String(summary || ''),
+      assignee,
+      status: req.currentStatus
+        ? {
+            name: req.currentStatus.status || '',
+            statusCategory: {
+              key: (req.currentStatus.statusCategory || '').toLowerCase(),
+            },
+          }
+        : null,
+      created:
+        typeof createdIso === 'string'
+          ? createdIso
+          : new Date(Number(createdIso) || Date.now()).toISOString(),
+    },
+  };
 }
 
 module.exports = { JsmClient, parseSlaField, parseMajorIncident };
