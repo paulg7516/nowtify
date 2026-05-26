@@ -49,15 +49,6 @@
           </svg>
           Triggers
         </button>
-        <button class="nav-item" data-section="sync">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M 13 6 a 5 5 0 0 0 -9 -1"/>
-            <polyline points="13 2 13 6 9 6"/>
-            <path d="M 3 10 a 5 5 0 0 0 9 1"/>
-            <polyline points="3 14 3 10 7 10"/>
-          </svg>
-          Sync interval
-        </button>
         <button class="nav-item" data-section="updates">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M 8 1 v 9"/>
@@ -179,22 +170,6 @@
               </button>
             </div>
             <ul id="triggers-approval" class="trigger-list"></ul>
-          </div>
-        </section>
-
-        <!-- SYNC INTERVAL -->
-        <section id="section-sync" class="panel" hidden>
-          <div class="panel-header">
-            <h2>Sync interval</h2>
-            <p class="panel-sub">How often Nowtify re-queries JSM. Shorter = faster reaction to new alerts, more API calls.</p>
-          </div>
-
-          <div class="card">
-            <div class="field">
-              <label for="pollIntervalSeconds">Interval (seconds)</label>
-              <input id="pollIntervalSeconds" type="number" min="10" max="600" />
-              <p class="hint">Click the menu bar icon → <strong>Refresh now</strong> for an out-of-band sync regardless of the interval.</p>
-            </div>
           </div>
         </section>
 

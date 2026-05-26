@@ -111,7 +111,6 @@ async function load() {
     el('apiToken').value = '';
     el('apiToken').placeholder = 'Atlassian API token';
   }
-  el('pollIntervalSeconds').value = workingConfig.pollIntervalSeconds || 30;
   renderWatchList();
   renderWatchGroups();
   renderTriggers();
@@ -750,11 +749,6 @@ for (const id of ['siteUrl', 'email', 'apiToken']) {
     persistCredsOnly().catch(() => {});
   });
 }
-el('pollIntervalSeconds').addEventListener('change', async () => {
-  workingConfig.pollIntervalSeconds = Number(el('pollIntervalSeconds').value) || 30;
-  await api.saveConfig({ pollIntervalSeconds: workingConfig.pollIntervalSeconds });
-});
-
 /* ---------------- Live updates from tray ---------------- */
 api.onTriggersUpdated((triggers) => {
   if (!workingConfig) return;
