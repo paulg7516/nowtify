@@ -72,6 +72,14 @@ app.on('window-all-closed', (e) => {
   e.preventDefault();
 });
 
+// macOS: clicking the dock icon (when visible) fires 'activate'. Since this
+// is a menu-bar app with no main window, route the click to opening Settings
+// - that's the "if you tapped the icon, you probably wanted to see the app"
+// affordance. Without this handler, dock clicks silently do nothing.
+app.on('activate', () => {
+  openSettings();
+});
+
 if (process.platform === 'darwin') {
   app.dock.hide();
 }
