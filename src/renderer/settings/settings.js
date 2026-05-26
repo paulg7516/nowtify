@@ -117,11 +117,33 @@ async function load() {
   renderTriggers();
 
   if (workingConfig.jsm.siteUrl && workingConfig.jsm.email && workingConfig.jsm.hasApiToken) {
-    setConnectionState('unknown', 'Configured');
+    // Restore "Connected as <name>" if we have the cached display name from
+    // a prior session's Connect; otherwise fall back to a neutral state.
+    const cachedName = workingConfig.jsm.userDisplayName;
+    if (cachedName) {
+      setConnectionState('ok', `Connected as ${cachedName}`);
+    } else {
+      setConnectionState('unknown', 'Configured');
+    }
   } else {
     setConnectionState('unknown', 'Not connected');
   }
   renderConnectionButton();
+  applyConnectionLockState();
+}
+
+// Lock the connection inputs when a token is stored so the user has to
+// explicitly Disconnect before changing site/email/token. This makes the
+// "connected" state feel solid and prevents accidental clobbering of a
+// working config.
+function applyConnectionLockState() {
+  const locked = Boolean(workingConfig && workingConfig.jsm && workingConfig.jsm.hasApiToken);
+  for (const id of ['siteUrl', 'email', 'apiToken']) {
+    const input = el(id);
+    if (!input) continue;
+    input.disabled = locked;
+    input.classList.toggle('locked', locked);
+  }
 }
 
 async function persistCredsOnly() {
@@ -509,6 +531,7 @@ el('connectionBtn').onclick = async () => {
     setStatus(el('testResult'), false, 'Disconnected');
     setConnectionState('unknown', 'Not connected');
     renderConnectionButton();
+    applyConnectionLockState();
     return;
   }
 
@@ -534,6 +557,7 @@ el('connectionBtn').onclick = async () => {
       el('apiToken').value = SAVED_TOKEN_BULLETS;
     }
     renderConnectionButton();
+    applyConnectionLockState();
   } else {
     setStatus(el('testResult'), false, `Failed: ${result.error}`);
     setConnectionState('error', 'Connection failed');

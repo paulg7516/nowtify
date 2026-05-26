@@ -250,6 +250,19 @@ input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
+/* Locked connection inputs (after Connect): show as read-only without the
+   harsh greyed-out default styling. User must Disconnect to edit. */
+input.locked,
+input:disabled.locked {
+  background: var(--surface-2, #f3f4f6);
+  color: var(--text);
+  opacity: 1;
+  cursor: not-allowed;
+  -webkit-text-fill-color: var(--text);
+}
+input.locked:hover {
+  border-color: var(--border-strong);
+}
 input[type='color'] {
   padding: 0;
   width: 32px;

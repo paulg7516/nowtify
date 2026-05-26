@@ -8,6 +8,9 @@ const defaults = {
     email: '',
     apiToken: '',
     majorIncidentFieldId: '',
+    // Cached on successful Connect so the "Connected as <name>" pill can
+    // restore across app restarts without re-fetching /myself.
+    userDisplayName: '',
   },
   watchList: [],
   watchGroups: [],
@@ -173,6 +176,7 @@ function getJsm() {
     email: jsm.email || '',
     apiToken: readDecryptedToken(),
     majorIncidentFieldId: jsm.majorIncidentFieldId || '',
+    userDisplayName: jsm.userDisplayName || '',
   };
 }
 
@@ -185,6 +189,10 @@ function setJsm(patch) {
       typeof patch.majorIncidentFieldId === 'string'
         ? patch.majorIncidentFieldId
         : current.majorIncidentFieldId || '',
+    userDisplayName:
+      typeof patch.userDisplayName === 'string'
+        ? patch.userDisplayName
+        : current.userDisplayName || '',
   };
   // Save non-secret fields. apiToken goes through encrypted channel below.
   store.set('jsm', next);
@@ -224,6 +232,7 @@ function getAllForRenderer() {
       siteUrl: jsm.siteUrl || '',
       email: jsm.email || '',
       majorIncidentFieldId: jsm.majorIncidentFieldId || '',
+      userDisplayName: jsm.userDisplayName || '',
       apiToken: '', // never sent to renderer
       hasApiToken,
     },
@@ -311,6 +320,13 @@ function removeTrigger(triggerId) {
 // stored ciphertext + any legacy plaintext.
 function clearApiToken() {
   writeEncryptedToken('');
+  // Also clear the cached display name - it's only meaningful while the
+  // user is actually connected.
+  setJsm({ userDisplayName: '' });
+}
+
+function setUserDisplayName(name) {
+  setJsm({ userDisplayName: name || '' });
 }
 
 module.exports = {
@@ -318,6 +334,7 @@ module.exports = {
   set,
   getAll: getAllForRenderer,
   clearApiToken,
+  setUserDisplayName,
   addWatchee,
   removeWatchee,
   addGroup,

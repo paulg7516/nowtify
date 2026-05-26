@@ -182,6 +182,11 @@ function wireIpc() {
       }
       const client = new JsmClient(merged);
       const user = await client.getMyself();
+      // Persist the display name so the "Connected as <name>" pill can
+      // restore on next launch without re-fetching /myself.
+      if (user && user.displayName) {
+        store.setUserDisplayName(user.displayName);
+      }
       return {
         ok: true,
         user: { displayName: user.displayName, accountId: user.accountId },
