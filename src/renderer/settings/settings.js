@@ -609,7 +609,7 @@ function renderUpdaterStatus(status) {
       type === 'downloading' ? 'Downloading…' : type === 'available' ? 'Found update…' : 'Checking…';
   } else {
     checkBtn.disabled = false;
-    checkBtn.textContent = 'Check for updates now';
+    checkBtn.textContent = 'Check for updates';
   }
 }
 
@@ -626,7 +626,7 @@ el('updaterInstallBtn').onclick = async () => {
   // button so the user can retry.
   setTimeout(() => {
     el('updaterInstallBtn').disabled = false;
-    el('updaterInstallBtn').textContent = 'Restart + install now';
+    el('updaterInstallBtn').textContent = 'Install now';
   }, 5000);
 };
 
