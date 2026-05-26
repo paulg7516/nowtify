@@ -31,8 +31,10 @@
         transition: border-color 200ms ease, border-width 200ms ease;
       }
       .frame.pulsing {
-        /* 11 × 1.4s ≈ 15s of attention-grab, then settles to a solid border */
-        animation: pulse var(--pulse-duration) ease-in-out 11 forwards;
+        /* Pulse for as long as the alert is active. If it gets annoying,
+           the Pause control in the popover silences the pulse entirely
+           (border goes away) without disabling the underlying triggers. */
+        animation: pulse var(--pulse-duration) ease-in-out infinite;
       }
       @keyframes pulse {
         0%,
