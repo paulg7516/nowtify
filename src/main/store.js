@@ -305,10 +305,19 @@ function removeTrigger(triggerId) {
   return next;
 }
 
+// Explicit token wipe for the Disconnect action. setJsm intentionally
+// treats empty apiToken as "preserve existing" (for the bullets-prefilled
+// UX); the Disconnect flow needs to bypass that and actually delete the
+// stored ciphertext + any legacy plaintext.
+function clearApiToken() {
+  writeEncryptedToken('');
+}
+
 module.exports = {
   get,
   set,
   getAll: getAllForRenderer,
+  clearApiToken,
   addWatchee,
   removeWatchee,
   addGroup,

@@ -121,6 +121,7 @@ async function load() {
   } else {
     setConnectionState('unknown', 'Not connected');
   }
+  renderConnectionButton();
 }
 
 async function persistCredsOnly() {
@@ -472,13 +473,52 @@ function setStatus(node, ok, msg) {
   node.textContent = msg;
 }
 
-el('testConnection').onclick = async () => {
+// Toggle the Connect/Disconnect button based on whether a token is stored.
+// When connected, the button is destructive (clears token). When not, the
+// button is primary (validates + saves).
+function renderConnectionButton() {
+  const btn = el('connectionBtn');
+  if (!btn) return;
+  if (workingConfig && workingConfig.jsm && workingConfig.jsm.hasApiToken) {
+    btn.textContent = 'Disconnect';
+    btn.className = 'btn btn-ghost btn-danger';
+  } else {
+    btn.textContent = 'Connect';
+    btn.className = 'btn btn-primary';
+  }
+}
+
+el('connectionBtn').onclick = async () => {
+  const isConnected = workingConfig && workingConfig.jsm && workingConfig.jsm.hasApiToken;
+
+  if (isConnected) {
+    // Disconnect path - confirm, then clear the token. Site URL and email
+    // stay so reconnecting is just a paste away.
+    const ok = await customConfirm({
+      title: 'Disconnect from JSM',
+      message:
+        'Your API token will be removed from this Mac. Site URL and email stay so ' +
+        'you can reconnect quickly by pasting a fresh token.',
+      confirmLabel: 'Disconnect',
+      confirmDanger: true,
+    });
+    if (!ok) return;
+    workingConfig = await api.disconnect();
+    el('apiToken').value = '';
+    el('apiToken').placeholder = 'Atlassian API token';
+    setStatus(el('testResult'), false, 'Disconnected');
+    setConnectionState('unknown', 'Not connected');
+    renderConnectionButton();
+    return;
+  }
+
+  // Connect path - validate creds with /myself. On success, persistCredsOnly
+  // (which already ran inside the test handler upstream) ensures the token
+  // is encrypted and saved. Then reload config so hasApiToken flips true.
   await persistCredsOnly();
-  setConnectionState('unknown', 'Testing…');
+  setConnectionState('unknown', 'Connecting…');
   const raw = el('apiToken').value;
   const apiTokenForTest = isJustBullets(raw) ? '' : raw.trim();
-  // Empty apiToken tells main to use the stored encrypted token. This lets
-  // the user click Test connection without retyping their token.
   const result = await api.testConnection({
     siteUrl: el('siteUrl').value.trim(),
     email: el('email').value.trim(),
@@ -487,6 +527,13 @@ el('testConnection').onclick = async () => {
   if (result.ok) {
     setStatus(el('testResult'), true, `Connected as ${result.user.displayName}`);
     setConnectionState('ok', `Connected as ${result.user.displayName}`);
+    // Re-pull config so hasApiToken reflects the just-saved token and the
+    // button flips to Disconnect.
+    workingConfig = await api.getConfig();
+    if (workingConfig.jsm.hasApiToken) {
+      el('apiToken').value = SAVED_TOKEN_BULLETS;
+    }
+    renderConnectionButton();
   } else {
     setStatus(el('testResult'), false, `Failed: ${result.error}`);
     setConnectionState('error', 'Connection failed');

@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('settingsApi', {
   getConfig: () => ipcRenderer.invoke('settings:get'),
   saveConfig: (patch) => ipcRenderer.invoke('settings:save', patch),
   testConnection: (creds) => ipcRenderer.invoke('settings:test-connection', creds),
+  disconnect: () => ipcRenderer.invoke('settings:disconnect'),
   searchUsers: (query) => ipcRenderer.invoke('settings:search-users', query),
   addWatchee: (user) => ipcRenderer.invoke('settings:add-watchee', user),
   removeWatchee: (accountId) => ipcRenderer.invoke('settings:remove-watchee', accountId),

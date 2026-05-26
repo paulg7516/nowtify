@@ -161,6 +161,15 @@ function wireIpc() {
     engine.rebuildClient();
     return store.getAll();
   });
+  ipcMain.handle('settings:disconnect', () => {
+    // Clear only the encrypted API token - keep site URL + email so the user
+    // can reconnect by just pasting a fresh token. The engine will see
+    // isConfigured() return false on the next tick and emit idle state.
+    store.clearApiToken();
+    engine.rebuildClient();
+    engine.pokeNow();
+    return store.getAll();
+  });
   ipcMain.handle('settings:test-connection', async (_e, creds) => {
     try {
       // If the renderer omits the token (because the field is blank and a
