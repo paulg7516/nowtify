@@ -250,6 +250,7 @@ function wireIpc() {
   });
   ipcMain.handle('popover:poke-engine', () => engine.pokeNow());
   ipcMain.handle('popover:open-settings', () => openSettings());
+  ipcMain.handle('popover:get-version', () => app.getVersion());
 }
 
 app.whenReady().then(() => {

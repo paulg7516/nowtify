@@ -5,8 +5,20 @@ const el = (id) => document.getElementById(id);
 const list = el('alerts');
 const stateBar = el('stateBar');
 const stateText = el('stateText');
-const title = el('title');
+const title = el('titleText');
+const versionEl = el('appVersion');
 const syncTimeEl = el('syncTime');
+
+// Stamp the app version into the header so users + support can immediately
+// see which build is running. Fire-and-forget; falls back to blank if the
+// IPC fails (very old preload, dev runtime, etc).
+if (api && api.getVersion) {
+  api.getVersion()
+    .then((v) => {
+      if (v) versionEl.textContent = `v${v}`;
+    })
+    .catch(() => {});
+}
 const tabsEl = el('tabs');
 const tabCountIncidents = el('tabCountIncidents');
 const tabCountApprovals = el('tabCountApprovals');

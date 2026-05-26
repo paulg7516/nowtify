@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('popoverApi', {
   snooze: (minutes) => ipcRenderer.invoke('popover:snooze', minutes),
   pokeEngine: () => ipcRenderer.invoke('popover:poke-engine'),
   openSettings: () => ipcRenderer.invoke('popover:open-settings'),
+  getVersion: () => ipcRenderer.invoke('popover:get-version'),
 });
