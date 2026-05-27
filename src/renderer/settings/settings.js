@@ -599,17 +599,103 @@ function renderTeamsState() {
   if (teams.isConnected) {
     block.dataset.connected = 'true';
     title.textContent = `Connected as ${teams.userDisplayName || 'unknown'}`;
-    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages from your VIPs.';
+    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages from the users you select below.';
     btn.textContent = 'Disconnect';
     btn.className = 'btn btn-ghost btn-danger';
+    el('teamsUsersCard').hidden = false;
+    renderTeamsWatchedUsers();
   } else {
     block.dataset.connected = 'false';
     title.textContent = 'Not connected';
-    sub.textContent = 'Sign in with your Xolv account to enable Teams VIP alerts. A browser tab will open for Microsoft sign-in.';
+    sub.textContent = 'Sign in with your Xolv account to enable Teams alerts. A browser tab will open for Microsoft sign-in.';
     btn.textContent = 'Connect Microsoft Teams';
     btn.className = 'btn btn-primary';
+    el('teamsUsersCard').hidden = true;
   }
 }
+
+function renderTeamsWatchedUsers() {
+  const list = el('teamsWatchedUsers');
+  if (!list) return;
+  list.innerHTML = '';
+  const users = (workingConfig.teams && workingConfig.teams.watchedUsers) || [];
+  if (users.length === 0) {
+    list.innerHTML = '<li class="muted">No users yet - search above to add.</li>';
+    return;
+  }
+  for (const u of users) {
+    const li = document.createElement('li');
+    const meta = document.createElement('div');
+    meta.className = 'user-meta';
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = u.displayName || '(unknown)';
+    const mail = document.createElement('span');
+    mail.className = 'email';
+    mail.textContent = u.mail || '';
+    meta.append(name, mail);
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn btn-ghost btn-sm';
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = async () => {
+      const next = await api.teamsRemoveWatchedUser(u.id);
+      workingConfig.teams.watchedUsers = next;
+      renderTeamsWatchedUsers();
+    };
+    li.append(meta, removeBtn);
+    list.appendChild(li);
+  }
+}
+
+async function doTeamsUserSearch() {
+  const query = el('teamsUserSearch').value.trim();
+  if (!query) return;
+  const target = el('teamsUserResults');
+  target.innerHTML = '<li class="muted">Searching…</li>';
+  try {
+    const users = await api.teamsSearchUsers(query);
+    target.innerHTML = '';
+    if (!users.length) {
+      target.innerHTML = '<li class="muted">No users matched.</li>';
+      return;
+    }
+    for (const u of users) {
+      const li = document.createElement('li');
+      const meta = document.createElement('div');
+      meta.className = 'user-meta';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = u.displayName;
+      const mail = document.createElement('span');
+      mail.className = 'email';
+      mail.textContent = u.mail || '';
+      meta.append(name, mail);
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn btn-sm';
+      addBtn.textContent = 'Add';
+      addBtn.onclick = async () => {
+        const next = await api.teamsAddWatchedUser(u);
+        workingConfig.teams.watchedUsers = next;
+        renderTeamsWatchedUsers();
+        addBtn.textContent = 'Added';
+        addBtn.disabled = true;
+      };
+      li.append(meta, addBtn);
+      target.appendChild(li);
+    }
+  } catch (err) {
+    target.innerHTML = '';
+    const errLi = document.createElement('li');
+    errLi.className = 'muted';
+    errLi.textContent = String(err && err.message ? err.message : err);
+    target.appendChild(errLi);
+  }
+}
+
+el('teamsUserSearchBtn').onclick = doTeamsUserSearch;
+el('teamsUserSearch').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doTeamsUserSearch();
+});
 
 el('teamsConnectBtn').onclick = async () => {
   const teams = (workingConfig && workingConfig.teams) || {};

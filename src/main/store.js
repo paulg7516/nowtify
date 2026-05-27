@@ -12,11 +12,14 @@ const defaults = {
     // restore across app restarts without re-fetching /myself.
     userDisplayName: '',
   },
-  // Microsoft Teams (via Graph API) - Phase 1: OAuth + identity verification
+  // Microsoft Teams (via Graph API)
   teams: {
     expiresAt: 0, // epoch ms when current access token expires
     userId: '', // Graph user id of the authenticated user
     userDisplayName: '', // cached for "Connected as <name>" pill
+    // Phase 2: users whose unread Teams messages should fire alerts.
+    // Each entry: { id, displayName, mail }
+    watchedUsers: [],
     // accessTokenEnc + refreshTokenEnc live alongside but are written via
     // writeEncryptedTeamsToken (not in defaults; presence = connected)
   },
@@ -256,6 +259,7 @@ function getAllForRenderer() {
       isConnected: teamsConnected,
       userId: teams.userId || '',
       userDisplayName: teams.userDisplayName || '',
+      watchedUsers: Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [],
     },
   };
 }
@@ -421,8 +425,26 @@ function clearTeams() {
     expiresAt: 0,
     userId: '',
     userDisplayName: '',
+    watchedUsers: [],
   });
   lockdownConfigFile();
+}
+
+function addTeamsWatchedUser(user) {
+  const teams = store.get('teams') || {};
+  const list = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
+  if (list.some((u) => u.id === user.id)) return list;
+  const next = [...list, { id: user.id, displayName: user.displayName, mail: user.mail || '' }];
+  store.set('teams', { ...teams, watchedUsers: next });
+  return next;
+}
+
+function removeTeamsWatchedUser(userId) {
+  const teams = store.get('teams') || {};
+  const list = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
+  const next = list.filter((u) => u.id !== userId);
+  store.set('teams', { ...teams, watchedUsers: next });
+  return next;
 }
 
 module.exports = {
@@ -435,6 +457,8 @@ module.exports = {
   setTeamsTokens,
   setTeamsUser,
   clearTeams,
+  addTeamsWatchedUser,
+  removeTeamsWatchedUser,
   addWatchee,
   removeWatchee,
   addGroup,

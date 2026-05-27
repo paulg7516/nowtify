@@ -67,6 +67,7 @@ const { OverlayWindows } = require('./overlay-windows');
 const { TrayManager } = require('./tray-manager');
 const { JsmClient } = require('./jsm-client');
 const msGraphOAuth = require('./ms-graph-oauth');
+const msGraphClient = require('./ms-graph-client');
 
 // macOS: keep app running when all windows are closed (we live in the menu bar)
 app.on('window-all-closed', (e) => {
@@ -329,6 +330,21 @@ function wireIpc() {
     msGraphOAuth.disconnect();
     return store.getAll();
   });
+  ipcMain.handle('settings:teams-search-users', async (_e, query) => {
+    try {
+      return await msGraphClient.searchUsers(query);
+    } catch (err) {
+      // Surface Graph errors back to the renderer so they show up in the
+      // search results pane rather than the IPC bridge swallowing them.
+      throw new Error(err.message || String(err));
+    }
+  });
+  ipcMain.handle('settings:teams-add-watched-user', (_e, user) =>
+    store.addTeamsWatchedUser(user || {}),
+  );
+  ipcMain.handle('settings:teams-remove-watched-user', (_e, userId) =>
+    store.removeTeamsWatchedUser(userId),
+  );
 
   // Updates diagnostic panel
   ipcMain.handle('settings:get-update-status', () => updaterStatus);

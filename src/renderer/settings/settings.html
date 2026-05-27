@@ -194,13 +194,28 @@
               <div class="teams-status-icon" id="teamsStatusIcon"></div>
               <div class="teams-status-text">
                 <div class="teams-status-title" id="teamsStatusTitle">Not connected</div>
-                <div class="teams-status-sub" id="teamsStatusSub">Sign in with your Xolv account to enable Teams VIP alerts.</div>
+                <div class="teams-status-sub" id="teamsStatusSub">Sign in with your Xolv account to enable Teams alerts.</div>
               </div>
             </div>
             <div class="actions">
               <button id="teamsConnectBtn" class="btn btn-primary">Connect Microsoft Teams</button>
               <span id="teamsResult" class="status"></span>
             </div>
+          </div>
+
+          <div class="card" id="teamsUsersCard" hidden>
+            <div class="card-header">
+              <h3>Watched users</h3>
+              <p class="card-sub">Nowtify will pulse the screen border when one of these people sends you a Teams message that goes unread past your threshold.</p>
+            </div>
+            <div class="inline-search">
+              <input id="teamsUserSearch" type="text" placeholder="Search by name or email…" autocomplete="off" />
+              <button id="teamsUserSearchBtn" class="btn btn-ghost">Search</button>
+            </div>
+            <ul id="teamsUserResults" class="list"></ul>
+            <div class="divider"></div>
+            <p class="card-sub">Currently watching</p>
+            <ul id="teamsWatchedUsers" class="list"></ul>
           </div>
         </section>
 

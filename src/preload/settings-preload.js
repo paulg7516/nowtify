@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('settingsApi', {
   // Microsoft Teams (Phase 1: OAuth + identity)
   teamsBeginAuth: () => ipcRenderer.invoke('settings:teams-begin-auth'),
   teamsDisconnect: () => ipcRenderer.invoke('settings:teams-disconnect'),
+  teamsSearchUsers: (query) => ipcRenderer.invoke('settings:teams-search-users', query),
+  teamsAddWatchedUser: (user) => ipcRenderer.invoke('settings:teams-add-watched-user', user),
+  teamsRemoveWatchedUser: (userId) => ipcRenderer.invoke('settings:teams-remove-watched-user', userId),
   onTeamsConnected: (cb) => {
     ipcRenderer.on('settings:teams-connected', (_e, info) => cb(info));
   },
