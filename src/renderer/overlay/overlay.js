@@ -1,4 +1,3 @@
-/* global window, document, setTimeout, clearTimeout */
 const frame = document.getElementById('frame');
 let currentState = null;
 let resolvedTimer = null;

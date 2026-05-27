@@ -1,4 +1,3 @@
-/* global document, window, setInterval */
 const api = window.popoverApi;
 
 const el = (id) => document.getElementById(id);

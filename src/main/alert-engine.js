@@ -87,6 +87,16 @@ class AlertEngine extends EventEmitter {
   }
 
   async tick() {
+    // Re-entrancy guard. setInterval can fire while pokeNow() is in
+    // flight (or a long Graph call from a previous tick is still
+    // resolving). Two concurrent ticks would race on previousActiveKeys
+    // and the resolution-detection logic - leading to spurious
+    // "ticket resolved" green-pulses or missed clears.
+    if (this._ticking) {
+      console.log('[engine] tick skipped (previous tick still running)');
+      return;
+    }
+    this._ticking = true;
     const tickStart = Date.now();
     // Tick is wrapped in an outer try/catch: any uncaught throw from the
     // tick body becomes a "fatal" health error rather than a silent crash
@@ -102,6 +112,8 @@ class AlertEngine extends EventEmitter {
       this.health.lastTickAt = Date.now();
       this.health.lastTickDurationMs = this.health.lastTickAt - tickStart;
       this.recordStepError('fatal', err);
+    } finally {
+      this._ticking = false;
     }
   }
 
@@ -165,7 +177,11 @@ class AlertEngine extends EventEmitter {
 
     // 2) SLA queries: per-trigger now (scope embedded in each trigger).
     //    Map trigger -> issues so per-trigger scope can filter alerts.
+    //    Errors accumulate across the loop and are recorded ONCE at the
+    //    end - otherwise trigger B succeeding would clear trigger A's
+    //    error and the health panel would lie.
     const slaIssuesByTrigger = new Map();
+    let slaLastError = null;
     for (const trig of slaTriggers) {
       const scope = trig.scope || {};
       const accountIds = (scope.users || []).map((u) => u.accountId).filter(Boolean);
@@ -181,13 +197,13 @@ class AlertEngine extends EventEmitter {
           fields: fieldIds,
         });
         slaIssuesByTrigger.set(trig.id, issues);
-        this.clearStepError('sla');
       } catch (err) {
         slaIssuesByTrigger.set(trig.id, []);
-        this.recordStepError('sla', err);
+        slaLastError = err;
       }
     }
-    if (slaTriggers.length === 0) this.clearStepError('sla');
+    if (slaLastError) this.recordStepError('sla', slaLastError);
+    else this.clearStepError('sla');
     // Flat list of unique issues for the disappear-detection downstream.
     const slaIssuesMap = new Map();
     for (const issues of slaIssuesByTrigger.values()) {
@@ -213,8 +229,10 @@ class AlertEngine extends EventEmitter {
 
     // 4) Teams: per-trigger now. Each Teams trigger has its own scope.users
     //    list of Graph user IDs. We query Graph once per trigger to keep
-    //    the per-trigger filtering accurate.
+    //    the per-trigger filtering accurate. Errors accumulate - see SLA
+    //    block above for the rationale.
     const teamsHitsByTrigger = new Map();
+    let teamsLastError = null;
     if (teamsTriggers.length && msGraphOAuth.isConnected()) {
       for (const trig of teamsTriggers) {
         const userIds = ((trig.scope || {}).users || []).map((u) => u.id).filter(Boolean);
@@ -225,15 +243,14 @@ class AlertEngine extends EventEmitter {
         try {
           const hits = await msGraphClient.getRecentMessagesFromWatchedUsers(userIds);
           teamsHitsByTrigger.set(trig.id, hits);
-          this.clearStepError('teams');
         } catch (err) {
           teamsHitsByTrigger.set(trig.id, []);
-          this.recordStepError('teams', err);
+          teamsLastError = err;
         }
       }
-    } else {
-      this.clearStepError('teams');
     }
+    if (teamsLastError) this.recordStepError('teams', teamsLastError);
+    else this.clearStepError('teams');
     // Flat list for log summary
     let teamsHitsTotal = 0;
     for (const hits of teamsHitsByTrigger.values()) teamsHitsTotal += hits.length;

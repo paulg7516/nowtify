@@ -1,4 +1,3 @@
-/* global document, window */
 const api = window.settingsApi;
 
 const el = (id) => document.getElementById(id);
@@ -698,29 +697,6 @@ function buildPresetSelect({ trig, presets, valueKey, ariaLabel }) {
   return select;
 }
 
-function buildColorChip(trig, card) {
-  // Minimal color picker: a small swatch with the OS color picker hidden
-  // on top. No label - the swatch's color IS the indicator. When changed,
-  // we also update the card's CSS var so the left-edge accent bar follows.
-  const chip = document.createElement('label');
-  chip.className = 'color-chip';
-  const swatch = document.createElement('span');
-  swatch.className = 'swatch';
-  swatch.style.background = trig.color;
-  const input = document.createElement('input');
-  input.type = 'color';
-  input.value = trig.color;
-  input.onchange = async () => {
-    trig.color = input.value;
-    swatch.style.background = input.value;
-    if (card) card.style.setProperty('--trigger-color', input.value);
-    const next = await api.updateTrigger(trig.id, { color: trig.color });
-    workingConfig.triggers = next;
-  };
-  chip.append(swatch, input);
-  return chip;
-}
-
 function buildPulsePill(trig) {
   // Inline-text pulse control: dot + "Pulse on/off" text. No border, no
   // pill chrome - it reads as part of the meta line.
@@ -862,16 +838,6 @@ el('connectionBtn').onclick = async () => {
 
 /* ---------------- Microsoft Teams connection ---------------- */
 
-// Inline SVG for the Teams logo - keeps offline + avoids external requests.
-const TEAMS_LOGO_SVG = `
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <rect x="3" y="5" width="11" height="14" rx="1.5"/>
-    <rect x="14" y="7" width="6" height="10" rx="1" opacity="0.65"/>
-    <line x1="5.5" y1="9" x2="11.5" y2="9"/>
-    <line x1="8.5" y1="9" x2="8.5" y2="15"/>
-  </svg>
-`;
-
 function renderTeamsState() {
   if (!workingConfig) return;
   const teams = workingConfig.teams || {};
@@ -924,7 +890,7 @@ el('teamsConnectBtn').onclick = async () => {
   // in main, which sends settings:teams-connected to this renderer.
 };
 
-api.onTeamsConnected(async (info) => {
+api.onTeamsConnected(async (_info) => {
   workingConfig = await api.getConfig();
   setStatus(el('teamsResult'), true, '');
   renderTeamsState();

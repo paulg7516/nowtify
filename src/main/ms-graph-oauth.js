@@ -42,6 +42,13 @@ const GRAPH_ME_URL = 'https://graph.microsoft.com/v1.0/me';
 let pendingAuth = null;
 const PENDING_AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+// In-flight refresh promise. Microsoft rotates refresh tokens on each use;
+// two concurrent refreshes would both POST to /token, the server invalidates
+// the older request's refresh token (rotation), and whichever response
+// arrives last overwrites the store with a stale refresh token - killing
+// the session. De-dup by caching the in-flight promise.
+let inflightRefresh = null;
+
 function base64url(buffer) {
   return buffer
     .toString('base64')
@@ -177,46 +184,58 @@ async function exchangeCodeForTokens(code, verifier) {
  * Trade the stored refresh token for a fresh access token. Called when an
  * existing access token has expired (or within 60s of expiring). The new
  * refresh token (if Microsoft rotates it) replaces the old one.
+ *
+ * Concurrent callers get the SAME in-flight promise so we only POST to
+ * /token once per refresh cycle - avoids the rotation race described at
+ * the top of this file.
  */
-async function refreshAccessToken() {
-  const stored = store.getTeams();
-  if (!stored.refreshToken) {
-    throw new Error('Not connected to Microsoft Teams');
-  }
+function refreshAccessToken() {
+  if (inflightRefresh) return inflightRefresh;
+  inflightRefresh = (async () => {
+    try {
+      const stored = store.getTeams();
+      if (!stored.refreshToken) {
+        throw new Error('Not connected to Microsoft Teams');
+      }
 
-  const body = new URLSearchParams({
-    client_id: CLIENT_ID,
-    grant_type: 'refresh_token',
-    refresh_token: stored.refreshToken,
-    scope: SCOPES.join(' '),
-  });
+      const body = new URLSearchParams({
+        client_id: CLIENT_ID,
+        grant_type: 'refresh_token',
+        refresh_token: stored.refreshToken,
+        scope: SCOPES.join(' '),
+      });
 
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
+      const res = await fetch(TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    // 4xx on refresh usually means the refresh token has been revoked
-    // (user signed out elsewhere, admin reset sessions, etc). Clear local
-    // state so the UI prompts the user to reconnect.
-    if (res.status >= 400 && res.status < 500) {
-      store.clearTeams();
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        // 4xx on refresh usually means the refresh token has been revoked
+        // (user signed out elsewhere, admin reset sessions, etc). Clear
+        // local state so the UI prompts the user to reconnect.
+        if (res.status >= 400 && res.status < 500) {
+          store.clearTeams();
+        }
+        throw new Error(`Token refresh failed: ${res.status} ${text.slice(0, 300)}`);
+      }
+
+      const data = await res.json();
+      store.setTeamsTokens({
+        accessToken: data.access_token,
+        // Microsoft rotates refresh tokens on each use; fall back to the
+        // old one if for some reason a new one wasn't issued.
+        refreshToken: data.refresh_token || stored.refreshToken,
+        expiresAt: Date.now() + data.expires_in * 1000,
+      });
+      return data.access_token;
+    } finally {
+      inflightRefresh = null;
     }
-    throw new Error(`Token refresh failed: ${res.status} ${text.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  store.setTeamsTokens({
-    accessToken: data.access_token,
-    // Microsoft rotates refresh tokens on each use; fall back to the old
-    // one if for some reason a new one wasn't issued.
-    refreshToken: data.refresh_token || stored.refreshToken,
-    expiresAt: Date.now() + data.expires_in * 1000,
-  });
-  return data.access_token;
+  })();
+  return inflightRefresh;
 }
 
 /**

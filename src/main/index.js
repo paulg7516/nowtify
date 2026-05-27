@@ -214,11 +214,28 @@ function wireIpc() {
 
   // Settings
   ipcMain.handle('settings:get', () => store.getAll());
+  // Per-key value validators. Any settings:save value that fails its
+  // validator is rejected with a warning. Prevents a compromised or buggy
+  // renderer from writing the wrong-shape value (e.g. `triggers: "foo"`)
+  // which would then crash the engine on the next tick.
+  const SAVE_VALIDATORS = {
+    jsm: (v) => v && typeof v === 'object',
+    watchList: Array.isArray,
+    watchGroups: Array.isArray,
+    triggers: Array.isArray,
+    pollIntervalSeconds: (v) => typeof v === 'number' && Number.isFinite(v),
+  };
+
   ipcMain.handle('settings:save', (_e, patch) => {
     if (!patch || typeof patch !== 'object') return store.getAll();
     for (const [key, value] of Object.entries(patch)) {
       if (!ALLOWED_SAVE_KEYS.has(key)) {
         console.warn('[security] rejected settings:save for disallowed key', key);
+        continue;
+      }
+      const validator = SAVE_VALIDATORS[key];
+      if (validator && !validator(value)) {
+        console.warn('[security] rejected settings:save for malformed value:', key, typeof value);
         continue;
       }
       store.set(key, value);

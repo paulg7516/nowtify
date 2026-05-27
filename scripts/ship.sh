@@ -27,6 +27,23 @@ if [ -z "${GH_TOKEN:-}" ]; then
   exit 1
 fi
 
+# 0. Pre-ship quality gate: lint + tests. If either fails, the ship is
+#    aborted before any version bump or release upload. This is the single
+#    most important defense against shipping a regression that silently
+#    breaks the app for users (see CHANGELOG: most user-visible breaks
+#    have been static errors that ESLint catches in <1s).
+echo "→ Running lint…"
+if ! npm run lint --silent; then
+  echo "❌ Lint failed - aborting ship. Fix the errors above and try again."
+  exit 1
+fi
+echo "→ Running tests…"
+if ! npm test --silent; then
+  echo "❌ Tests failed - aborting ship."
+  exit 1
+fi
+echo "  ✓ Pre-ship gate passed"
+
 # 1. Bump the version
 echo "→ Bumping version ($LEVEL)…"
 npm version "$LEVEL" --no-git-tag-version >/dev/null

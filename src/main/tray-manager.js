@@ -124,7 +124,6 @@ class TrayManager {
   setState(state) {
     if (!this.tray) return;
     this.tray.setImage(this.iconFor(state, 0));
-    const count = (state.alerts || []).length;
     const activeCount = (state.alerts || []).filter((a) => !a.dismissed).length;
     let tip = 'Nowtify - all quiet';
     if (state.status === 'alerting') tip = `Nowtify - ${activeCount} alert${activeCount === 1 ? '' : 's'}`;

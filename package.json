@@ -1,6 +1,6 @@
 {
   "name": "nowtify",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "Nowtify - ambient JSM alert overlay. Thin screen-border glow that flashes when watched tickets cross Major Incident or SLA trigger conditions.",
   "main": "src/main/index.js",
   "scripts": {
@@ -9,6 +9,8 @@
     "icon": "electron scripts/generate-icon.js",
     "dist": "electron-builder --mac --universal",
     "release": "electron-builder --mac --universal --publish always",
+    "lint": "eslint .",
+    "test": "node --test 'test/**/*.test.js'",
     "ship": "bash scripts/ship.sh patch",
     "ship:minor": "bash scripts/ship.sh minor",
     "ship:major": "bash scripts/ship.sh major"
@@ -17,7 +19,8 @@
   "private": true,
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.39.4"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
