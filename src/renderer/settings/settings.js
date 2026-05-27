@@ -284,12 +284,28 @@ function renderTriggerCard(trig) {
   const card = document.createElement('li');
   card.className = 'trigger-card';
   if (!trig.enabled) card.classList.add('disabled');
-  // The left-edge accent bar pulls its color from this custom property,
-  // updated when the user picks a new color via the swatch.
   card.style.setProperty('--trigger-color', trig.color);
 
-  // Enable/disable switch (moves to the right side of the card in the
-  // SaaS-clean layout; tab order preserved via DOM order below).
+  // Status dot: colored circle on the left, doubles as color picker
+  // affordance. Hidden native <input type=color> overlays it so click
+  // anywhere on the dot opens the OS picker.
+  const status = document.createElement('label');
+  status.className = 'trigger-status';
+  status.title = 'Change color';
+  const dot = document.createElement('span');
+  dot.className = 'trigger-status-dot';
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.value = trig.color;
+  colorInput.onchange = async () => {
+    trig.color = colorInput.value;
+    card.style.setProperty('--trigger-color', colorInput.value);
+    const next = await api.updateTrigger(trig.id, { color: trig.color });
+    workingConfig.triggers = next;
+  };
+  status.append(dot, colorInput);
+
+  // Enable/disable switch (right side of the card)
   const switchEl = document.createElement('label');
   switchEl.className = 'switch';
   switchEl.title = trig.enabled ? 'Disable this trigger' : 'Enable this trigger';
@@ -309,7 +325,7 @@ function renderTriggerCard(trig) {
   switchEl.append(switchInput, slider);
 
   // Body: title (with inline dropdown for SLA/Approval/Teams types) on top,
-  // small meta row below with color + pulse inline controls.
+  // small meta row below with the pulse control.
   const body = document.createElement('div');
   body.className = 'trigger-body';
 
@@ -319,16 +335,11 @@ function renderTriggerCard(trig) {
   const meta = document.createElement('div');
   meta.className = 'trigger-meta';
 
-  const colorWrap = document.createElement('span');
-  colorWrap.className = 'trigger-meta-item';
-  colorWrap.title = 'Change color';
-  const colorChipEl = buildColorChip(trig, card);
-  colorWrap.appendChild(colorChipEl);
-  meta.appendChild(colorWrap);
-
   const pulseWrap = document.createElement('span');
   pulseWrap.className = 'trigger-meta-item';
-  pulseWrap.title = trig.pulse ? 'Pulse is on - alerts flash the border' : 'Pulse is off - border stays solid';
+  pulseWrap.title = trig.pulse
+    ? 'Pulse is on - alerts flash the border'
+    : 'Pulse is off - border stays solid';
   pulseWrap.appendChild(buildPulsePill(trig));
   meta.appendChild(pulseWrap);
 
@@ -370,10 +381,9 @@ function renderTriggerCard(trig) {
     };
   }
 
-  // Layout order: body (content) on the left, toggle on the right, then
-  // the (hover-revealed) delete. DOM order matches visual order for tab
-  // navigation.
-  card.append(body, switchEl, trailing);
+  // Layout (left to right): status dot, body (title + meta), toggle,
+  // hover-revealed delete. DOM order matches visual order for tab nav.
+  card.append(status, body, switchEl, trailing);
   return card;
 }
 

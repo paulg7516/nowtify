@@ -444,65 +444,64 @@ ul.list:empty {
 
 /* Trigger groups: one block per trigger type (Major Incident, SLA, Approval).
    Section header runs heading-on-left, add-button-on-right. */
-/* ---------- Triggers panel: SaaS-quiet layout ---------- *
-   Design intent: a single accent per trigger (the left-edge color bar),
-   no competing colored chips, controls that look like UI rather than
-   buttons-pretending-to-be-UI. Generous whitespace, hairline dividers,
-   actions that fade in on hover.                                        */
+/* ---------- Triggers panel ---------- *
+   Each trigger row is a flexbox layout: a small colored status dot,
+   the title (with optional dropdown), an inline meta line below, the
+   on/off switch on the right, and a hover-revealed delete. The dot is
+   the single source of color truth - no left-edge bar, no swatch chip.
+   Click the dot to change the color.                                    */
 
 .trigger-group {
-  margin-top: 36px;
+  margin-top: 28px;
 }
 .trigger-group:first-of-type {
-  margin-top: 4px;
+  margin-top: 0;
 }
 .trigger-group-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .trigger-group-heading {
   flex: 1;
   min-width: 0;
 }
 .trigger-group-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-3, #6b7280);
-  margin: 0 0 4px 0;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.005em;
 }
 .trigger-group-sub {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-3, #6b7280);
-  margin: 0;
-  line-height: 1.45;
-  max-width: 64ch;
+  margin: 4px 0 0 0;
+  line-height: 1.5;
+  max-width: 60ch;
 }
 .trigger-group-empty {
   font-size: 12.5px;
   padding: 14px 16px;
   color: var(--text-3, #6b7280);
   border: 1px dashed var(--border);
-  border-radius: var(--radius, 8px);
+  border-radius: 8px;
   text-align: center;
 }
 
-/* Add button: text-link styling, not heavy primary. Quiet by default,
-   reveals indigo on hover - the trigger sections shouldn't compete with
-   the page's primary CTAs.                                              */
+/* Add button: refined text-button, not heavy primary */
 .trigger-group-header .btn-primary.btn-sm,
 .trigger-group-header .btn-ghost.btn-sm {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-3, #6b7280);
+  color: var(--accent);
   font-weight: 500;
-  padding: 5px 8px;
-  font-size: 12px;
+  padding: 4px 9px;
+  font-size: 12.5px;
   box-shadow: none;
+  flex-shrink: 0;
 }
 .trigger-group-header .btn-primary.btn-sm:hover,
 .trigger-group-header .btn-ghost.btn-sm:hover {
@@ -512,7 +511,8 @@ ul.list:empty {
 }
 .trigger-group-header .btn-icon {
   font-size: 14px;
-  margin-right: 1px;
+  margin-right: 2px;
+  opacity: 0.85;
 }
 
 .trigger-list {
@@ -521,39 +521,71 @@ ul.list:empty {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
+
+/* Card: flex layout so the title/body always fills available space and
+   the toggle + delete hug the right edge. min-width: 0 on the body lets
+   the dropdown grow without being clipped by flex defaults.             */
 .trigger-card {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
+  display: flex;
   align-items: center;
-  padding: 14px 18px 14px 22px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--trigger-color, var(--border));
-  border-radius: 6px;
-  box-shadow: none;
-  transition: border-color 140ms ease, background 140ms ease;
+  gap: 14px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 .trigger-card:hover {
   background: var(--surface-2, #f8fafc);
-  border-color: var(--border-strong);
-}
-.trigger-card.disabled {
-  background: transparent;
+  border-color: var(--border);
 }
 .trigger-card.disabled .trigger-title,
 .trigger-card.disabled .trigger-title-select {
   color: var(--text-3, #6b7280);
 }
-.trigger-card.disabled {
-  border-left-color: var(--border-strong);
-  opacity: 1; /* don't fade the whole card - just signal via color */
+.trigger-card.disabled .trigger-status-dot {
+  background: var(--border-strong);
+  opacity: 0.7;
 }
 .trigger-card.disabled .trigger-meta {
-  opacity: 0.5;
+  opacity: 0.55;
+}
+
+/* Status dot: 10px colored circle to the left of the title. Clickable
+   to open the color picker (hidden native input behind it).             */
+.trigger-status {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.trigger-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--trigger-color, var(--border-strong));
+  box-shadow: 0 0 0 2px var(--surface);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.trigger-status:hover .trigger-status-dot {
+  transform: scale(1.18);
+}
+.trigger-status input[type='color'] {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
 }
 
 /* iOS-style switch */
@@ -598,12 +630,14 @@ ul.list:empty {
   transform: translateX(16px);
 }
 
-/* Trigger body: title on top, small inline meta controls below */
+/* Body fills remaining width; min-width: 0 prevents flex from clipping
+   the dropdown if its option text is long.                              */
 .trigger-body {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  gap: 2px;
 }
 .trigger-title {
   font-size: 14px;
@@ -613,13 +647,13 @@ ul.list:empty {
 }
 .trigger-title-select {
   width: 100%;
-  max-width: 360px;
+  max-width: 100%;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.005em;
-  padding: 3px 26px 3px 6px;
+  padding: 2px 24px 2px 6px;
   margin-left: -6px;
   border: 0;
   background: transparent;
@@ -630,6 +664,7 @@ ul.list:empty {
   background-repeat: no-repeat;
   background-position: right 8px center;
   border-radius: 4px;
+  text-overflow: ellipsis;
   transition: background-color 120ms ease;
 }
 .trigger-title-select:hover,
@@ -641,14 +676,13 @@ ul.list:empty {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
-/* Meta line under the title: small inline controls for color + pulse.
-   Both clickable; styled as quiet text-like controls rather than chips. */
+/* Meta line: just the pulse control. Color is on the status dot.
+   Smaller and quieter than the title.                                   */
 .trigger-meta {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 2px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-3, #6b7280);
 }
 .trigger-meta-item {
@@ -656,11 +690,12 @@ ul.list:empty {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  padding: 2px 4px;
-  margin: -2px -4px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  border-radius: 3px;
   transition: background 120ms ease, color 120ms ease;
   position: relative;
+  font-size: inherit;
 }
 .trigger-meta-item:hover {
   background: var(--surface-3, rgba(0, 0, 0, 0.04));
