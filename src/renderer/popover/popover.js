@@ -243,12 +243,27 @@ function renderAlertRow(a) {
   key.textContent = a.ticketKey;
   key.onclick = () => api.openTicket(a.jsmUrl);
   // For Teams/Email alerts, append a small badge after the sender name so
-  // users can tell at a glance which medium the alert came in on.
+  // users can tell at a glance which medium the alert came in on. Each
+  // badge has an inlined brand-mark SVG sized to match the badge text.
   if (a.medium === 'teams' || a.medium === 'outlook') {
     const badge = document.createElement('span');
     badge.className = 'medium-badge';
     badge.dataset.medium = a.medium;
-    badge.textContent = a.medium === 'teams' ? 'Teams' : 'Outlook';
+    badge.innerHTML =
+      a.medium === 'teams'
+        ? // Teams: a big "T" shape - universally recognizable as Teams,
+          // currentColor so it picks up the badge's light-purple text color.
+          `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M 3 3 h 10 v 1.6 h -4.2 v 8.4 h -1.6 v -8.4 h -4.2 z"/>
+            </svg>Teams`
+        : // Outlook: simple envelope outline, currentColor to match the
+          // badge's light-blue text color.
+          `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"
+                aria-hidden="true">
+              <rect x="2" y="4" width="12" height="8" rx="1"/>
+              <path d="M 2.5 5 L 8 8.8 L 13.5 5"/>
+            </svg>Outlook`;
     key.appendChild(badge);
   }
   const summary = document.createElement('div');

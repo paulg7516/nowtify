@@ -301,10 +301,13 @@
       }
       /* Per-row medium badge (Teams vs Outlook) in the Messages tab.
          Same person can ping you via either - the badge makes it obvious
-         at a glance which surface the alert came from.                 */
+         at a glance which surface the alert came from. Includes an
+         inlined brand-mark SVG that matches the text color (Teams light
+         purple, Outlook light blue).                                   */
       .medium-badge {
         display: inline-flex;
         align-items: center;
+        gap: 4px;
         font-size: 9.5px;
         font-weight: 700;
         text-transform: uppercase;
@@ -313,6 +316,13 @@
         border-radius: 4px;
         margin-left: 6px;
         vertical-align: middle;
+        line-height: 1;
+      }
+      .medium-badge svg {
+        width: 10px;
+        height: 10px;
+        flex-shrink: 0;
+        display: block;
       }
       .medium-badge[data-medium='teams'] {
         background: rgba(80, 89, 201, 0.16);
