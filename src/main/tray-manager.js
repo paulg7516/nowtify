@@ -14,22 +14,33 @@ class TrayManager {
     onPoke,
     onQuit,
     onToggleTrigger,
+    onInstallUpdate,
     getState,
     getTriggers,
+    getUpdateStatus,
   }) {
     this.onOpenSettings = onOpenSettings;
     this.onSnooze = onSnooze;
     this.onPoke = onPoke;
     this.onQuit = onQuit;
     this.onToggleTrigger = onToggleTrigger;
+    this.onInstallUpdate = onInstallUpdate;
     this.getState = getState;
     this.getTriggers = getTriggers;
+    this.getUpdateStatus = getUpdateStatus;
     this.tray = null;
     this.popover = null;
     this.iconCache = {};
     this.pulseTimer = null;
     this.pulseFrame = 0;
     this.lastStatus = null;
+  }
+
+  // Surfaced when an update has been downloaded so the tray-menu rebuild
+  // can prepend an "Install vX.Y.Z" item at the top.
+  refreshMenuForUpdate() {
+    const state = this.getState ? this.getState() : { status: 'idle', alerts: [] };
+    this.rebuildMenu(state);
   }
 
   init() {
@@ -165,7 +176,24 @@ class TrayManager {
       triggerItems.push({ label: 'No triggers configured', enabled: false });
     }
 
+    // If an update has been downloaded and is waiting, surface it at the
+    // top of the menu - same place users glance most often. Click to
+    // install (app quits, helper swaps bundle, relaunches on new version).
+    const updateStatus = this.getUpdateStatus ? this.getUpdateStatus() : null;
+    const updateReady =
+      updateStatus && updateStatus.result && updateStatus.result.type === 'downloaded';
+    const updateItems = updateReady
+      ? [
+          {
+            label: `↑ Install update v${updateStatus.result.version || ''}`,
+            click: () => this.onInstallUpdate && this.onInstallUpdate(),
+          },
+          { type: 'separator' },
+        ]
+      : [];
+
     this.menu = Menu.buildFromTemplate([
+      ...updateItems,
       { label: statusLabel, enabled: false },
       { type: 'separator' },
       { label: 'View alerts…', click: () => this.showPopover() },

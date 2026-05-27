@@ -457,8 +457,15 @@ app.whenReady().then(() => {
       broadcastTriggers(next);
       engine.pokeNow();
     },
+    onInstallUpdate: () => {
+      if (updaterStatus.downloadedFile) {
+        performUnsignedUpdate(updaterStatus.downloadedFile, updaterStatus.result.version || '');
+        app.quit();
+      }
+    },
     getState: () => engine.getState(),
     getTriggers: () => store.get('triggers') || [],
+    getUpdateStatus: () => updaterStatus,
   });
 
   overlay.init();
@@ -492,9 +499,12 @@ app.whenReady().then(() => {
     autoUpdater.checkForUpdatesAndNotify().catch((err) => {
       console.warn('[updater] initial check failed:', err.message || err);
     });
+    // Re-check hourly so a newly-published version is detected fast.
+    // Previous 6h interval was too slow - users would ship a release and
+    // be on the old version for hours before the pill appeared.
     setInterval(() => {
       autoUpdater.checkForUpdatesAndNotify().catch(() => {});
-    }, 6 * 60 * 60 * 1000);
+    }, 60 * 60 * 1000);
   }
 });
 
@@ -629,6 +639,9 @@ function setupAutoUpdater() {
       version: info.version,
     };
     broadcastUpdaterStatus();
+    // Rebuild the tray menu so the new "Install update vX.Y.Z" item
+    // appears at the top of the right-click menu immediately.
+    if (tray && tray.refreshMenuForUpdate) tray.refreshMenuForUpdate();
 
     // Menu-bar apps (LSUIElement: true) have no dock icon, which means
     // dialog.showMessageBox can appear without focus on a random space and
