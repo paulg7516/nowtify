@@ -88,6 +88,55 @@ function normalizeUser(u) {
   };
 }
 
+/**
+ * Returns the user's recent chats whose most recent message was sent by
+ * one of the given watchedUserIds (i.e. "VIP just messaged you"). Each
+ * entry is normalized to:
+ *   { chatId, topic, webUrl, lastMessage: { id, sender: {id, displayName},
+ *     createdDateTime, preview } }
+ *
+ * Graph's chats endpoint doesn't expose an "unread" flag (read state is
+ * managed by the Teams client locally), so we use the heuristic
+ * "watched user sent the most recent message in this chat" as the proxy
+ * for "they're waiting on you." Age-based filtering happens upstream in
+ * the alert engine.
+ */
+async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
+  if (!watchedUserIds || watchedUserIds.length === 0) return [];
+  const idSet = new Set(watchedUserIds);
+
+  const data = await graphGet(
+    '/me/chats?$expand=lastMessagePreview&$top=50&$orderby=lastUpdatedDateTime desc',
+  );
+  const chats = data.value || [];
+  const hits = [];
+  for (const chat of chats) {
+    const msg = chat.lastMessagePreview;
+    if (!msg) continue;
+    if (msg.isDeleted) continue;
+    const fromId = msg.from && msg.from.user && msg.from.user.id;
+    if (!fromId || !idSet.has(fromId)) continue;
+    hits.push({
+      chatId: chat.id,
+      topic: chat.topic || '',
+      webUrl: chat.webUrl || '',
+      lastMessage: {
+        id: msg.id,
+        sender: {
+          id: fromId,
+          displayName: (msg.from.user.displayName) || '',
+        },
+        createdDateTime: msg.createdDateTime,
+        // preview body comes as { content, contentType } - use plain text
+        // for display in the popover.
+        preview: (msg.body && msg.body.content) || '',
+      },
+    });
+  }
+  return hits;
+}
+
 module.exports = {
   searchUsers,
+  getRecentMessagesFromWatchedUsers,
 };

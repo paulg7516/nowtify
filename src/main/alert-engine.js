@@ -1,5 +1,7 @@
 const EventEmitter = require('events');
 const { JsmClient, parseSlaField, parseMajorIncident } = require('./jsm-client');
+const msGraphClient = require('./ms-graph-client');
+const msGraphOAuth = require('./ms-graph-oauth');
 const store = require('./store');
 
 /**
@@ -72,6 +74,7 @@ class AlertEngine extends EventEmitter {
     const majorTriggers = enabledTriggers.filter((t) => t.type === 'major');
     const slaTriggers = enabledTriggers.filter((t) => t.type === 'sla');
     const approvalTriggers = enabledTriggers.filter((t) => t.type === 'approval');
+    const teamsTriggers = enabledTriggers.filter((t) => t.type === 'teams');
     const snoozed = store.isSnoozed();
     const snoozeUntilMs = store.get('snoozeUntil') || 0;
     const anyEnabled = enabledTriggers.length > 0;
@@ -140,6 +143,22 @@ class AlertEngine extends EventEmitter {
       }
     }
 
+    // 4) Teams unread messages from watched users (via MS Graph). Only
+    //    fires if user is connected to Teams AND has at least one watched
+    //    user configured.
+    let teamsHits = [];
+    if (teamsTriggers.length && msGraphOAuth.isConnected()) {
+      const teamsState = store.getTeams();
+      const watchedIds = (teamsState.watchedUsers || []).map((u) => u.id).filter(Boolean);
+      if (watchedIds.length > 0) {
+        try {
+          teamsHits = await msGraphClient.getRecentMessagesFromWatchedUsers(watchedIds);
+        } catch (err) {
+          this.emit('error', err);
+        }
+      }
+    }
+
     const alerts = [];
 
     const nameFor = (assignee) => {
@@ -183,6 +202,40 @@ class AlertEngine extends EventEmitter {
           trigType: 'major',
           meetingUrl: conn ? conn.url : null,
           meetingType: conn ? conn.type : null,
+        });
+      }
+    }
+
+    // Evaluate Teams triggers. Each watched-user chat hit can match
+    // multiple teams triggers (each with its own threshold/color/pulse).
+    const nowForTeams = Date.now();
+    for (const hit of teamsHits) {
+      const msg = hit.lastMessage;
+      const createdMs = msg.createdDateTime ? Date.parse(msg.createdDateTime) : nowForTeams;
+      const ageMinutes = Math.max(0, (nowForTeams - createdMs) / 60_000);
+      const senderName = msg.sender.displayName || 'Watched user';
+      for (const trig of teamsTriggers) {
+        const threshold = Number(trig.ageThresholdMinutes) || 0;
+        if (threshold > 0 && ageMinutes < threshold) continue;
+        const ageLabel =
+          ageMinutes < 1
+            ? 'just now'
+            : ageMinutes < 60
+              ? `${Math.round(ageMinutes)}m ago`
+              : `${(ageMinutes / 60).toFixed(1)}h ago`;
+        alerts.push({
+          ticketKey: senderName,
+          ticketSummary: msg.preview ? msg.preview.slice(0, 140) : '(no preview)',
+          assigneeName: senderName,
+          conditionId: `${trig.id}:${hit.chatId}`,
+          conditionLabel: `Teams · ${ageLabel}`,
+          color: trig.color,
+          pulse: Boolean(trig.pulse),
+          // Severity: scales with age, capped at 75 (below SLA-breach so
+          // an active incident still wins the border color).
+          severity: Math.min(75, 35 + Math.floor(ageMinutes / 5)),
+          jsmUrl: hit.webUrl || '',
+          trigType: 'teams',
         });
       }
     }
@@ -277,7 +330,7 @@ class AlertEngine extends EventEmitter {
 
     // One-line tick summary.
     console.log(
-      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
+      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHits.length} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
     );
   }
 

@@ -22,17 +22,22 @@ if (api && api.getVersion) {
 const tabsEl = el('tabs');
 const tabCountIncidents = el('tabCountIncidents');
 const tabCountApprovals = el('tabCountApprovals');
+const tabCountMessages = el('tabCountMessages');
 
 let currentState = { alerts: [], status: 'idle', snoozed: false };
 let lastSyncAt = null;
 let snoozeUntilMs = 0;
-let activeTab = 'incidents'; // 'incidents' | 'approvals'
+let activeTab = 'incidents'; // 'incidents' | 'approvals' | 'messages'
 
-// Incident triggers (major + sla) sit together because they share urgency
-// semantics: something is on fire and needs attention. Approval triggers are
-// the proactive grooming queue and live on their own tab.
+// Route each alert to a tab based on trigType:
+//   - major/sla -> incidents (shared "something is on fire" urgency)
+//   - approval  -> approvals (grooming queue)
+//   - teams     -> messages (relational urgency from a specific person)
 function tabFor(alert) {
-  return alert && alert.trigType === 'approval' ? 'approvals' : 'incidents';
+  if (!alert) return 'incidents';
+  if (alert.trigType === 'approval') return 'approvals';
+  if (alert.trigType === 'teams') return 'messages';
+  return 'incidents';
 }
 
 for (const btn of tabsEl.querySelectorAll('button[data-tab]')) {
@@ -122,23 +127,29 @@ function render(state) {
     title.textContent = 'Nowtify';
   }
 
-  // Update tab counts (both always visible) and auto-select the tab with
+  // Update tab counts (always visible) and auto-select the tab with
   // content on first non-empty render so the user doesn't land on an empty
-  // tab while the other has alerts.
-  const incidentCount = alerts.filter((a) => tabFor(a) === 'incidents').length;
-  const approvalCount = alerts.filter((a) => tabFor(a) === 'approvals').length;
-  tabCountIncidents.textContent = String(incidentCount);
-  tabCountApprovals.textContent = String(approvalCount);
+  // tab while another has alerts.
+  const counts = {
+    incidents: alerts.filter((a) => tabFor(a) === 'incidents').length,
+    approvals: alerts.filter((a) => tabFor(a) === 'approvals').length,
+    messages: alerts.filter((a) => tabFor(a) === 'messages').length,
+  };
+  tabCountIncidents.textContent = String(counts.incidents);
+  tabCountApprovals.textContent = String(counts.approvals);
+  tabCountMessages.textContent = String(counts.messages);
 
-  // If the currently active tab is empty but the other has items, switch.
-  // This avoids the dead-tab UX where the user clicks the tray icon and
-  // sees an empty list even though alerts exist on the other tab.
-  const activeCount = activeTab === 'incidents' ? incidentCount : approvalCount;
-  const otherCount = activeTab === 'incidents' ? approvalCount : incidentCount;
-  if (activeCount === 0 && otherCount > 0) {
-    activeTab = activeTab === 'incidents' ? 'approvals' : 'incidents';
-    for (const b of tabsEl.querySelectorAll('button[data-tab]')) {
-      b.classList.toggle('active', b.dataset.tab === activeTab);
+  // Auto-switch: if active tab is empty but another has alerts, jump to
+  // the first non-empty tab in priority order (incidents > messages >
+  // approvals - urgent first, then relationship-time, then grooming).
+  if (counts[activeTab] === 0) {
+    const priority = ['incidents', 'messages', 'approvals'];
+    const nextTab = priority.find((t) => counts[t] > 0);
+    if (nextTab) {
+      activeTab = nextTab;
+      for (const b of tabsEl.querySelectorAll('button[data-tab]')) {
+        b.classList.toggle('active', b.dataset.tab === activeTab);
+      }
     }
   }
 
@@ -162,8 +173,7 @@ function renderList(state) {
 function renderEmpty(state) {
   // Empty state describes what's in the active tab. The snoozed/paused
   // status is already shown in the banner at the top, so we don't repeat
-  // it here - that would just obscure what the user is actually looking at
-  // ("are there approvals waiting or not?").
+  // it here.
   let titleText;
   let message;
   if (state.status === 'paused') {
@@ -174,6 +184,9 @@ function renderEmpty(state) {
   } else if (activeTab === 'approvals') {
     titleText = 'No approvals';
     message = 'No pending approvals assigned to you have been identified.';
+  } else if (activeTab === 'messages') {
+    titleText = 'No new messages';
+    message = 'No unread Teams messages from your watched users.';
   } else {
     titleText = 'No incidents';
     message = 'No tickets are currently triggering an incident alert.';

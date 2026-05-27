@@ -246,12 +246,20 @@ const APPROVAL_PRESETS = [
   { label: 'Pending 24+ hours', ageThresholdHours: 24 },
 ];
 
+const TEAMS_PRESETS = [
+  { label: 'Any unread message', ageThresholdMinutes: 0 },
+  { label: 'Unread 15+ min', ageThresholdMinutes: 15 },
+  { label: 'Unread 1+ hour', ageThresholdMinutes: 60 },
+  { label: 'Unread 4+ hours', ageThresholdMinutes: 240 },
+];
+
 function renderTriggers() {
   const triggers = workingConfig.triggers || [];
   const groups = {
     major: { list: el('triggers-major'), emptyMessage: 'No Major Incident trigger configured.' },
     sla: { list: el('triggers-sla'), emptyMessage: 'No SLA triggers yet - click Add SLA trigger above.' },
     approval: { list: el('triggers-approval'), emptyMessage: 'No approval triggers yet - click Add approval trigger above.' },
+    teams: { list: el('triggers-teams'), emptyMessage: 'No Teams trigger configured.' },
   };
   for (const g of Object.values(groups)) g.list.innerHTML = '';
 
@@ -317,11 +325,13 @@ function renderTriggerCard(trig) {
   body.appendChild(pills);
 
   // Column 3: delete (only for deletable triggers). The default Major
-  // Incident and Pending Approvals triggers are locked - users can disable
-  // but not delete them, since they're the headline use cases.
+  // Incident, Pending Approvals, and Teams Messages triggers are locked -
+  // users can disable but not delete them, since they're the headline use
+  // cases for each integration.
   const isLocked =
     (trig.type === 'major' && trig.id === 'major-incident') ||
-    (trig.type === 'approval' && trig.id === 'pending-approvals');
+    (trig.type === 'approval' && trig.id === 'pending-approvals') ||
+    (trig.type === 'teams' && trig.id === 'teams-vip-message');
   let trailing;
   if (isLocked) {
     trailing = document.createElement('span');
@@ -367,6 +377,14 @@ function buildTriggerTitle(trig) {
       presets: APPROVAL_PRESETS,
       valueKey: 'ageThresholdHours',
       ariaLabel: 'Approval age threshold',
+    });
+  }
+  if (trig.type === 'teams') {
+    return buildPresetSelect({
+      trig,
+      presets: TEAMS_PRESETS,
+      valueKey: 'ageThresholdMinutes',
+      ariaLabel: 'Teams message age threshold',
     });
   }
   return buildPresetSelect({
