@@ -19,6 +19,42 @@ if (api && api.getVersion) {
     .catch(() => {});
 }
 
+// Brand marks for the Messages-tab medium badges. Same official Iconify
+// logos used on the Integrations cards in Settings - unique gradient/clip
+// IDs so they don't clash with the Integrations panel's instances.
+const TEAMS_BRAND_SVG = `
+<svg viewBox="0 0 256 239" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="popover-mt-g0" x1="17.372%" x2="82.628%" y1="-6.51%" y2="106.51%">
+      <stop offset="0%" stop-color="#5a62c3"/>
+      <stop offset="50%" stop-color="#4d55bd"/>
+      <stop offset="100%" stop-color="#3940ab"/>
+    </linearGradient>
+  </defs>
+  <path fill="#5059c9" d="M178.563 89.302h66.125c6.248 0 11.312 5.065 11.312 11.312v60.231c0 22.96-18.613 41.574-41.573 41.574h-.197c-22.96.003-41.576-18.607-41.579-41.568V95.215a5.91 5.91 0 0 1 5.912-5.913"/>
+  <circle cx="223.256" cy="50.605" r="26.791" fill="#5059c9"/>
+  <circle cx="139.907" cy="38.698" r="38.698" fill="#7b83eb"/>
+  <path fill="#7b83eb" d="M191.506 89.302H82.355c-6.173.153-11.056 5.276-10.913 11.449v68.697c-.862 37.044 28.445 67.785 65.488 68.692c37.043-.907 66.35-31.648 65.489-68.692v-68.697c.143-6.173-4.74-11.296-10.913-11.449"/>
+  <path fill="url(#popover-mt-g0)" d="M10.913 53.581h109.15c6.028 0 10.914 4.886 10.914 10.913v109.151c0 6.027-4.886 10.913-10.913 10.913H10.913C4.886 184.558 0 179.672 0 173.645V64.495C0 58.466 4.886 53.58 10.913 53.58"/>
+  <path fill="#fff" d="M94.208 95.125h-21.82v59.416H58.487V95.125H36.769V83.599h57.439z"/>
+</svg>`;
+
+// Microsoft Outlook brand mark (Iconify logos:microsoft-outlook, multi-color
+// envelope-shaped O on the classic Outlook blue background).
+const OUTLOOK_BRAND_SVG = `
+<svg viewBox="0 0 256 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path fill="#0a2767" d="M180.768 99.024L210 78.336c2.4-1.824 5.184-2.736 8.064-2.736c2.88 0 5.664.912 8.064 2.736L255.36 99.024c.816 1.248.624 2.928-.432 3.936L210.864 132.288c-1.248.864-2.88 1.056-4.32.48L161.616 102.96c-1.152-1.008-1.248-2.688-.432-3.936z"/>
+  <path fill="#0364b8" d="M161.376 76.32 105.408 17.328c-2.832-2.736-7.296-2.736-10.128 0L0 71.808v95.808l161.376-19.968z"/>
+  <path fill="#28a8ea" d="M161.376 76.32v90.144L210 138.96l-48.624-62.64z"/>
+  <path fill="#0078d4" d="M255.36 99.024c-.048.096-.096.192-.144.288l-90.336 60.768c-1.248.864-2.88 1.056-4.32.48l45.168 30.864v-50.736z"/>
+  <path fill="#14447d" d="M210 130.32v37.296l46.368-37.296z"/>
+  <path fill="#0078d4" d="M210 167.616v-37.632L0 167.616v25.488l21.072 14.832 235.296-65.04-46.368-37.632z"/>
+  <path fill="#50d9ff" d="M255.36 99.024 109.968 170.256 0 167.616v25.488l21.072 14.832 234.288-108.912z"/>
+  <path fill="#fff" d="M138.48 49.488H59.04c-5.664 0-10.224 4.56-10.224 10.224v94.752c0 5.664 4.56 10.224 10.224 10.224h79.44c5.664 0 10.224-4.56 10.224-10.224V59.712c0-5.664-4.56-10.224-10.224-10.224"/>
+  <path fill="#1490df" d="M98.4 117.792c-19.584 0-35.472-15.984-35.472-35.664c0-19.68 15.888-35.664 35.472-35.664c19.584 0 35.472 15.984 35.472 35.664c0 19.68-15.888 35.664-35.472 35.664"/>
+  <path fill="#fff" d="M98.4 67.92c-7.872 0-14.208 6.336-14.208 14.208c0 7.872 6.336 14.208 14.208 14.208c7.872 0 14.208-6.336 14.208-14.208c0-7.872-6.336-14.208-14.208-14.208"/>
+</svg>`;
+
 // Engine health indicator: small ⚠ next to version when last tick errored.
 // Refreshes every 10s so the user knows immediately if something breaks.
 const engineWarnEl = document.getElementById('engineWarn');
@@ -242,28 +278,17 @@ function renderAlertRow(a) {
   key.className = 'key';
   key.textContent = a.ticketKey;
   key.onclick = () => api.openTicket(a.jsmUrl);
-  // For Teams/Email alerts, append a small badge after the sender name so
-  // users can tell at a glance which medium the alert came in on. Each
-  // badge has an inlined brand-mark SVG sized to match the badge text.
+  // For Teams/Email alerts, append a brand-badge after the sender name.
+  // Uses the official Iconify multi-color SVGs (same source as the
+  // Integrations cards) so the marks are unmistakeable.
   if (a.medium === 'teams' || a.medium === 'outlook') {
     const badge = document.createElement('span');
     badge.className = 'medium-badge';
     badge.dataset.medium = a.medium;
     badge.innerHTML =
       a.medium === 'teams'
-        ? // Teams: a big "T" shape - universally recognizable as Teams,
-          // currentColor so it picks up the badge's light-purple text color.
-          `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M 3 3 h 10 v 1.6 h -4.2 v 8.4 h -1.6 v -8.4 h -4.2 z"/>
-            </svg>Teams`
-        : // Outlook: simple envelope outline, currentColor to match the
-          // badge's light-blue text color.
-          `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"
-                aria-hidden="true">
-              <rect x="2" y="4" width="12" height="8" rx="1"/>
-              <path d="M 2.5 5 L 8 8.8 L 13.5 5"/>
-            </svg>Outlook`;
+        ? TEAMS_BRAND_SVG + 'Teams'
+        : OUTLOOK_BRAND_SVG + 'Outlook';
     key.appendChild(badge);
   }
   const summary = document.createElement('div');
