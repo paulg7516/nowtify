@@ -45,10 +45,6 @@ body {
   margin: 0;
   padding: 0;
   background: var(--bg);
-  background-image:
-    radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.06), transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.04), transparent 55%);
-  background-attachment: fixed;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
@@ -58,35 +54,29 @@ body {
   overflow: hidden;
 }
 
-/* BOLD BRAND BAND: 6px gradient strip at the very top of the window.
-   This is the signature move - the app announces itself the moment it
-   loads. Sits above the topbar.                                        */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  background: var(--brand-gradient);
-  z-index: 100;
-  pointer-events: none;
-}
-
 /* ---------------- Top bar ---------------- */
 /* Signature brand moment: a 2px indigo->pink gradient hairline runs
    across the full bottom of the header. Single quiet brand cue per
    page; the rest of the chrome stays restrained.                       */
 .topbar {
   position: relative;
-  height: 72px;
+  height: 68px;
   background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 26px;
   border-bottom: 1px solid var(--border);
-  margin-top: 6px; /* push down below the gradient band */
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient);
+  opacity: 0.85;
 }
 .brand {
   display: flex;
@@ -105,31 +95,11 @@ body::before {
   letter-spacing: -0.018em;
   color: var(--text);
 }
-/* Brand mark: subtle gradient halo behind it (radial wash, very soft) */
-.brand {
-  position: relative;
-}
 .brand-mark {
-  position: relative;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: block;
-  z-index: 1;
-}
-.brand-mark::before,
-.brand::before {
-  content: '';
-  position: absolute;
-  width: 56px;
-  height: 56px;
-  left: -11px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.16), transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Connection status pill */
@@ -176,27 +146,14 @@ body::before {
   grid-template-columns: 200px 1fr;
   height: calc(100vh - 68px);
 }
-/* Sidebar: gets a 3px gradient bar on its LEFT edge - constant brand
-   presence visible at all times, runs the full sidebar height.        */
 .sidebar {
-  position: relative;
   border-right: 1px solid var(--border);
   background: #fafbff;
-  padding: 14px 10px 14px 13px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
-}
-.sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--brand-gradient);
-  opacity: 0.95;
 }
 /* Section divider: visual grouping without verbose section labels.
    Used between Integrations / Triggers / Updates nav groups.          */
@@ -228,22 +185,10 @@ body::before {
   color: var(--text);
 }
 .nav-item.active {
-  position: relative;
   background: var(--accent);
-  background-image: linear-gradient(135deg, #6366f1 0%, #5046e5 60%, #7c3aed 100%);
+  background-image: linear-gradient(135deg, #5b52ec 0%, #4f46e5 100%);
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .nav-item.active:hover {
   background: var(--accent);
