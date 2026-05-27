@@ -902,14 +902,18 @@ function renderTeamsState() {
   if (teams.isConnected) {
     block.dataset.connected = 'true';
     title.textContent = `Connected as ${teams.userDisplayName || 'unknown'}`;
-    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages. Choose which people to watch in the Teams trigger under Triggers.';
+    sub.textContent =
+      'Nowtify will use this account to watch for unread Teams messages and Outlook emails. ' +
+      'Pick who to watch under Triggers - Teams group for chat, Email group for mail.';
     btn.textContent = 'Disconnect';
     btn.className = 'btn btn-ghost btn-danger';
   } else {
     block.dataset.connected = 'false';
     title.textContent = 'Not connected';
-    sub.textContent = 'Sign in with your Xolv account to enable Teams alerts. A browser tab will open for Microsoft sign-in.';
-    btn.textContent = 'Connect Microsoft Teams';
+    sub.textContent =
+      'Sign in with your Xolv account to enable Teams chat and Outlook email alerts. ' +
+      'A browser tab will open for Microsoft sign-in.';
+    btn.textContent = 'Connect Microsoft 365';
     btn.className = 'btn btn-primary';
   }
 }
@@ -918,9 +922,9 @@ el('teamsConnectBtn').onclick = async () => {
   const teams = (workingConfig && workingConfig.teams) || {};
   if (teams.isConnected) {
     const ok = await customConfirm({
-      title: 'Disconnect Microsoft Teams',
+      title: 'Disconnect Microsoft 365',
       message:
-        'Your Teams sign-in will be removed from this Mac. To reconnect later, click Connect Microsoft Teams and sign in again.',
+        'Your Microsoft sign-in will be removed from this Mac. Teams and Outlook alerts will stop firing until you reconnect. Watched-users lists for both stay intact.',
       confirmLabel: 'Disconnect',
       confirmDanger: true,
     });
