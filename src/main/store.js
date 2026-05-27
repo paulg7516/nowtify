@@ -419,13 +419,19 @@ function setTeamsUser({ userId, userDisplayName }) {
 }
 
 function clearTeams() {
+  // Preserve the watched-users list across disconnect so users don't have
+  // to re-add their colleagues when they re-auth (e.g. to pick up a new
+  // OAuth scope, switch accounts, or recover from a token rotation
+  // problem). Only the tokens + cached user identity are wiped.
+  const teams = store.get('teams') || {};
+  const preservedWatched = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
   writeEncryptedTeamsField('accessTokenEnc', '');
   writeEncryptedTeamsField('refreshTokenEnc', '');
   store.set('teams', {
     expiresAt: 0,
     userId: '',
     userDisplayName: '',
-    watchedUsers: [],
+    watchedUsers: preservedWatched,
   });
   lockdownConfigFile();
 }

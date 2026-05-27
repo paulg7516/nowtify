@@ -527,6 +527,16 @@ fi
 rm -rf ${sh(appBundlePath)}
 mv ${sh(path.join(tmpDir, 'Nowtify.app'))} ${sh(appBundlePath)}
 xattr -dr com.apple.quarantine ${sh(appBundlePath)} 2>/dev/null || true
+
+# Force macOS Launch Services to re-scan the new bundle so URL scheme
+# handlers (nowtify://) are correctly re-registered after the swap.
+# Without this, OAuth callbacks break after every auto-update because the
+# new binary's hash doesn't match what LS had registered for the old one.
+LSREGISTER='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister'
+if [ -x "\${LSREGISTER}" ]; then
+  "\${LSREGISTER}" -f ${sh(appBundlePath)} 2>/dev/null || true
+fi
+
 rm -rf ${sh(tmpDir)}
 
 # Launch new version
