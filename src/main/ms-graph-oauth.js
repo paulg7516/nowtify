@@ -23,13 +23,20 @@ const TENANT_ID = '029a1c12-d919-4156-aa19-0b333f133667';
 const CLIENT_ID = '055ec7b8-8818-4b1d-aeff-28fddf36486e';
 const REDIRECT_URI = 'nowtify://oauth/callback';
 // Scopes:
-//   - Chat.Read: read the signed-in user's Teams chat messages (Phase 3)
+//   - Chat.Read: read the signed-in user's Teams chat messages
+//   - Mail.Read: read the signed-in user's mailbox (Outlook unread alerts)
 //   - User.Read: read the signed-in user's profile (/me, for "Connected as X")
 //   - User.ReadBasic.All: search/read other users in the tenant (for the
-//     watched-users picker in Phase 2)
+//     watched-users picker)
 //   - offline_access: get a refresh_token so we can keep working past the
 //     initial access token's 1-hour lifetime
-const SCOPES = ['Chat.Read', 'User.Read', 'User.ReadBasic.All', 'offline_access'];
+const SCOPES = [
+  'Chat.Read',
+  'Mail.Read',
+  'User.Read',
+  'User.ReadBasic.All',
+  'offline_access',
+];
 
 const AUTHORITY = `https://login.microsoftonline.com/${TENANT_ID}`;
 const AUTH_URL = `${AUTHORITY}/oauth2/v2.0/authorize`;

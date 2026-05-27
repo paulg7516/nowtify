@@ -185,6 +185,13 @@ const TEAMS_PRESETS = [
   { label: 'Unread 4+ hours', ageThresholdMinutes: 240 },
 ];
 
+const EMAIL_PRESETS = [
+  { label: 'Any unread email', ageThresholdMinutes: 0 },
+  { label: 'Unread 30+ min', ageThresholdMinutes: 30 },
+  { label: 'Unread 2+ hours', ageThresholdMinutes: 120 },
+  { label: 'Unread 8+ hours', ageThresholdMinutes: 480 },
+];
+
 function renderTriggers() {
   const triggers = workingConfig.triggers || [];
   const groups = {
@@ -192,6 +199,7 @@ function renderTriggers() {
     sla: { list: el('triggers-sla'), emptyMessage: 'No SLA triggers yet - click Add SLA trigger above.' },
     approval: { list: el('triggers-approval'), emptyMessage: 'No approval triggers yet - click Add approval trigger above.' },
     teams: { list: el('triggers-teams'), emptyMessage: 'No Teams trigger configured.' },
+    email: { list: el('triggers-email'), emptyMessage: 'No Email trigger configured.' },
   };
   for (const g of Object.values(groups)) g.list.innerHTML = '';
 
@@ -289,7 +297,8 @@ function renderTriggerCard(trig) {
   const isLocked =
     (trig.type === 'major' && trig.id === 'major-incident') ||
     (trig.type === 'approval' && trig.id === 'pending-approvals') ||
-    (trig.type === 'teams' && trig.id === 'teams-vip-message');
+    (trig.type === 'teams' && trig.id === 'teams-vip-message') ||
+    (trig.type === 'email' && trig.id === 'email-from-watched');
   let trailing;
   if (isLocked) {
     trailing = document.createElement('span');
@@ -351,7 +360,7 @@ function buildScopeMetaItem(trig, card) {
     return item;
   }
 
-  // SLA or Teams - clickable
+  // SLA / Teams / Email - clickable
   const scope = trig.scope || {};
   const label = document.createElement('span');
   label.textContent = formatScopeSummary(trig.type, scope);
@@ -385,7 +394,7 @@ function formatScopeSummary(type, scope) {
     if (groupCount > 0) parts.push(`${groupCount} ${groupCount === 1 ? 'group' : 'groups'}`);
     return parts.join(', ');
   }
-  if (type === 'teams') {
+  if (type === 'teams' || type === 'email') {
     const userCount = (scope.users || []).length;
     if (userCount === 0) return 'No one watched';
     return `${userCount} ${userCount === 1 ? 'person' : 'people'}`;
@@ -416,21 +425,34 @@ function buildScopePickerInto(container, trig, card, summaryLabelEl) {
     if (users.length === 0 && groups.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'scope-empty';
-      empty.textContent =
-        trig.type === 'sla'
-          ? 'Search below to add people or groups whose tickets you want to watch.'
-          : 'Search below to add Teams users whose messages you want to be alerted about.';
+      if (trig.type === 'sla') {
+        empty.textContent = 'Search below to add people or groups whose tickets you want to watch.';
+      } else if (trig.type === 'email') {
+        empty.textContent = 'Search below to add senders whose unread emails should fire alerts.';
+      } else {
+        empty.textContent = 'Search below to add Teams users whose messages you want to be alerted about.';
+      }
       currentList.appendChild(empty);
       return;
     }
     for (const u of users) {
       currentList.appendChild(
-        buildScopeRow(u.displayName || '(unknown)', u.emailAddress || u.mail || '', async () => {
+        buildScopeRow(u.displayName || '(unknown)', u.emailAddress || u.mail || u.address || '', async () => {
+          // Each integration keys its scope users differently:
+          //   sla:   by accountId (JSM user GUID)
+          //   teams: by id (Graph user GUID)
+          //   email: by mail/address (email string)
           const nextScope = {
             ...(trig.scope || {}),
-            users: (trig.scope.users || []).filter((x) =>
-              trig.type === 'teams' ? x.id !== u.id : x.accountId !== u.accountId,
-            ),
+            users: (trig.scope.users || []).filter((x) => {
+              if (trig.type === 'teams') return x.id !== u.id;
+              if (trig.type === 'email') {
+                const a = (u.mail || u.address || '').toLowerCase();
+                const b = (x.mail || x.address || '').toLowerCase();
+                return a !== b;
+              }
+              return x.accountId !== u.accountId;
+            }),
           };
           await persistScopeUpdate(trig, nextScope, summaryLabelEl);
           renderCurrent();
@@ -457,8 +479,9 @@ function buildScopePickerInto(container, trig, card, summaryLabelEl) {
   search.className = 'scope-search';
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
-  searchInput.placeholder =
-    trig.type === 'teams' ? 'Search Teams users...' : 'Search Jira users or groups...';
+  if (trig.type === 'teams') searchInput.placeholder = 'Search Teams users...';
+  else if (trig.type === 'email') searchInput.placeholder = 'Search Outlook users...';
+  else searchInput.placeholder = 'Search Jira users or groups...';
   const searchBtn = document.createElement('button');
   searchBtn.className = 'btn btn-ghost btn-sm';
   searchBtn.textContent = 'Search';
@@ -481,6 +504,27 @@ function buildScopePickerInto(container, trig, card, summaryLabelEl) {
             users: [
               ...(trig.scope.users || []),
               { id: u.id, displayName: u.displayName, mail: u.mail || '' },
+            ],
+          };
+          await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+          renderCurrent();
+        });
+      } else if (trig.type === 'email') {
+        // Email scope uses the same Graph user search as Teams. We store
+        // the email address (not user id) since Graph mail filter is by
+        // sender address.
+        const users = await api.teamsSearchUsers(q);
+        renderSearchResults(searchResults, users, 'user', async (u) => {
+          const addr = (u.mail || '').toLowerCase();
+          if (!addr) return; // need an email address to watch
+          const exists = (trig.scope.users || []).some(
+            (x) => (x.mail || x.address || '').toLowerCase() === addr,
+          );
+          if (exists) return;
+          const nextScope = {
+            users: [
+              ...(trig.scope.users || []),
+              { id: u.id, displayName: u.displayName, mail: addr },
             ],
           };
           await persistScopeUpdate(trig, nextScope, summaryLabelEl);
@@ -652,6 +696,14 @@ function buildTriggerTitle(trig) {
       presets: TEAMS_PRESETS,
       valueKey: 'ageThresholdMinutes',
       ariaLabel: 'Teams message age threshold',
+    });
+  }
+  if (trig.type === 'email') {
+    return buildPresetSelect({
+      trig,
+      presets: EMAIL_PRESETS,
+      valueKey: 'ageThresholdMinutes',
+      ariaLabel: 'Email age threshold',
     });
   }
   return buildPresetSelect({

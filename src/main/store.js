@@ -70,6 +70,15 @@ const defaults = {
       pulse: true,
       ageThresholdMinutes: 0,
     },
+    {
+      id: 'email-from-watched',
+      type: 'email',
+      label: 'Unread email from watched user',
+      enabled: true,
+      color: '#0078d4', // Outlook blue
+      pulse: true,
+      ageThresholdMinutes: 0,
+    },
   ],
   pollIntervalSeconds: 30,
   snoozeUntil: 0,
@@ -161,6 +170,16 @@ function migrateTriggerScopes() {
             mail: u.mail || '',
           })),
         },
+      };
+    }
+    if (t.type === 'email') {
+      // Email scope is keyed by email address (Graph filters mail by
+      // sender address, not user id). Default to empty list on first
+      // appearance - user picks the senders to watch.
+      mutated = true;
+      return {
+        ...t,
+        scope: { users: [] },
       };
     }
     // major / approval triggers have no scope - they're implicitly scoped

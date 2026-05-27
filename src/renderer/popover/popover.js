@@ -53,13 +53,14 @@ let snoozeUntilMs = 0;
 let activeTab = 'incidents'; // 'incidents' | 'approvals' | 'messages'
 
 // Route each alert to a tab based on trigType:
-//   - major/sla -> incidents (shared "something is on fire" urgency)
-//   - approval  -> approvals (grooming queue)
-//   - teams     -> messages (relational urgency from a specific person)
+//   - major/sla    -> incidents (shared "something is on fire" urgency)
+//   - approval     -> approvals (grooming queue)
+//   - teams/email  -> messages (relational urgency from a specific person;
+//                     per-row badge tells you which medium it came in on)
 function tabFor(alert) {
   if (!alert) return 'incidents';
   if (alert.trigType === 'approval') return 'approvals';
-  if (alert.trigType === 'teams') return 'messages';
+  if (alert.trigType === 'teams' || alert.trigType === 'email') return 'messages';
   return 'incidents';
 }
 
@@ -241,6 +242,15 @@ function renderAlertRow(a) {
   key.className = 'key';
   key.textContent = a.ticketKey;
   key.onclick = () => api.openTicket(a.jsmUrl);
+  // For Teams/Email alerts, append a small badge after the sender name so
+  // users can tell at a glance which medium the alert came in on.
+  if (a.medium === 'teams' || a.medium === 'outlook') {
+    const badge = document.createElement('span');
+    badge.className = 'medium-badge';
+    badge.dataset.medium = a.medium;
+    badge.textContent = a.medium === 'teams' ? 'Teams' : 'Outlook';
+    key.appendChild(badge);
+  }
   const summary = document.createElement('div');
   summary.className = 'summary';
   summary.textContent = a.ticketSummary;

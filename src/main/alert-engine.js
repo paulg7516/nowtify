@@ -130,6 +130,7 @@ class AlertEngine extends EventEmitter {
     const slaTriggers = enabledTriggers.filter((t) => t.type === 'sla');
     const approvalTriggers = enabledTriggers.filter((t) => t.type === 'approval');
     const teamsTriggers = enabledTriggers.filter((t) => t.type === 'teams');
+    const emailTriggers = enabledTriggers.filter((t) => t.type === 'email');
     const snoozed = store.isSnoozed();
     const snoozeUntilMs = store.get('snoozeUntil') || 0;
     const anyEnabled = enabledTriggers.length > 0;
@@ -251,6 +252,35 @@ class AlertEngine extends EventEmitter {
     }
     if (teamsLastError) this.recordStepError('teams', teamsLastError);
     else this.clearStepError('teams');
+
+    // 5) Outlook email: per-trigger Graph query of /me/messages filtered
+    //    by sender address. Same per-step error accumulation as Teams so
+    //    one bad trigger doesn't lie about the others' health.
+    const emailHitsByTrigger = new Map();
+    let emailLastError = null;
+    if (emailTriggers.length && msGraphOAuth.isConnected()) {
+      for (const trig of emailTriggers) {
+        const scopeUsers = (trig.scope || {}).users || [];
+        const addresses = scopeUsers
+          .map((u) => u.mail || u.address || '')
+          .filter(Boolean);
+        if (addresses.length === 0) {
+          emailHitsByTrigger.set(trig.id, []);
+          continue;
+        }
+        try {
+          const hits = await msGraphClient.getUnreadEmailsFromUsers(addresses);
+          emailHitsByTrigger.set(trig.id, hits);
+        } catch (err) {
+          emailHitsByTrigger.set(trig.id, []);
+          emailLastError = err;
+        }
+      }
+    }
+    if (emailLastError) this.recordStepError('email', emailLastError);
+    else this.clearStepError('email');
+    let emailHitsTotal = 0;
+    for (const hits of emailHitsByTrigger.values()) emailHitsTotal += hits.length;
     // Flat list for log summary
     let teamsHitsTotal = 0;
     for (const hits of teamsHitsByTrigger.values()) teamsHitsTotal += hits.length;
@@ -324,6 +354,8 @@ class AlertEngine extends EventEmitter {
         const senderName = msg.sender.displayName || 'Watched user';
         const threshold = Number(trig.ageThresholdMinutes) || 0;
         if (threshold > 0 && ageMinutes < threshold) continue;
+        // Set medium so the popover can show a "Teams" badge per row
+        // when email + Teams alerts mix in the Messages tab.
         const ageLabel =
           ageMinutes < 1
             ? 'just now'
@@ -343,6 +375,41 @@ class AlertEngine extends EventEmitter {
           severity: Math.min(75, 35 + Math.floor(ageMinutes / 5)),
           jsmUrl: hit.webUrl || '',
           trigType: 'teams',
+          medium: 'teams',
+        });
+      }
+    }
+
+    // Evaluate Email triggers per-trigger. Same shape as Teams alerts so
+    // the popover renders them uniformly in the Messages tab.
+    for (const trig of emailTriggers) {
+      const hitsForTrig = emailHitsByTrigger.get(trig.id) || [];
+      for (const msg of hitsForTrig) {
+        const receivedMs = msg.receivedDateTime ? Date.parse(msg.receivedDateTime) : nowForTeams;
+        const ageMinutes = Math.max(0, (nowForTeams - receivedMs) / 60_000);
+        const threshold = Number(trig.ageThresholdMinutes) || 0;
+        if (threshold > 0 && ageMinutes < threshold) continue;
+        const ageLabel =
+          ageMinutes < 1
+            ? 'just now'
+            : ageMinutes < 60
+              ? `${Math.round(ageMinutes)}m ago`
+              : `${(ageMinutes / 60).toFixed(1)}h ago`;
+        const senderName = msg.sender.displayName || msg.sender.address || 'Watched user';
+        alerts.push({
+          ticketKey: senderName,
+          ticketSummary: msg.subject || '(no subject)',
+          assigneeName: senderName,
+          conditionId: `${trig.id}:${msg.messageId}`,
+          conditionLabel: `Outlook · ${ageLabel}`,
+          color: trig.color,
+          pulse: Boolean(trig.pulse),
+          // Same severity scaling as Teams - capped below MI/SLA-breach so
+          // urgent incidents still win the screen-border color.
+          severity: Math.min(70, 30 + Math.floor(ageMinutes / 10)),
+          jsmUrl: msg.webLink || '',
+          trigType: 'email',
+          medium: 'outlook',
         });
       }
     }
@@ -442,10 +509,11 @@ class AlertEngine extends EventEmitter {
       sla: slaIssues.length,
       approval: approvalIssues.length,
       teams: teamsHitsTotal,
+      email: emailHitsTotal,
       alerts: alerts.length,
     };
     console.log(
-      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHitsTotal} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
+      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHitsTotal} email=${emailHitsTotal} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
     );
   }
 

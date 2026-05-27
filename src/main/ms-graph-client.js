@@ -166,7 +166,59 @@ function stripHtml(s) {
     .trim();
 }
 
+/**
+ * Returns unread emails in the user's mailbox sent by any of the given
+ * email addresses. Normalized to:
+ *   { messageId, subject, preview, sender: {displayName, address},
+ *     receivedDateTime, webLink }
+ *
+ * Uses /me/messages with an OData $filter combining isRead = false +
+ * sender address in (...). Caps at 50 results - if a watched user has
+ * more than 50 unread emails, we'd still show the most recent 50 which
+ * is plenty for "you have a stack waiting" alerting.
+ */
+async function getUnreadEmailsFromUsers(emailAddresses) {
+  if (!emailAddresses || emailAddresses.length === 0) return [];
+  const cleaned = emailAddresses
+    .map((e) => String(e || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (cleaned.length === 0) return [];
+
+  // Graph $filter doesn't support `in` for sender address, so we OR them.
+  // Quotes inside the address are escaped by doubling them (OData rule).
+  const orClause = cleaned
+    .map((addr) => `from/emailAddress/address eq '${addr.replace(/'/g, "''")}'`)
+    .join(' or ');
+  const filter = `isRead eq false and (${orClause})`;
+
+  const path =
+    '/me/messages?$select=id,subject,bodyPreview,from,receivedDateTime,webLink' +
+    '&$filter=' +
+    encodeURIComponent(filter) +
+    '&$orderby=receivedDateTime desc' +
+    '&$top=50';
+
+  const data = await graphGet(path);
+  const messages = data.value || [];
+  console.log(`[graph] /me/messages returned ${messages.length} unread from watched`);
+
+  return messages.map((m) => ({
+    messageId: m.id,
+    subject: m.subject || '(no subject)',
+    preview: (m.bodyPreview || '').trim(),
+    sender: {
+      displayName:
+        (m.from && m.from.emailAddress && m.from.emailAddress.name) || '',
+      address:
+        (m.from && m.from.emailAddress && m.from.emailAddress.address) || '',
+    },
+    receivedDateTime: m.receivedDateTime,
+    webLink: m.webLink || '',
+  }));
+}
+
 module.exports = {
   searchUsers,
   getRecentMessagesFromWatchedUsers,
+  getUnreadEmailsFromUsers,
 };
