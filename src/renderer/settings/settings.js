@@ -284,8 +284,12 @@ function renderTriggerCard(trig) {
   const card = document.createElement('li');
   card.className = 'trigger-card';
   if (!trig.enabled) card.classList.add('disabled');
+  // The left-edge accent bar pulls its color from this custom property,
+  // updated when the user picks a new color via the swatch.
+  card.style.setProperty('--trigger-color', trig.color);
 
-  // Column 1: iOS-style enable/disable switch
+  // Enable/disable switch (moves to the right side of the card in the
+  // SaaS-clean layout; tab order preserved via DOM order below).
   const switchEl = document.createElement('label');
   switchEl.className = 'switch';
   switchEl.title = trig.enabled ? 'Disable this trigger' : 'Enable this trigger';
@@ -304,25 +308,31 @@ function renderTriggerCard(trig) {
   slider.className = 'slider';
   switchEl.append(switchInput, slider);
 
-  // Column 2: title + metadata pills
+  // Body: title (with inline dropdown for SLA/Approval/Teams types) on top,
+  // small meta row below with color + pulse inline controls.
   const body = document.createElement('div');
   body.className = 'trigger-body';
 
   const titleEl = buildTriggerTitle(trig);
   body.appendChild(titleEl);
 
-  const pills = document.createElement('div');
-  pills.className = 'trigger-pills';
+  const meta = document.createElement('div');
+  meta.className = 'trigger-meta';
 
-  // No type badge: the section header already conveys the trigger type.
+  const colorWrap = document.createElement('span');
+  colorWrap.className = 'trigger-meta-item';
+  colorWrap.title = 'Change color';
+  const colorChipEl = buildColorChip(trig, card);
+  colorWrap.appendChild(colorChipEl);
+  meta.appendChild(colorWrap);
 
-  // Color chip (whole pill is the picker affordance)
-  pills.appendChild(buildColorChip(trig));
+  const pulseWrap = document.createElement('span');
+  pulseWrap.className = 'trigger-meta-item';
+  pulseWrap.title = trig.pulse ? 'Pulse is on - alerts flash the border' : 'Pulse is off - border stays solid';
+  pulseWrap.appendChild(buildPulsePill(trig));
+  meta.appendChild(pulseWrap);
 
-  // Pulse toggle pill
-  pills.appendChild(buildPulsePill(trig));
-
-  body.appendChild(pills);
+  body.appendChild(meta);
 
   // Column 3: delete (only for deletable triggers). The default Major
   // Incident, Pending Approvals, and Teams Messages triggers are locked -
@@ -360,7 +370,10 @@ function renderTriggerCard(trig) {
     };
   }
 
-  card.append(switchEl, body, trailing);
+  // Layout order: body (content) on the left, toggle on the right, then
+  // the (hover-revealed) delete. DOM order matches visual order for tab
+  // navigation.
+  card.append(body, switchEl, trailing);
   return card;
 }
 
@@ -430,10 +443,12 @@ function buildPresetSelect({ trig, presets, valueKey, ariaLabel }) {
   return select;
 }
 
-function buildColorChip(trig) {
+function buildColorChip(trig, card) {
+  // Minimal color picker: a small swatch with the OS color picker hidden
+  // on top. No label - the swatch's color IS the indicator. When changed,
+  // we also update the card's CSS var so the left-edge accent bar follows.
   const chip = document.createElement('label');
   chip.className = 'color-chip';
-  chip.title = 'Border flash color';
   const swatch = document.createElement('span');
   swatch.className = 'swatch';
   swatch.style.background = trig.color;
@@ -443,30 +458,30 @@ function buildColorChip(trig) {
   input.onchange = async () => {
     trig.color = input.value;
     swatch.style.background = input.value;
+    if (card) card.style.setProperty('--trigger-color', input.value);
     const next = await api.updateTrigger(trig.id, { color: trig.color });
     workingConfig.triggers = next;
   };
-  const label = document.createElement('span');
-  label.textContent = 'Color';
-  chip.append(swatch, label, input);
+  chip.append(swatch, input);
   return chip;
 }
 
 function buildPulsePill(trig) {
+  // Inline-text pulse control: dot + "Pulse on/off" text. No border, no
+  // pill chrome - it reads as part of the meta line.
   const pill = document.createElement('button');
   pill.type = 'button';
   pill.className = 'pulse-pill' + (trig.pulse ? ' active' : '');
-  pill.title = trig.pulse ? 'Pulse is on - alerts flash the border' : 'Pulse is off - border is solid';
   const dot = document.createElement('span');
   dot.className = 'pulse-dot';
   const label = document.createElement('span');
   label.textContent = trig.pulse ? 'Pulse on' : 'Pulse off';
   pill.append(dot, label);
-  pill.onclick = async () => {
+  pill.onclick = async (e) => {
+    e.preventDefault();
     trig.pulse = !trig.pulse;
     pill.classList.toggle('active', trig.pulse);
     label.textContent = trig.pulse ? 'Pulse on' : 'Pulse off';
-    pill.title = trig.pulse ? 'Pulse is on - alerts flash the border' : 'Pulse is off - border is solid';
     const next = await api.updateTrigger(trig.id, { pulse: trig.pulse });
     workingConfig.triggers = next;
   };

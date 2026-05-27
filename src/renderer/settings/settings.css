@@ -444,46 +444,75 @@ ul.list:empty {
 
 /* Trigger groups: one block per trigger type (Major Incident, SLA, Approval).
    Section header runs heading-on-left, add-button-on-right. */
+/* ---------- Triggers panel: SaaS-quiet layout ---------- *
+   Design intent: a single accent per trigger (the left-edge color bar),
+   no competing colored chips, controls that look like UI rather than
+   buttons-pretending-to-be-UI. Generous whitespace, hairline dividers,
+   actions that fade in on hover.                                        */
+
 .trigger-group {
-  margin-top: 28px;
+  margin-top: 36px;
 }
 .trigger-group:first-of-type {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 .trigger-group-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: baseline;
   gap: 16px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
 }
 .trigger-group-heading {
   flex: 1;
   min-width: 0;
 }
 .trigger-group-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-2, #555);
+  letter-spacing: 0.1em;
+  color: var(--text-3, #6b7280);
   margin: 0 0 4px 0;
 }
 .trigger-group-sub {
   font-size: 12px;
-  color: var(--text-3, #888);
+  color: var(--text-3, #6b7280);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.45;
+  max-width: 64ch;
 }
 .trigger-group-empty {
-  font-size: 13px;
-  padding: 14px 18px;
-  background: var(--surface);
+  font-size: 12.5px;
+  padding: 14px 16px;
+  color: var(--text-3, #6b7280);
   border: 1px dashed var(--border);
   border-radius: var(--radius, 8px);
   text-align: center;
+}
+
+/* Add button: text-link styling, not heavy primary. Quiet by default,
+   reveals indigo on hover - the trigger sections shouldn't compete with
+   the page's primary CTAs.                                              */
+.trigger-group-header .btn-primary.btn-sm,
+.trigger-group-header .btn-ghost.btn-sm {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-3, #6b7280);
+  font-weight: 500;
+  padding: 5px 8px;
+  font-size: 12px;
+  box-shadow: none;
+}
+.trigger-group-header .btn-primary.btn-sm:hover,
+.trigger-group-header .btn-ghost.btn-sm:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+.trigger-group-header .btn-icon {
+  font-size: 14px;
+  margin-right: 1px;
 }
 
 .trigger-list {
@@ -492,29 +521,39 @@ ul.list:empty {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .trigger-card {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 16px;
   align-items: center;
-  padding: 16px 18px;
+  padding: 14px 18px 14px 22px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-  transition: border-color var(--transition), box-shadow var(--transition), opacity var(--transition);
+  border-left: 3px solid var(--trigger-color, var(--border));
+  border-radius: 6px;
+  box-shadow: none;
+  transition: border-color 140ms ease, background 140ms ease;
 }
 .trigger-card:hover {
+  background: var(--surface-2, #f8fafc);
   border-color: var(--border-strong);
 }
 .trigger-card.disabled {
-  opacity: 0.55;
-  background: var(--surface-2);
+  background: transparent;
 }
-.trigger-card.disabled:hover {
-  opacity: 0.72;
+.trigger-card.disabled .trigger-title,
+.trigger-card.disabled .trigger-title-select {
+  color: var(--text-3, #6b7280);
+}
+.trigger-card.disabled {
+  border-left-color: var(--border-strong);
+  opacity: 1; /* don't fade the whole card - just signal via color */
+}
+.trigger-card.disabled .trigger-meta {
+  opacity: 0.5;
 }
 
 /* iOS-style switch */
@@ -559,55 +598,77 @@ ul.list:empty {
   transform: translateX(16px);
 }
 
-/* Trigger body */
+/* Trigger body: title on top, small inline meta controls below */
 .trigger-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
 }
 .trigger-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 .trigger-title-select {
   width: 100%;
   max-width: 360px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.01em;
-  padding: 4px 28px 4px 6px;
+  letter-spacing: -0.005em;
+  padding: 3px 26px 3px 6px;
   margin-left: -6px;
   border: 0;
   background: transparent;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2352525b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23a1a1aa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 8px center;
   border-radius: 4px;
-  transition: background-color var(--transition);
+  transition: background-color 120ms ease;
 }
 .trigger-title-select:hover,
 .trigger-title-select:focus {
-  background-color: var(--surface-2);
+  background-color: var(--surface-3, rgba(0, 0, 0, 0.04));
   outline: none;
 }
 .trigger-title-select:focus {
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
-.trigger-pills {
+/* Meta line under the title: small inline controls for color + pulse.
+   Both clickable; styled as quiet text-like controls rather than chips. */
+.trigger-meta {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 14px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-3, #6b7280);
 }
+.trigger-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background 120ms ease, color 120ms ease;
+  position: relative;
+}
+.trigger-meta-item:hover {
+  background: var(--surface-3, rgba(0, 0, 0, 0.04));
+  color: var(--text);
+}
+
+/* Type badge - kept available for code paths that still use it, but the
+   redesigned cards rely on the left color bar instead.                   */
 .type-badge {
   font-size: 10px;
   font-weight: 700;
@@ -777,31 +838,28 @@ ul.list:empty {
 }
 
 /* Color chip */
+/* Color: a small swatch with hidden native picker behind it. No border,
+   no label - the meta-line text "Color" tells the user what it is. */
 .color-chip {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 10px 4px 5px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-2);
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+  border: 0;
   cursor: pointer;
-  transition: border-color var(--transition);
-}
-.color-chip:hover {
-  border-color: var(--text-3);
 }
 .color-chip .swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
+  transition: transform 120ms ease;
+}
+.color-chip:hover .swatch {
+  transform: scale(1.15);
 }
 .color-chip input[type='color'] {
   position: absolute;
@@ -810,42 +868,39 @@ ul.list:empty {
   cursor: pointer;
   border: 0;
   background: none;
+  width: 100%;
+  height: 100%;
 }
 
-/* Pulse pill */
+/* Pulse indicator: tiny dot + label. Active = animated indigo dot.
+   Inactive = quiet gray dot. Click toggles state. No chrome.            */
 .pulse-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  font-size: 11px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: inherit;
   font-weight: 500;
-  color: var(--text-3);
+  font-family: inherit;
+  color: inherit;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
   user-select: none;
-}
-.pulse-pill:hover {
-  border-color: var(--text-3);
-  color: var(--text-2);
-}
-.pulse-pill.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  transition: color 120ms ease;
 }
 .pulse-pill .pulse-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
-  opacity: 0.55;
+  background: var(--text-4, #9ca3af);
+  transition: background 120ms ease;
+}
+.pulse-pill.active {
+  color: var(--text-2);
 }
 .pulse-pill.active .pulse-dot {
-  opacity: 1;
+  background: var(--accent, #4f46e5);
   animation: pulse-pill-dot 1.4s ease-in-out infinite;
 }
 @keyframes pulse-pill-dot {
@@ -853,26 +908,36 @@ ul.list:empty {
   50% { opacity: 0.35; transform: scale(0.7); }
 }
 
-/* Delete button */
+/* Delete: fade-in on card hover so default state is uncluttered.       */
 .trigger-delete {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background: transparent;
   border: 0;
-  color: var(--text-3);
+  color: var(--text-3, #6b7280);
   cursor: pointer;
   display: grid;
   place-items: center;
-  transition: background var(--transition), color var(--transition);
+  opacity: 0;
+  transition: background 120ms ease, color 120ms ease, opacity 140ms ease;
+}
+.trigger-card:hover .trigger-delete {
+  opacity: 1;
+}
+.trigger-delete:focus,
+.trigger-delete:focus-visible {
+  opacity: 1;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 .trigger-delete:hover {
   background: var(--danger-soft);
   color: var(--danger);
 }
 .trigger-delete svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 
 /* Empty state */
