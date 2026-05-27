@@ -105,8 +105,11 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
   if (!watchedUserIds || watchedUserIds.length === 0) return [];
   const idSet = new Set(watchedUserIds);
 
+  // NOTE: Graph's /me/chats does not support $orderby (returns 400 if you
+  // try). Just pull the top 50 and filter client-side - the alert engine
+  // deduplicates by chatId+messageId so server-side ordering doesn't matter.
   const data = await graphGet(
-    '/me/chats?$expand=lastMessagePreview&$top=50&$orderby=lastUpdatedDateTime desc',
+    '/me/chats?$expand=lastMessagePreview&$top=50',
   );
   const chats = data.value || [];
   console.log(`[graph] /me/chats returned ${chats.length} chats`);
