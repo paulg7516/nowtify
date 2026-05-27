@@ -26,28 +26,11 @@
       <nav class="sidebar" aria-label="Settings sections">
         <button class="nav-item active" data-section="connection">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="8" cy="8" r="6"/>
-            <line x1="2" y1="8" x2="14" y2="8"/>
-            <path d="M 8 2 c -2.5 1.8 -2.5 10.4 0 12"/>
-            <path d="M 8 2 c 2.5 1.8 2.5 10.4 0 12"/>
+            <path d="M 4 2 L 4 11 a 4 4 0 0 0 4 4 a 4 4 0 0 0 4 -4"/>
+            <line x1="2" y1="2" x2="6" y2="2"/>
+            <line x1="10" y1="2" x2="14" y2="2"/>
           </svg>
-          Connection
-        </button>
-        <button class="nav-item" data-section="watch">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="6" cy="6" r="2.4"/>
-            <path d="M 1.5 13 c 0 -2.7 2 -4.2 4.5 -4.2 s 4.5 1.5 4.5 4.2"/>
-            <circle cx="11.5" cy="5" r="1.9" opacity="0.55"/>
-            <path d="M 11 9.5 c 2 0 3.5 1.5 3.5 3.5" opacity="0.55"/>
-          </svg>
-          Watch list
-        </button>
-        <button class="nav-item" data-section="triggers">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M 4 11 V 7 a 4 4 0 0 1 8 0 v 4 l 1.2 1.5 H 2.8 z"/>
-            <path d="M 6.5 13.5 a 1.5 1.5 0 0 0 3 0"/>
-          </svg>
-          Triggers
+          Jira
         </button>
         <button class="nav-item" data-section="teams">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -58,6 +41,15 @@
           </svg>
           Teams
         </button>
+        <div class="nav-divider"></div>
+        <button class="nav-item" data-section="triggers">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M 4 11 V 7 a 4 4 0 0 1 8 0 v 4 l 1.2 1.5 H 2.8 z"/>
+            <path d="M 6.5 13.5 a 1.5 1.5 0 0 0 3 0"/>
+          </svg>
+          Triggers
+        </button>
+        <div class="nav-divider"></div>
         <button class="nav-item" data-section="updates">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M 8 1 v 9"/>
@@ -69,16 +61,16 @@
       </nav>
 
       <main class="content">
-        <!-- CONNECTION -->
+        <!-- JIRA -->
         <section id="section-connection" class="panel">
           <div class="panel-header">
-            <h2>JSM connection</h2>
-            <p class="panel-sub">Atlassian credentials. Each install is per-user, no shared state.</p>
+            <h2>Jira</h2>
+            <p class="panel-sub">Atlassian credentials for Jira Service Management. Each install is per-user, no shared state.</p>
           </div>
 
           <div class="card">
             <div class="field">
-              <label for="siteUrl">Site URL</label>
+              <label for="siteUrl">Jira site URL</label>
               <input id="siteUrl" type="url" placeholder="https://your-company.atlassian.net" autocomplete="off" />
             </div>
             <div class="field">

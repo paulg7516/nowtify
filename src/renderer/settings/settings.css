@@ -1,25 +1,38 @@
 :root {
-  --bg: #f7f8fa;
+  /* Surfaces - shifted toward a faint indigo undertone so the page reads
+     as "Nowtify-warm" instead of generic-SaaS-gray.                     */
+  --bg: #f4f5fb;
   --surface: #ffffff;
-  --surface-2: #fafbfc;
-  --border: #e5e7eb;
-  --border-strong: #d4d7dc;
+  --surface-2: #f7f8fc;
+  --surface-3: #eef0f7;
+  --border: #e5e7ef;
+  --border-strong: #d2d5e0;
   --text: #18181b;
   --text-2: #52525b;
   --text-3: #8b8d93;
+  --text-4: #9ca3af;
+
+  /* Brand */
   --accent: #4f46e5;
   --accent-hover: #4338ca;
   --accent-soft: #eef2ff;
+  --accent-strong: rgba(79, 70, 229, 0.92);
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.06));
+
+  /* Semantic */
   --success: #15803d;
   --success-soft: #dcfce7;
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
   --warning: #b45309;
   --warning-soft: #fef3c7;
+
   --radius: 8px;
   --radius-sm: 6px;
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-brand: 0 1px 2px rgba(79, 70, 229, 0.12), 0 1px 1px rgba(79, 70, 229, 0.06);
   --transition: 120ms ease;
 }
 
@@ -42,14 +55,28 @@ body {
 }
 
 /* ---------------- Top bar ---------------- */
+/* Signature brand moment: a 2px indigo->pink gradient hairline runs
+   across the full bottom of the header. Single quiet brand cue per
+   page; the rest of the chrome stays restrained.                       */
 .topbar {
+  position: relative;
   height: 68px;
-  border-bottom: 1px solid var(--border);
   background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 26px;
+  border-bottom: 1px solid var(--border);
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient);
+  opacity: 0.85;
 }
 .brand {
   display: flex;
@@ -63,9 +90,16 @@ body {
   display: block;
 }
 .brand-name {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 19px;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.018em;
+  color: var(--text);
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: block;
 }
 
 /* Connection status pill */
@@ -114,37 +148,52 @@ body {
 }
 .sidebar {
   border-right: 1px solid var(--border);
-  background: var(--surface);
-  padding: 12px 8px;
+  background: #fafbff; /* Subtle indigo-tinted white - separates from content area */
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
+}
+/* Section divider: visual grouping without verbose section labels.
+   Used between Integrations / Triggers / Updates nav groups.          */
+.nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 8px;
+  list-style: none;
 }
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: 0;
   background: transparent;
   font: inherit;
   font-weight: 500;
-  font-size: 14.5px;
+  font-size: 14px;
   color: var(--text-2);
   text-align: left;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 .nav-item:hover {
-  background: var(--surface-2);
+  background: rgba(79, 70, 229, 0.06);
   color: var(--text);
 }
 .nav-item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent);
+  background-image: linear-gradient(135deg, #5b52ec 0%, #4f46e5 100%);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.nav-item.active:hover {
+  background: var(--accent);
+  background-image: linear-gradient(135deg, #5b52ec 0%, #4338ca 100%);
+  color: #ffffff;
 }
 .nav-icon {
   width: 18px;
@@ -323,14 +372,17 @@ input[type='number'] {
   background: var(--surface-2);
   border-color: #b6b9c0;
 }
+/* Primary CTA: subtle indigo gradient + brand-tinted shadow. Reserved
+   for hero actions (one per panel) - overuse dilutes the signal.       */
 .btn-primary {
   background: var(--accent);
+  background-image: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border-color: var(--accent);
   color: #fff;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-brand);
 }
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background-image: linear-gradient(135deg, #5b52ec 0%, #4338ca 100%);
   border-color: var(--accent-hover);
 }
 .btn-ghost {
@@ -405,7 +457,7 @@ ul.list:empty {
   border-top: 0;
 }
 .list li:hover {
-  background: var(--surface-2);
+  background: rgba(79, 70, 229, 0.04);
 }
 .list li.muted {
   color: var(--text-3);
@@ -564,7 +616,7 @@ ul.list:empty {
   border-top: 0;
 }
 .trigger-card:hover {
-  background: var(--surface-2, #f8fafc);
+  background: rgba(79, 70, 229, 0.04);
 }
 .trigger-card.disabled .trigger-title,
 .trigger-card.disabled .trigger-title-select {
@@ -649,6 +701,7 @@ ul.list:empty {
 }
 .switch input:checked + .slider {
   background: var(--accent);
+  background-image: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
 }
 .switch input:checked + .slider::before {
   transform: translateX(16px);
