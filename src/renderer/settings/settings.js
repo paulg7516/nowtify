@@ -111,8 +111,6 @@ async function load() {
     el('apiToken').value = '';
     el('apiToken').placeholder = 'Atlassian API token';
   }
-  renderWatchList();
-  renderWatchGroups();
   renderTriggers();
 
   if (workingConfig.jsm.siteUrl && workingConfig.jsm.email && workingConfig.jsm.hasApiToken) {
@@ -159,71 +157,6 @@ async function persistCredsOnly() {
     apiToken: apiTokenForSave,
   };
   await api.saveConfig({ jsm: workingConfig.jsm });
-}
-
-/* ---------------- Watch list ---------------- */
-function renderWatchList() {
-  const list = el('watchList');
-  list.innerHTML = '';
-  const users = workingConfig.watchList || [];
-  if (users.length === 0) {
-    list.innerHTML = '<li class="muted">No users yet - search above to add.</li>';
-    return;
-  }
-  for (const u of users) {
-    const li = document.createElement('li');
-    const meta = document.createElement('div');
-    meta.className = 'user-meta';
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = u.displayName || '(unknown)';
-    const email = document.createElement('span');
-    email.className = 'email';
-    email.textContent = u.emailAddress || u.accountId;
-    meta.append(name, email);
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-sm';
-    btn.textContent = 'Remove';
-    btn.onclick = async () => {
-      const next = await api.removeWatchee(u.accountId);
-      workingConfig.watchList = next;
-      renderWatchList();
-    };
-    li.append(meta, btn);
-    list.appendChild(li);
-  }
-}
-
-function renderWatchGroups() {
-  const list = el('watchGroups');
-  list.innerHTML = '';
-  const groups = workingConfig.watchGroups || [];
-  if (groups.length === 0) {
-    list.innerHTML = '<li class="muted">No groups yet - search above to add.</li>';
-    return;
-  }
-  for (const g of groups) {
-    const li = document.createElement('li');
-    const meta = document.createElement('div');
-    meta.className = 'user-meta';
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = g.name;
-    const sub = document.createElement('span');
-    sub.className = 'email';
-    sub.textContent = 'group';
-    meta.append(name, sub);
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-sm';
-    btn.textContent = 'Remove';
-    btn.onclick = async () => {
-      const next = await api.removeGroup(g.name);
-      workingConfig.watchGroups = next;
-      renderWatchGroups();
-    };
-    li.append(meta, btn);
-    list.appendChild(li);
-  }
 }
 
 /* ---------------- Triggers ---------------- */
@@ -343,6 +276,11 @@ function renderTriggerCard(trig) {
   pulseWrap.appendChild(buildPulsePill(trig));
   meta.appendChild(pulseWrap);
 
+  // Scope summary + click-to-expand picker (for SLA/Teams). Major + Approval
+  // get a read-only label since their scope is implicit (instance-wide vs
+  // the authenticated user).
+  meta.appendChild(buildScopeMetaItem(trig, card));
+
   body.appendChild(meta);
 
   // Column 3: delete (only for deletable triggers). The default Major
@@ -384,7 +322,314 @@ function renderTriggerCard(trig) {
   // Layout (left to right): status dot, body (title + meta), toggle,
   // hover-revealed delete. DOM order matches visual order for tab nav.
   card.append(status, body, switchEl, trailing);
+
+  // Inline expansion area for the scope picker (appears below the card
+  // when the user clicks the scope label in the meta line).
+  const expansion = document.createElement('div');
+  expansion.className = 'trigger-scope-picker';
+  expansion.hidden = true;
+  card.appendChild(expansion);
+
   return card;
+}
+
+/* ---------------- Scope summary + inline picker ---------------- */
+
+function buildScopeMetaItem(trig, card) {
+  const item = document.createElement('span');
+  item.className = 'trigger-meta-item';
+
+  if (trig.type === 'major') {
+    item.textContent = 'Instance-wide';
+    item.style.cursor = 'default';
+    item.title = 'Fires for any open ticket in JSM flagged as a Major Incident';
+    return item;
+  }
+  if (trig.type === 'approval') {
+    item.textContent = 'Just me';
+    item.style.cursor = 'default';
+    item.title = 'Fires for pending approvals where the connected JSM user is the approver';
+    return item;
+  }
+
+  // SLA or Teams - clickable
+  const scope = trig.scope || {};
+  const label = document.createElement('span');
+  label.textContent = formatScopeSummary(trig.type, scope);
+  const chev = document.createElement('span');
+  chev.className = 'scope-chevron';
+  chev.innerHTML = '▾'; // small down arrow
+  item.append(label, chev);
+  item.title = 'Click to manage who this trigger watches';
+
+  item.onclick = () => {
+    const expansion = card.querySelector('.trigger-scope-picker');
+    if (!expansion) return;
+    const opening = expansion.hidden;
+    expansion.hidden = !opening;
+    card.classList.toggle('scope-open', opening);
+    chev.style.transform = opening ? 'rotate(180deg)' : '';
+    if (opening) {
+      buildScopePickerInto(expansion, trig, card, label);
+    }
+  };
+  return item;
+}
+
+function formatScopeSummary(type, scope) {
+  if (type === 'sla') {
+    const userCount = (scope.users || []).length;
+    const groupCount = (scope.groups || []).length;
+    if (userCount === 0 && groupCount === 0) return 'No one watched';
+    const parts = [];
+    if (userCount > 0) parts.push(`${userCount} ${userCount === 1 ? 'person' : 'people'}`);
+    if (groupCount > 0) parts.push(`${groupCount} ${groupCount === 1 ? 'group' : 'groups'}`);
+    return parts.join(', ');
+  }
+  if (type === 'teams') {
+    const userCount = (scope.users || []).length;
+    if (userCount === 0) return 'No one watched';
+    return `${userCount} ${userCount === 1 ? 'person' : 'people'}`;
+  }
+  return '';
+}
+
+async function persistScopeUpdate(trig, newScope, summaryLabelEl) {
+  trig.scope = newScope;
+  const next = await api.updateTrigger(trig.id, { scope: newScope });
+  workingConfig.triggers = next;
+  if (summaryLabelEl) {
+    summaryLabelEl.textContent = formatScopeSummary(trig.type, newScope);
+  }
+  await api.pokeEngine();
+}
+
+function buildScopePickerInto(container, trig, card, summaryLabelEl) {
+  container.innerHTML = '';
+
+  const currentList = document.createElement('div');
+  currentList.className = 'scope-current';
+  const renderCurrent = () => {
+    currentList.innerHTML = '';
+    const scope = trig.scope || {};
+    const users = scope.users || [];
+    const groups = scope.groups || [];
+    if (users.length === 0 && groups.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'scope-empty';
+      empty.textContent =
+        trig.type === 'sla'
+          ? 'Search below to add people or groups whose tickets you want to watch.'
+          : 'Search below to add Teams users whose messages you want to be alerted about.';
+      currentList.appendChild(empty);
+      return;
+    }
+    for (const u of users) {
+      currentList.appendChild(
+        buildScopeRow(u.displayName || '(unknown)', u.emailAddress || u.mail || '', async () => {
+          const nextScope = {
+            ...(trig.scope || {}),
+            users: (trig.scope.users || []).filter((x) =>
+              trig.type === 'teams' ? x.id !== u.id : x.accountId !== u.accountId,
+            ),
+          };
+          await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+          renderCurrent();
+        }),
+      );
+    }
+    for (const g of groups) {
+      currentList.appendChild(
+        buildScopeRow(g.name, 'group', async () => {
+          const nextScope = {
+            ...(trig.scope || {}),
+            groups: (trig.scope.groups || []).filter((x) => x.name !== g.name),
+          };
+          await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+          renderCurrent();
+        }),
+      );
+    }
+  };
+  renderCurrent();
+
+  // Search section
+  const search = document.createElement('div');
+  search.className = 'scope-search';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder =
+    trig.type === 'teams' ? 'Search Teams users...' : 'Search Jira users or groups...';
+  const searchBtn = document.createElement('button');
+  searchBtn.className = 'btn btn-ghost btn-sm';
+  searchBtn.textContent = 'Search';
+  search.append(searchInput, searchBtn);
+
+  const searchResults = document.createElement('div');
+  searchResults.className = 'scope-search-results';
+
+  const doSearch = async () => {
+    const q = searchInput.value.trim();
+    if (!q) return;
+    searchResults.innerHTML = '<div class="scope-empty">Searching...</div>';
+    try {
+      if (trig.type === 'teams') {
+        const users = await api.teamsSearchUsers(q);
+        renderSearchResults(searchResults, users, 'user', async (u) => {
+          const exists = (trig.scope.users || []).some((x) => x.id === u.id);
+          if (exists) return;
+          const nextScope = {
+            users: [
+              ...(trig.scope.users || []),
+              { id: u.id, displayName: u.displayName, mail: u.mail || '' },
+            ],
+          };
+          await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+          renderCurrent();
+        });
+      } else {
+        // SLA: search BOTH users + groups, show grouped
+        const [users, groups] = await Promise.all([
+          api.searchUsers(q),
+          api.searchGroups(q),
+        ]);
+        searchResults.innerHTML = '';
+        if (users.length > 0) {
+          const head = document.createElement('div');
+          head.className = 'scope-results-head';
+          head.textContent = 'People';
+          searchResults.appendChild(head);
+          for (const u of users) {
+            searchResults.appendChild(
+              buildAddRow(u.displayName, u.emailAddress || u.accountId, async () => {
+                const exists = (trig.scope.users || []).some((x) => x.accountId === u.accountId);
+                if (exists) return;
+                const nextScope = {
+                  ...(trig.scope || {}),
+                  users: [
+                    ...(trig.scope.users || []),
+                    {
+                      accountId: u.accountId,
+                      displayName: u.displayName,
+                      emailAddress: u.emailAddress || '',
+                    },
+                  ],
+                  groups: trig.scope.groups || [],
+                };
+                await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+                renderCurrent();
+              }),
+            );
+          }
+        }
+        if (groups.length > 0) {
+          const head = document.createElement('div');
+          head.className = 'scope-results-head';
+          head.textContent = 'Groups';
+          searchResults.appendChild(head);
+          for (const g of groups) {
+            searchResults.appendChild(
+              buildAddRow(g.name, 'group', async () => {
+                const exists = (trig.scope.groups || []).some((x) => x.name === g.name);
+                if (exists) return;
+                const nextScope = {
+                  ...(trig.scope || {}),
+                  users: trig.scope.users || [],
+                  groups: [...(trig.scope.groups || []), { name: g.name }],
+                };
+                await persistScopeUpdate(trig, nextScope, summaryLabelEl);
+                renderCurrent();
+              }),
+            );
+          }
+        }
+        if (users.length === 0 && groups.length === 0) {
+          searchResults.innerHTML = '<div class="scope-empty">No matches.</div>';
+        }
+      }
+    } catch (err) {
+      searchResults.innerHTML = '';
+      const errEl = document.createElement('div');
+      errEl.className = 'scope-empty';
+      errEl.textContent = String(err && err.message ? err.message : err);
+      searchResults.appendChild(errEl);
+    }
+  };
+  searchBtn.onclick = doSearch;
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  const currentHead = document.createElement('div');
+  currentHead.className = 'scope-section-head';
+  currentHead.textContent = 'Currently watching';
+
+  const searchHead = document.createElement('div');
+  searchHead.className = 'scope-section-head';
+  searchHead.textContent = 'Add more';
+
+  container.append(currentHead, currentList, searchHead, search, searchResults);
+}
+
+function buildScopeRow(name, sub, onRemove) {
+  const row = document.createElement('div');
+  row.className = 'scope-row';
+  const meta = document.createElement('div');
+  meta.className = 'user-meta';
+  const n = document.createElement('span');
+  n.className = 'name';
+  n.textContent = name;
+  const s = document.createElement('span');
+  s.className = 'email';
+  s.textContent = sub;
+  meta.append(n, s);
+  const remove = document.createElement('button');
+  remove.className = 'btn btn-ghost btn-sm';
+  remove.textContent = 'Remove';
+  remove.onclick = onRemove;
+  row.append(meta, remove);
+  return row;
+}
+
+function buildAddRow(name, sub, onAdd) {
+  const row = document.createElement('div');
+  row.className = 'scope-row';
+  const meta = document.createElement('div');
+  meta.className = 'user-meta';
+  const n = document.createElement('span');
+  n.className = 'name';
+  n.textContent = name;
+  const s = document.createElement('span');
+  s.className = 'email';
+  s.textContent = sub;
+  meta.append(n, s);
+  const add = document.createElement('button');
+  add.className = 'btn btn-sm';
+  add.textContent = 'Add';
+  add.onclick = async () => {
+    add.disabled = true;
+    add.textContent = 'Added';
+    await onAdd();
+  };
+  row.append(meta, add);
+  return row;
+}
+
+function renderSearchResults(container, items, kind, onAdd) {
+  container.innerHTML = '';
+  if (!items.length) {
+    container.innerHTML = '<div class="scope-empty">No matches.</div>';
+    return;
+  }
+  for (const item of items) {
+    container.appendChild(
+      buildAddRow(
+        item.displayName || item.name || '(unnamed)',
+        item.mail || item.email || item.emailAddress || '',
+        () => onAdd(item),
+      ),
+    );
+  }
 }
 
 function buildTriggerTitle(trig) {
@@ -642,103 +887,17 @@ function renderTeamsState() {
   if (teams.isConnected) {
     block.dataset.connected = 'true';
     title.textContent = `Connected as ${teams.userDisplayName || 'unknown'}`;
-    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages from the users you select below.';
+    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages. Choose which people to watch in the Teams trigger under Triggers.';
     btn.textContent = 'Disconnect';
     btn.className = 'btn btn-ghost btn-danger';
-    el('teamsUsersCard').hidden = false;
-    renderTeamsWatchedUsers();
   } else {
     block.dataset.connected = 'false';
     title.textContent = 'Not connected';
     sub.textContent = 'Sign in with your Xolv account to enable Teams alerts. A browser tab will open for Microsoft sign-in.';
     btn.textContent = 'Connect Microsoft Teams';
     btn.className = 'btn btn-primary';
-    el('teamsUsersCard').hidden = true;
   }
 }
-
-function renderTeamsWatchedUsers() {
-  const list = el('teamsWatchedUsers');
-  if (!list) return;
-  list.innerHTML = '';
-  const users = (workingConfig.teams && workingConfig.teams.watchedUsers) || [];
-  if (users.length === 0) {
-    list.innerHTML = '<li class="muted">No users yet - search above to add.</li>';
-    return;
-  }
-  for (const u of users) {
-    const li = document.createElement('li');
-    const meta = document.createElement('div');
-    meta.className = 'user-meta';
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = u.displayName || '(unknown)';
-    const mail = document.createElement('span');
-    mail.className = 'email';
-    mail.textContent = u.mail || '';
-    meta.append(name, mail);
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'btn btn-ghost btn-sm';
-    removeBtn.textContent = 'Remove';
-    removeBtn.onclick = async () => {
-      const next = await api.teamsRemoveWatchedUser(u.id);
-      workingConfig.teams.watchedUsers = next;
-      renderTeamsWatchedUsers();
-    };
-    li.append(meta, removeBtn);
-    list.appendChild(li);
-  }
-}
-
-async function doTeamsUserSearch() {
-  const query = el('teamsUserSearch').value.trim();
-  if (!query) return;
-  const target = el('teamsUserResults');
-  target.innerHTML = '<li class="muted">Searching…</li>';
-  try {
-    const users = await api.teamsSearchUsers(query);
-    target.innerHTML = '';
-    if (!users.length) {
-      target.innerHTML = '<li class="muted">No users matched.</li>';
-      return;
-    }
-    for (const u of users) {
-      const li = document.createElement('li');
-      const meta = document.createElement('div');
-      meta.className = 'user-meta';
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = u.displayName;
-      const mail = document.createElement('span');
-      mail.className = 'email';
-      mail.textContent = u.mail || '';
-      meta.append(name, mail);
-      const addBtn = document.createElement('button');
-      addBtn.className = 'btn btn-sm';
-      addBtn.textContent = 'Add';
-      addBtn.onclick = async () => {
-        const next = await api.teamsAddWatchedUser(u);
-        workingConfig.teams.watchedUsers = next;
-        renderTeamsWatchedUsers();
-        addBtn.textContent = 'Added';
-        addBtn.disabled = true;
-      };
-      li.append(meta, addBtn);
-      target.appendChild(li);
-    }
-  } catch (err) {
-    target.innerHTML = '';
-    const errLi = document.createElement('li');
-    errLi.className = 'muted';
-    errLi.textContent = String(err && err.message ? err.message : err);
-    target.appendChild(errLi);
-  }
-}
-
-el('teamsUserSearchBtn').onclick = doTeamsUserSearch;
-el('teamsUserSearch').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') doTeamsUserSearch();
-});
 
 el('teamsConnectBtn').onclick = async () => {
   const teams = (workingConfig && workingConfig.teams) || {};
@@ -917,108 +1076,6 @@ if (api.onUpdaterStatus) {
 setInterval(() => {
   api.getUpdateStatus().then(renderUpdaterStatus).catch(() => {});
 }, 30_000);
-
-/* ---------------- Watch list / Group search ---------------- */
-el('userSearchBtn').onclick = doUserSearch;
-el('userSearch').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') doUserSearch();
-});
-el('groupSearchBtn').onclick = doGroupSearch;
-el('groupSearch').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') doGroupSearch();
-});
-
-async function doUserSearch() {
-  const query = el('userSearch').value.trim();
-  if (!query) return;
-  await persistCredsOnly();
-  const target = el('searchResults');
-  target.innerHTML = '<li class="muted">Searching…</li>';
-  try {
-    const users = await api.searchUsers(query);
-    target.innerHTML = '';
-    if (!users.length) {
-      target.innerHTML = '<li class="muted">No users matched.</li>';
-      return;
-    }
-    for (const u of users) {
-      const li = document.createElement('li');
-      const meta = document.createElement('div');
-      meta.className = 'user-meta';
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = u.displayName;
-      const email = document.createElement('span');
-      email.className = 'email';
-      email.textContent = u.emailAddress || u.accountId;
-      meta.append(name, email);
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm';
-      btn.textContent = 'Add';
-      btn.onclick = async () => {
-        const next = await api.addWatchee(u);
-        workingConfig.watchList = next;
-        renderWatchList();
-        btn.textContent = 'Added';
-        btn.disabled = true;
-      };
-      li.append(meta, btn);
-      target.appendChild(li);
-    }
-  } catch (err) {
-    target.innerHTML = '';
-    const errLi = document.createElement('li');
-    errLi.className = 'muted';
-    errLi.textContent = String(err && err.message ? err.message : err);
-    target.appendChild(errLi);
-  }
-}
-
-async function doGroupSearch() {
-  const query = el('groupSearch').value.trim();
-  if (!query) return;
-  await persistCredsOnly();
-  const target = el('groupResults');
-  target.innerHTML = '<li class="muted">Searching…</li>';
-  try {
-    const groups = await api.searchGroups(query);
-    target.innerHTML = '';
-    if (!groups.length) {
-      target.innerHTML = '<li class="muted">No groups matched.</li>';
-      return;
-    }
-    for (const g of groups) {
-      const li = document.createElement('li');
-      const meta = document.createElement('div');
-      meta.className = 'user-meta';
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = g.name;
-      const sub = document.createElement('span');
-      sub.className = 'email';
-      sub.textContent = 'group';
-      meta.append(name, sub);
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm';
-      btn.textContent = 'Add';
-      btn.onclick = async () => {
-        const next = await api.addGroup(g);
-        workingConfig.watchGroups = next;
-        renderWatchGroups();
-        btn.textContent = 'Added';
-        btn.disabled = true;
-      };
-      li.append(meta, btn);
-      target.appendChild(li);
-    }
-  } catch (err) {
-    target.innerHTML = '';
-    const errLi = document.createElement('li');
-    errLi.className = 'muted';
-    errLi.textContent = String(err && err.message ? err.message : err);
-    target.appendChild(errLi);
-  }
-}
 
 /* ---------------- Auto-save creds + polling ---------------- */
 for (const id of ['siteUrl', 'email', 'apiToken']) {

@@ -67,8 +67,6 @@ class AlertEngine extends EventEmitter {
       this.emitState({ status: 'idle', color: null, pulse: false, alerts: [] });
       return;
     }
-    const watchList = store.get('watchList') || [];
-    const watchGroups = store.get('watchGroups') || [];
     const allTriggers = store.get('triggers') || [];
     const enabledTriggers = allTriggers.filter((t) => t.enabled);
     const majorTriggers = enabledTriggers.filter((t) => t.type === 'major');
@@ -116,19 +114,35 @@ class AlertEngine extends EventEmitter {
       }
     }
 
-    // 2) Watch-list-scoped query for SLA evaluation
-    let slaIssues = [];
-    if (slaTriggers.length && (watchList.length || watchGroups.length)) {
+    // 2) SLA queries: per-trigger now (scope embedded in each trigger).
+    //    Map trigger -> issues so per-trigger scope can filter alerts.
+    const slaIssuesByTrigger = new Map();
+    for (const trig of slaTriggers) {
+      const scope = trig.scope || {};
+      const accountIds = (scope.users || []).map((u) => u.accountId).filter(Boolean);
+      const groupNames = (scope.groups || []).map((g) => g.name).filter(Boolean);
+      if (accountIds.length === 0 && groupNames.length === 0) {
+        slaIssuesByTrigger.set(trig.id, []);
+        continue;
+      }
       try {
-        slaIssues = await this.client.searchAssignedOpen({
-          accountIds: watchList.map((u) => u.accountId),
-          groupNames: watchGroups.map((g) => g.name),
+        const issues = await this.client.searchAssignedOpen({
+          accountIds,
+          groupNames,
           fields: fieldIds,
         });
+        slaIssuesByTrigger.set(trig.id, issues);
       } catch (err) {
+        slaIssuesByTrigger.set(trig.id, []);
         this.emit('error', err);
       }
     }
+    // Flat list of unique issues for the disappear-detection downstream.
+    const slaIssuesMap = new Map();
+    for (const issues of slaIssuesByTrigger.values()) {
+      for (const i of issues) slaIssuesMap.set(i.key, i);
+    }
+    const slaIssues = Array.from(slaIssuesMap.values());
 
     // 3) Personal approval queue (JSM evaluates approver = currentUser()
     //    against the configured API token's owner).
@@ -143,27 +157,30 @@ class AlertEngine extends EventEmitter {
       }
     }
 
-    // 4) Teams unread messages from watched users (via MS Graph). Only
-    //    fires if user is connected to Teams AND has at least one watched
-    //    user configured.
-    let teamsHits = [];
-    if (teamsTriggers.length) {
-      const connected = msGraphOAuth.isConnected();
-      const teamsState = store.getTeams();
-      const watchedIds = (teamsState.watchedUsers || []).map((u) => u.id).filter(Boolean);
-      console.log(
-        `[teams] check: triggers=${teamsTriggers.length} connected=${connected} watched=${watchedIds.length}`,
-      );
-      if (connected && watchedIds.length > 0) {
+    // 4) Teams: per-trigger now. Each Teams trigger has its own scope.users
+    //    list of Graph user IDs. We query Graph once per trigger to keep
+    //    the per-trigger filtering accurate.
+    const teamsHitsByTrigger = new Map();
+    if (teamsTriggers.length && msGraphOAuth.isConnected()) {
+      for (const trig of teamsTriggers) {
+        const userIds = ((trig.scope || {}).users || []).map((u) => u.id).filter(Boolean);
+        if (userIds.length === 0) {
+          teamsHitsByTrigger.set(trig.id, []);
+          continue;
+        }
         try {
-          teamsHits = await msGraphClient.getRecentMessagesFromWatchedUsers(watchedIds);
-          console.log(`[teams] graph returned ${teamsHits.length} matching chats`);
+          const hits = await msGraphClient.getRecentMessagesFromWatchedUsers(userIds);
+          teamsHitsByTrigger.set(trig.id, hits);
         } catch (err) {
+          teamsHitsByTrigger.set(trig.id, []);
           console.warn('[teams] graph query failed:', err.message);
           this.emit('error', err);
         }
       }
     }
+    // Flat list for log summary
+    let teamsHitsTotal = 0;
+    for (const hits of teamsHitsByTrigger.values()) teamsHitsTotal += hits.length;
 
     const alerts = [];
 
@@ -212,15 +229,15 @@ class AlertEngine extends EventEmitter {
       }
     }
 
-    // Evaluate Teams triggers. Each watched-user chat hit can match
-    // multiple teams triggers (each with its own threshold/color/pulse).
+    // Evaluate Teams triggers per-trigger using their scoped chat hits.
     const nowForTeams = Date.now();
-    for (const hit of teamsHits) {
-      const msg = hit.lastMessage;
-      const createdMs = msg.createdDateTime ? Date.parse(msg.createdDateTime) : nowForTeams;
-      const ageMinutes = Math.max(0, (nowForTeams - createdMs) / 60_000);
-      const senderName = msg.sender.displayName || 'Watched user';
-      for (const trig of teamsTriggers) {
+    for (const trig of teamsTriggers) {
+      const hitsForTrig = teamsHitsByTrigger.get(trig.id) || [];
+      for (const hit of hitsForTrig) {
+        const msg = hit.lastMessage;
+        const createdMs = msg.createdDateTime ? Date.parse(msg.createdDateTime) : nowForTeams;
+        const ageMinutes = Math.max(0, (nowForTeams - createdMs) / 60_000);
+        const senderName = msg.sender.displayName || 'Watched user';
         const threshold = Number(trig.ageThresholdMinutes) || 0;
         if (threshold > 0 && ageMinutes < threshold) continue;
         const ageLabel =
@@ -279,16 +296,17 @@ class AlertEngine extends EventEmitter {
       }
     }
 
-    // Evaluate SLA triggers (scoped to watched users/groups)
-    for (const issue of slaIssues) {
-      const fmap = issue.fields || {};
-      const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
-      for (const trig of slaTriggers) {
+    // Evaluate SLA triggers per-trigger using their scoped issue lists.
+    for (const trig of slaTriggers) {
+      const issuesForTrig = slaIssuesByTrigger.get(trig.id) || [];
+      for (const issue of issuesForTrig) {
+        const fmap = issue.fields || {};
+        const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
         for (const slaField of fields.slaFieldIds) {
           const parsed = parseSlaField(fmap[slaField.id]);
           if (!parsed || !parsed.hasOngoing) continue;
           if (!matchesSlaCondition(parsed, trig)) continue;
-          const key = `${trig.id}:${slaField.id}`;
+          const key = `${trig.id}:${slaField.id}:${issue.key}`;
           alerts.push({
             ticketKey: issue.key,
             ticketSummary: fmap.summary || '',
@@ -336,7 +354,7 @@ class AlertEngine extends EventEmitter {
 
     // One-line tick summary.
     console.log(
-      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHits.length} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
+      `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHitsTotal} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
     );
   }
 

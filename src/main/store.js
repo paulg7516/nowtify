@@ -120,6 +120,60 @@ function backfillDefaultTriggers() {
 }
 backfillDefaultTriggers();
 
+// Migrate global watch lists into per-trigger scope. v0.4.x moves the
+// "who do I watch" concept from app-level config (watchList, watchGroups,
+// teams.watchedUsers) into the trigger itself. This runs once on startup
+// after upgrade and is a no-op afterward. Old global lists are KEPT in the
+// store for safety (will be cleaned up in a later release once the new
+// model has proven stable).
+function migrateTriggerScopes() {
+  const triggers = store.get('triggers') || [];
+  const oldWatchList = store.get('watchList') || [];
+  const oldWatchGroups = store.get('watchGroups') || [];
+  const teams = store.get('teams') || {};
+  const oldTeamsWatched = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
+
+  let mutated = false;
+  const next = triggers.map((t) => {
+    if (t.scope) return t; // already has scope - skip
+    if (t.type === 'sla') {
+      mutated = true;
+      return {
+        ...t,
+        scope: {
+          users: oldWatchList.map((u) => ({
+            accountId: u.accountId,
+            displayName: u.displayName,
+            emailAddress: u.emailAddress || '',
+          })),
+          groups: oldWatchGroups.map((g) => ({ name: g.name })),
+        },
+      };
+    }
+    if (t.type === 'teams') {
+      mutated = true;
+      return {
+        ...t,
+        scope: {
+          users: oldTeamsWatched.map((u) => ({
+            id: u.id,
+            displayName: u.displayName,
+            mail: u.mail || '',
+          })),
+        },
+      };
+    }
+    // major / approval triggers have no scope - they're implicitly scoped
+    // (instance-wide vs current user respectively).
+    return t;
+  });
+  if (mutated) {
+    store.set('triggers', next);
+    console.log('[store] migrated triggers to embedded scope shape');
+  }
+}
+migrateTriggerScopes();
+
 /* ------------------------ API token encryption ------------------------ *
  * The Atlassian API token is the only secret we hold. Everything else
  * (siteUrl, email, watch list, triggers) is non-sensitive config.

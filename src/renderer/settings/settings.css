@@ -618,6 +618,88 @@ ul.list:empty {
 .trigger-card:hover {
   background: rgba(79, 70, 229, 0.04);
 }
+.trigger-card.scope-open {
+  flex-wrap: wrap;
+}
+.trigger-card.scope-open:hover {
+  background: transparent;
+}
+
+/* Scope chevron in the meta line - small, rotates when expanded */
+.scope-chevron {
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: transform 160ms ease;
+  display: inline-block;
+}
+
+/* Inline expansion area below the card content */
+.trigger-scope-picker {
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px 4px 6px;
+  border-top: 1px solid var(--border);
+}
+.trigger-scope-picker[hidden] {
+  display: none;
+}
+.scope-section-head {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin: 12px 0 8px;
+}
+.scope-section-head:first-child {
+  margin-top: 0;
+}
+.scope-current {
+  display: flex;
+  flex-direction: column;
+}
+.scope-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 6px;
+  border-radius: 4px;
+}
+.scope-row + .scope-row {
+  border-top: 1px solid var(--border);
+}
+.scope-row:hover {
+  background: rgba(79, 70, 229, 0.04);
+}
+.scope-empty {
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 8px 6px;
+  font-style: italic;
+}
+.scope-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.scope-search input {
+  flex: 1;
+}
+.scope-search-results {
+  display: flex;
+  flex-direction: column;
+}
+.scope-results-head {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-4);
+  padding: 6px 6px 2px;
+}
 .trigger-card.disabled .trigger-title,
 .trigger-card.disabled .trigger-title-select {
   color: var(--text-3, #6b7280);
