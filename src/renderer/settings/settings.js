@@ -876,13 +876,10 @@ function renderTeamsState() {
   if (!workingConfig) return;
   const teams = workingConfig.teams || {};
   const block = el('teamsStatusBlock');
-  const icon = el('teamsStatusIcon');
   const title = el('teamsStatusTitle');
   const sub = el('teamsStatusSub');
   const btn = el('teamsConnectBtn');
   if (!block || !btn) return;
-
-  icon.innerHTML = TEAMS_LOGO_SVG;
 
   if (teams.isConnected) {
     block.dataset.connected = 'true';

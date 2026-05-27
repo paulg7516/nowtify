@@ -24,22 +24,14 @@
 
     <div class="layout">
       <nav class="sidebar" aria-label="Settings sections">
-        <button class="nav-item active" data-section="connection">
+        <button class="nav-item active" data-section="integrations">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M 4 2 L 4 11 a 4 4 0 0 0 4 4 a 4 4 0 0 0 4 -4"/>
-            <line x1="2" y1="2" x2="6" y2="2"/>
-            <line x1="10" y1="2" x2="14" y2="2"/>
+            <rect x="2" y="2" width="5" height="5" rx="1"/>
+            <rect x="9" y="2" width="5" height="5" rx="1"/>
+            <rect x="2" y="9" width="5" height="5" rx="1"/>
+            <path d="M 9 11.5 a 2.5 2.5 0 0 1 2.5 -2.5 a 2.5 2.5 0 0 1 2.5 2.5 a 2.5 2.5 0 0 1 -2.5 2.5 a 2.5 2.5 0 0 1 -2.5 -2.5 z"/>
           </svg>
-          Jira
-        </button>
-        <button class="nav-item" data-section="teams">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="2" y="3" width="9" height="10" rx="1.5"/>
-            <rect x="10" y="5" width="4" height="6" rx="0.8" opacity="0.6"/>
-            <line x1="4.5" y1="6.2" x2="8.5" y2="6.2"/>
-            <line x1="6.5" y1="6.2" x2="6.5" y2="10"/>
-          </svg>
-          Teams
+          Integrations
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item" data-section="triggers">
@@ -61,14 +53,42 @@
       </nav>
 
       <main class="content">
-        <!-- JIRA -->
-        <section id="section-connection" class="panel">
+        <!-- INTEGRATIONS (Jira + Teams cards) -->
+        <section id="section-integrations" class="panel">
           <div class="panel-header">
-            <h2>Jira</h2>
-            <p class="panel-sub">Atlassian credentials for Jira Service Management. Each install is per-user, no shared state.</p>
+            <h2>Integrations</h2>
+            <p class="panel-sub">Connect your tools to enable triggers. Each install authenticates separately - credentials never leave this Mac.</p>
           </div>
 
-          <div class="card">
+          <!-- ===== Jira integration card ===== -->
+          <div class="card integration-card">
+            <div class="integration-header">
+              <div class="integration-logo">
+                <!-- Official Atlassian Jira mark (Iconify logos:jira), inlined.
+                     Unique gradient IDs to avoid clashing with the Teams logo
+                     on the same page. -->
+                <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="nowtify-jira-g0" x1="91.91%" x2="48.057%" y1="40.245%" y2="83.139%">
+                      <stop offset=".18" stop-color="#0052cc"/>
+                      <stop offset="1" stop-color="#2684ff"/>
+                    </linearGradient>
+                    <linearGradient id="nowtify-jira-g1" x1="64.034%" x2="108.225%" y1="59.788%" y2="16.61%">
+                      <stop offset=".18" stop-color="#0052cc"/>
+                      <stop offset="1" stop-color="#2684ff"/>
+                    </linearGradient>
+                  </defs>
+                  <path fill="#2684ff" d="M244.658 0H121.823a55.546 55.546 0 0 0 55.546 55.546h22.632v21.876c.02 30.62 24.842 55.42 55.461 55.42V11.341C255.462 5.072 250.39 0 244.121 0z"/>
+                  <path fill="url(#nowtify-jira-g0)" d="M183.899 61.21H61.064a55.546 55.546 0 0 0 55.547 55.546h22.631v21.961c.04 30.62 24.86 55.426 55.482 55.426V72.551c0-6.269-5.072-11.341-11.34-11.341z"/>
+                  <path fill="url(#nowtify-jira-g1)" d="M123.124 122.421H.289a55.546 55.546 0 0 0 55.547 55.546h22.717v21.876c.02 30.583 24.794 55.4 55.376 55.474V133.762c0-6.269-5.072-11.341-11.34-11.341z"/>
+                </svg>
+              </div>
+              <div class="integration-title">
+                <div class="integration-name">Jira</div>
+                <div class="integration-sub">Atlassian Jira Service Management</div>
+              </div>
+            </div>
+
             <div class="field">
               <label for="siteUrl">Jira site URL</label>
               <input id="siteUrl" type="url" placeholder="https://your-company.atlassian.net" autocomplete="off" />
@@ -91,6 +111,55 @@
             </div>
           </div>
 
+          <!-- ===== Microsoft Teams integration card ===== -->
+          <div class="card integration-card">
+            <div class="integration-header">
+              <div class="integration-logo">
+                <!-- Official Microsoft Teams mark (Iconify logos:microsoft-teams),
+                     inlined. Same SVG used in the popover Join button - kept
+                     in sync. Unique gradient/clip IDs scoped to settings.   -->
+                <svg viewBox="0 0 256 239" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="nowtify-mt-g0" x1="17.372%" x2="82.628%" y1="-6.51%" y2="106.51%">
+                      <stop offset="0%" stop-color="#5a62c3"/>
+                      <stop offset="50%" stop-color="#4d55bd"/>
+                      <stop offset="100%" stop-color="#3940ab"/>
+                    </linearGradient>
+                    <path id="nowtify-mt-clip" d="M136.93 64.476v12.8a32.7 32.7 0 0 1-5.953-.952a38.7 38.7 0 0 1-26.79-22.742h21.848c6.008.022 10.872 4.887 10.895 10.894"/>
+                  </defs>
+                  <path fill="#5059c9" d="M178.563 89.302h66.125c6.248 0 11.312 5.065 11.312 11.312v60.231c0 22.96-18.613 41.574-41.573 41.574h-.197c-22.96.003-41.576-18.607-41.579-41.568V95.215a5.91 5.91 0 0 1 5.912-5.913"/>
+                  <circle cx="223.256" cy="50.605" r="26.791" fill="#5059c9"/>
+                  <circle cx="139.907" cy="38.698" r="38.698" fill="#7b83eb"/>
+                  <path fill="#7b83eb" d="M191.506 89.302H82.355c-6.173.153-11.056 5.276-10.913 11.449v68.697c-.862 37.044 28.445 67.785 65.488 68.692c37.043-.907 66.35-31.648 65.489-68.692v-68.697c.143-6.173-4.74-11.296-10.913-11.449"/>
+                  <path d="M142.884 89.302v96.268a10.96 10.96 0 0 1-6.787 10.062c-1.3.55-2.697.833-4.108.833H76.68c-.774-1.965-1.488-3.93-2.084-5.953a72.5 72.5 0 0 1-3.155-21.076v-68.703c-.143-6.163 4.732-11.278 10.895-11.43z" opacity=".1"/>
+                  <path d="M136.93 89.302v102.222c0 1.411-.283 2.808-.833 4.108a10.96 10.96 0 0 1-10.062 6.787H79.48c-1.012-1.965-1.965-3.93-2.798-5.954a59 59 0 0 1-2.084-5.953a72.5 72.5 0 0 1-3.155-21.076v-68.703c-.143-6.163 4.732-11.278 10.895-11.43z" opacity=".2"/>
+                  <path d="M136.93 89.302v90.315c-.045 5.998-4.896 10.85-10.895 10.895H74.597a72.5 72.5 0 0 1-3.155-21.076v-68.703c-.143-6.163 4.732-11.278 10.895-11.43z" opacity=".2"/>
+                  <path d="M130.977 89.302v90.315c-.046 5.998-4.897 10.85-10.895 10.895H74.597a72.5 72.5 0 0 1-3.155-21.076v-68.703c-.143-6.163 4.732-11.278 10.895-11.43z" opacity=".2"/>
+                  <path d="M142.884 58.523v18.753c-1.012.06-1.965.12-2.977.12s-1.965-.06-2.977-.12a32.7 32.7 0 0 1-5.953-.952a38.7 38.7 0 0 1-26.791-22.742a33 33 0 0 1-1.905-5.954h29.708c6.007.023 10.872 4.887 10.895 10.895" opacity=".1"/>
+                  <use href="#nowtify-mt-clip" opacity=".2"/>
+                  <use href="#nowtify-mt-clip" opacity=".2"/>
+                  <path d="M130.977 64.476v11.848a38.7 38.7 0 0 1-26.791-22.743h15.896c6.008.023 10.872 4.888 10.895 10.895" opacity=".2"/>
+                  <path fill="url(#nowtify-mt-g0)" d="M10.913 53.581h109.15c6.028 0 10.914 4.886 10.914 10.913v109.151c0 6.027-4.886 10.913-10.913 10.913H10.913C4.886 184.558 0 179.672 0 173.645V64.495C0 58.466 4.886 53.58 10.913 53.58"/>
+                  <path fill="#fff" d="M94.208 95.125h-21.82v59.416H58.487V95.125H36.769V83.599h57.439z"/>
+                </svg>
+              </div>
+              <div class="integration-title">
+                <div class="integration-name">Microsoft Teams</div>
+                <div class="integration-sub">Microsoft 365 - watch for unread messages</div>
+              </div>
+            </div>
+
+            <div class="teams-status" id="teamsStatusBlock">
+              <div class="teams-status-text">
+                <div class="teams-status-title" id="teamsStatusTitle">Not connected</div>
+                <div class="teams-status-sub" id="teamsStatusSub">Sign in with your Xolv account to enable Teams alerts.</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="teamsConnectBtn" class="btn btn-primary">Connect Microsoft Teams</button>
+              <span id="teamsResult" class="status"></span>
+            </div>
+          </div>
         </section>
 
         <!-- TRIGGERS -->
@@ -147,28 +216,6 @@
           </div>
         </section>
 
-        <!-- TEAMS (Phase 1: OAuth + identity) -->
-        <section id="section-teams" class="panel" hidden>
-          <div class="panel-header">
-            <h2>Microsoft Teams</h2>
-            <p class="panel-sub">Connect your Microsoft 365 account so Nowtify can watch for unread Teams messages from VIPs you choose. Each install authenticates separately - your token never leaves this Mac.</p>
-          </div>
-
-          <div class="card">
-            <div class="teams-status" id="teamsStatusBlock">
-              <div class="teams-status-icon" id="teamsStatusIcon"></div>
-              <div class="teams-status-text">
-                <div class="teams-status-title" id="teamsStatusTitle">Not connected</div>
-                <div class="teams-status-sub" id="teamsStatusSub">Sign in with your Xolv account to enable Teams alerts.</div>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="teamsConnectBtn" class="btn btn-primary">Connect Microsoft Teams</button>
-              <span id="teamsResult" class="status"></span>
-            </div>
-          </div>
-
-        </section>
 
         <!-- UPDATES (diagnostic) -->
         <section id="section-updates" class="panel" hidden>
