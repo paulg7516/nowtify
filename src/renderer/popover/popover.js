@@ -19,6 +19,30 @@ if (api && api.getVersion) {
     })
     .catch(() => {});
 }
+
+// Engine health indicator: small ⚠ next to version when last tick errored.
+// Refreshes every 10s so the user knows immediately if something breaks.
+const engineWarnEl = document.getElementById('engineWarn');
+function pollEngineHealth() {
+  if (!api || !api.getEngineHealth || !engineWarnEl) return;
+  api.getEngineHealth()
+    .then((h) => {
+      if (!h) return;
+      const stepErrors = h.stepErrors || {};
+      const errorKeys = Object.keys(stepErrors);
+      const healthy = h.isHealthy && errorKeys.length === 0;
+      if (healthy) {
+        engineWarnEl.hidden = true;
+      } else {
+        engineWarnEl.hidden = false;
+        const errs = errorKeys.map((k) => `${k}: ${stepErrors[k].message}`).join('\n');
+        engineWarnEl.title = `Engine errors detected:\n${errs}\n\nOpen Settings → Updates → Engine health for details.`;
+      }
+    })
+    .catch(() => {});
+}
+pollEngineHealth();
+setInterval(pollEngineHealth, 10_000);
 const tabsEl = el('tabs');
 const tabCountIncidents = el('tabCountIncidents');
 const tabCountApprovals = el('tabCountApprovals');

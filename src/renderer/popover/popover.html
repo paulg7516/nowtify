@@ -82,6 +82,19 @@
         font-variant-numeric: tabular-nums;
         letter-spacing: 0;
       }
+      /* Engine error indicator - small triangle that appears in the
+         header next to the version stamp when the engine's last tick had
+         per-step failures. Click to see the error message.            */
+      .header-engine-warn {
+        font-size: 12px;
+        color: #f87171;
+        cursor: help;
+        margin-left: 2px;
+        line-height: 1;
+      }
+      .header-engine-warn[hidden] {
+        display: none;
+      }
       .icon-btn {
         display: grid;
         place-items: center;
@@ -473,6 +486,7 @@
       <span class="header-title" id="title">
         <span id="titleText">Nowtify</span>
         <span class="header-version" id="appVersion"></span>
+        <span class="header-engine-warn" id="engineWarn" hidden title="">⚠</span>
       </span>
       <button id="refresh" class="icon-btn" title="Sync now" aria-label="Sync now">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

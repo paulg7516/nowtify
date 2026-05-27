@@ -1074,6 +1074,58 @@ setInterval(() => {
   api.getUpdateStatus().then(renderUpdaterStatus).catch(() => {});
 }, 30_000);
 
+/* ---------------- Engine health panel ---------------- */
+
+function renderEngineHealth(health) {
+  if (!health) return;
+  const dot = el('engineDot');
+  const text = el('engineHealthText');
+  const lastTick = el('engineLastTick');
+  const counts = el('engineCounts');
+  const errorsRow = el('engineErrorsRow');
+  const errorsBox = el('engineErrors');
+  if (!dot || !text) return;
+
+  const stepErrors = health.stepErrors || {};
+  const errorKeys = Object.keys(stepErrors);
+  const healthy = health.isHealthy && errorKeys.length === 0;
+  dot.dataset.state = healthy ? 'up-to-date' : 'error';
+  text.textContent = healthy ? 'Healthy' : `Degraded (${errorKeys.join(', ')})`;
+
+  lastTick.textContent = health.lastTickAt
+    ? `${formatRelativeTime(health.lastTickAt)} (took ${health.lastTickDurationMs}ms)`
+    : 'No tick yet';
+
+  if (health.lastCounts) {
+    const c = health.lastCounts;
+    counts.textContent = `${c.mi || 0} MI · ${c.sla || 0} SLA · ${c.approval || 0} Approval · ${c.teams || 0} Teams · ${c.alerts || 0} total alerts`;
+  } else {
+    counts.textContent = '-';
+  }
+
+  if (errorKeys.length > 0) {
+    errorsRow.hidden = false;
+    errorsBox.innerHTML = '';
+    for (const k of errorKeys) {
+      const line = document.createElement('div');
+      line.textContent = `${k}: ${stepErrors[k].message}`;
+      line.style.fontSize = '11.5px';
+      line.style.color = 'var(--danger)';
+      line.style.marginBottom = '2px';
+      errorsBox.appendChild(line);
+    }
+  } else {
+    errorsRow.hidden = true;
+  }
+}
+
+if (api.getEngineHealth) {
+  api.getEngineHealth().then(renderEngineHealth).catch(() => {});
+  setInterval(() => {
+    api.getEngineHealth().then(renderEngineHealth).catch(() => {});
+  }, 5_000);
+}
+
 /* ---------------- Auto-save creds + polling ---------------- */
 for (const id of ['siteUrl', 'email', 'apiToken']) {
   el(id).addEventListener('blur', () => {

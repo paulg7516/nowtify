@@ -316,6 +316,8 @@ function wireIpc() {
   ipcMain.handle('popover:poke-engine', () => engine.pokeNow());
   ipcMain.handle('popover:open-settings', () => openSettings());
   ipcMain.handle('popover:get-version', () => app.getVersion());
+  ipcMain.handle('popover:get-engine-health', () => engine.getHealth());
+  ipcMain.handle('settings:get-engine-health', () => engine.getHealth());
 
   // Microsoft Teams OAuth (Phase 1: just the auth handshake)
   ipcMain.handle('settings:teams-begin-auth', async () => {

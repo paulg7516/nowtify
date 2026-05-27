@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('settingsApi', {
   getUpdateStatus: () => ipcRenderer.invoke('settings:get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('settings:check-for-updates'),
   installUpdateNow: () => ipcRenderer.invoke('settings:install-update-now'),
+  getEngineHealth: () => ipcRenderer.invoke('settings:get-engine-health'),
   onUpdaterStatus: (cb) => {
     ipcRenderer.on('settings:updater-status', (_e, status) => cb(status));
   },

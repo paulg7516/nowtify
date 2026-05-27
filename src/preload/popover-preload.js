@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('popoverApi', {
   pokeEngine: () => ipcRenderer.invoke('popover:poke-engine'),
   openSettings: () => ipcRenderer.invoke('popover:open-settings'),
   getVersion: () => ipcRenderer.invoke('popover:get-version'),
+  getEngineHealth: () => ipcRenderer.invoke('popover:get-engine-health'),
 });

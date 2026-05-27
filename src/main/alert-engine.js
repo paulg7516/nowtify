@@ -21,6 +21,32 @@ class AlertEngine extends EventEmitter {
     this.lastState = { status: 'idle', color: null, pulse: false, alerts: [] };
     this.running = false;
     this.previousActiveKeys = new Set(); // ticketKeys of last tick's active alerts
+    // Health: surfaced via IPC so the UI can show "engine working / engine
+    // broken" instead of silently presenting an empty popover when a code
+    // bug or API error kills the tick.
+    this.health = {
+      lastTickAt: 0,
+      lastTickDurationMs: 0,
+      lastCounts: null, // { mi, sla, approval, teams }
+      stepErrors: {}, // { major: {message, at}, sla: ..., approval: ..., teams: ..., fatal: ... }
+      isHealthy: true, // false if any step errored on the last tick
+    };
+  }
+
+  getHealth() {
+    return JSON.parse(JSON.stringify(this.health));
+  }
+
+  recordStepError(step, err) {
+    const message = (err && err.message) || String(err);
+    console.warn(`[engine ${step}] error:`, message);
+    this.health.stepErrors[step] = { message, at: Date.now() };
+    this.health.isHealthy = false;
+    this.emit('error', err);
+  }
+
+  clearStepError(step) {
+    if (this.health.stepErrors[step]) delete this.health.stepErrors[step];
   }
 
   rebuildClient() {
@@ -61,6 +87,25 @@ class AlertEngine extends EventEmitter {
   }
 
   async tick() {
+    const tickStart = Date.now();
+    // Tick is wrapped in an outer try/catch: any uncaught throw from the
+    // tick body becomes a "fatal" health error rather than a silent crash
+    // that leaves the popover at 0 forever.
+    try {
+      await this._tickInner();
+      this.health.lastTickAt = Date.now();
+      this.health.lastTickDurationMs = this.health.lastTickAt - tickStart;
+      this.clearStepError('fatal');
+      // Healthy if no per-step errors remain after this tick.
+      this.health.isHealthy = Object.keys(this.health.stepErrors).length === 0;
+    } catch (err) {
+      this.health.lastTickAt = Date.now();
+      this.health.lastTickDurationMs = this.health.lastTickAt - tickStart;
+      this.recordStepError('fatal', err);
+    }
+  }
+
+  async _tickInner() {
     console.log('[engine] tick start');
     if (!this.client || !this.client.isConfigured()) {
       console.log('[engine] early exit: client not configured');
@@ -86,8 +131,9 @@ class AlertEngine extends EventEmitter {
     let fields;
     try {
       fields = await this.ensureFields();
+      this.clearStepError('fields');
     } catch (err) {
-      this.emit('error', err);
+      this.recordStepError('fields', err);
       return;
     }
 
@@ -109,9 +155,12 @@ class AlertEngine extends EventEmitter {
           fieldId: fields.majorIncidentFieldId,
           fields: fieldIds,
         });
+        this.clearStepError('major');
       } catch (err) {
-        this.emit('error', err);
+        this.recordStepError('major', err);
       }
+    } else {
+      this.clearStepError('major');
     }
 
     // 2) SLA queries: per-trigger now (scope embedded in each trigger).
@@ -132,11 +181,13 @@ class AlertEngine extends EventEmitter {
           fields: fieldIds,
         });
         slaIssuesByTrigger.set(trig.id, issues);
+        this.clearStepError('sla');
       } catch (err) {
         slaIssuesByTrigger.set(trig.id, []);
-        this.emit('error', err);
+        this.recordStepError('sla', err);
       }
     }
+    if (slaTriggers.length === 0) this.clearStepError('sla');
     // Flat list of unique issues for the disappear-detection downstream.
     const slaIssuesMap = new Map();
     for (const issues of slaIssuesByTrigger.values()) {
@@ -152,9 +203,12 @@ class AlertEngine extends EventEmitter {
         approvalIssues = await this.client.searchMyPendingApprovals({
           fields: ['summary', 'assignee', 'status', 'created'],
         });
+        this.clearStepError('approval');
       } catch (err) {
-        this.emit('error', err);
+        this.recordStepError('approval', err);
       }
+    } else {
+      this.clearStepError('approval');
     }
 
     // 4) Teams: per-trigger now. Each Teams trigger has its own scope.users
@@ -171,12 +225,14 @@ class AlertEngine extends EventEmitter {
         try {
           const hits = await msGraphClient.getRecentMessagesFromWatchedUsers(userIds);
           teamsHitsByTrigger.set(trig.id, hits);
+          this.clearStepError('teams');
         } catch (err) {
           teamsHitsByTrigger.set(trig.id, []);
-          console.warn('[teams] graph query failed:', err.message);
-          this.emit('error', err);
+          this.recordStepError('teams', err);
         }
       }
+    } else {
+      this.clearStepError('teams');
     }
     // Flat list for log summary
     let teamsHitsTotal = 0;
@@ -364,6 +420,13 @@ class AlertEngine extends EventEmitter {
     }
 
     // One-line tick summary.
+    this.health.lastCounts = {
+      mi: majorIssues.length,
+      sla: slaIssues.length,
+      approval: approvalIssues.length,
+      teams: teamsHitsTotal,
+      alerts: alerts.length,
+    };
     console.log(
       `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHitsTotal} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
     );
