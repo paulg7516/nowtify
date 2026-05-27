@@ -109,12 +109,15 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
     '/me/chats?$expand=lastMessagePreview&$top=50&$orderby=lastUpdatedDateTime desc',
   );
   const chats = data.value || [];
+  console.log(`[graph] /me/chats returned ${chats.length} chats`);
   const hits = [];
+  const sampleSenderIds = [];
   for (const chat of chats) {
     const msg = chat.lastMessagePreview;
     if (!msg) continue;
     if (msg.isDeleted) continue;
     const fromId = msg.from && msg.from.user && msg.from.user.id;
+    if (sampleSenderIds.length < 5 && fromId) sampleSenderIds.push(fromId);
     if (!fromId || !idSet.has(fromId)) continue;
     hits.push({
       chatId: chat.id,
@@ -127,11 +130,16 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
           displayName: (msg.from.user.displayName) || '',
         },
         createdDateTime: msg.createdDateTime,
-        // preview body comes as { content, contentType } - use plain text
-        // for display in the popover.
         preview: (msg.body && msg.body.content) || '',
       },
     });
+  }
+  // If we got chats but no hits, log a sample of sender IDs so we can
+  // tell whether the watched-user IDs are matching what Graph reports.
+  if (chats.length > 0 && hits.length === 0) {
+    console.log(
+      `[graph] no matches. Sample sender IDs from latest chats: ${sampleSenderIds.join(', ')} | watching: ${Array.from(idSet).join(', ')}`,
+    );
   }
   return hits;
 }

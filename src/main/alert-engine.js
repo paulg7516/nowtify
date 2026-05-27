@@ -147,13 +147,19 @@ class AlertEngine extends EventEmitter {
     //    fires if user is connected to Teams AND has at least one watched
     //    user configured.
     let teamsHits = [];
-    if (teamsTriggers.length && msGraphOAuth.isConnected()) {
+    if (teamsTriggers.length) {
+      const connected = msGraphOAuth.isConnected();
       const teamsState = store.getTeams();
       const watchedIds = (teamsState.watchedUsers || []).map((u) => u.id).filter(Boolean);
-      if (watchedIds.length > 0) {
+      console.log(
+        `[teams] check: triggers=${teamsTriggers.length} connected=${connected} watched=${watchedIds.length}`,
+      );
+      if (connected && watchedIds.length > 0) {
         try {
           teamsHits = await msGraphClient.getRecentMessagesFromWatchedUsers(watchedIds);
+          console.log(`[teams] graph returned ${teamsHits.length} matching chats`);
         } catch (err) {
+          console.warn('[teams] graph query failed:', err.message);
           this.emit('error', err);
         }
       }
