@@ -11,4 +11,6 @@ contextBridge.exposeInMainWorld('popoverApi', {
   openSettings: () => ipcRenderer.invoke('popover:open-settings'),
   getVersion: () => ipcRenderer.invoke('popover:get-version'),
   getEngineHealth: () => ipcRenderer.invoke('popover:get-engine-health'),
+  getUpdateStatus: () => ipcRenderer.invoke('popover:get-update-status'),
+  installUpdateNow: () => ipcRenderer.invoke('popover:install-update-now'),
 });

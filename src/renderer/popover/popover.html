@@ -95,6 +95,37 @@
       .header-engine-warn[hidden] {
         display: none;
       }
+      /* Update-ready pill: appears in the header when an update has been
+         downloaded and is waiting to install. Click to apply now. Subtle
+         indigo treatment - draws the eye without screaming.            */
+      .header-update-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        padding: 4px 9px;
+        border-radius: 6px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid rgba(139, 150, 255, 0.32);
+        cursor: pointer;
+        font-family: inherit;
+        margin-right: 4px;
+        transition: background var(--transition), border-color var(--transition);
+      }
+      .header-update-pill[hidden] {
+        display: none;
+      }
+      .header-update-pill:hover {
+        background: rgba(139, 150, 255, 0.24);
+        border-color: rgba(139, 150, 255, 0.5);
+      }
+      .header-update-pill svg {
+        width: 11px;
+        height: 11px;
+      }
       .icon-btn {
         display: grid;
         place-items: center;
@@ -519,6 +550,13 @@
         <span class="header-version" id="appVersion"></span>
         <span class="header-engine-warn" id="engineWarn" hidden title="">⚠</span>
       </span>
+      <button class="header-update-pill" id="updatePill" hidden type="button" title="Click to install the downloaded update">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M 8 13 V 3"/>
+          <polyline points="3.5 7.5 8 3 12.5 7.5"/>
+        </svg>
+        <span id="updatePillLabel">Update ready</span>
+      </button>
       <button id="refresh" class="icon-btn" title="Sync now" aria-label="Sync now">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M 13 6 a 5 5 0 0 0 -9 -1"/>

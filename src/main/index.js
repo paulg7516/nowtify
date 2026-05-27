@@ -334,6 +334,17 @@ function wireIpc() {
   ipcMain.handle('popover:open-settings', () => openSettings());
   ipcMain.handle('popover:get-version', () => app.getVersion());
   ipcMain.handle('popover:get-engine-health', () => engine.getHealth());
+  // Mirror of update status so the popover can show an "Update ready"
+  // pill without needing the full Settings → Updates panel open.
+  ipcMain.handle('popover:get-update-status', () => updaterStatus);
+  ipcMain.handle('popover:install-update-now', () => {
+    if (updaterStatus.downloadedFile) {
+      performUnsignedUpdate(updaterStatus.downloadedFile, updaterStatus.result.version || '');
+      app.quit();
+      return true;
+    }
+    return false;
+  });
   ipcMain.handle('settings:get-engine-health', () => engine.getHealth());
 
   // Microsoft Teams OAuth (Phase 1: just the auth handshake)

@@ -74,6 +74,43 @@ function pollEngineHealth() {
 }
 pollEngineHealth();
 setInterval(pollEngineHealth, 10_000);
+
+// Update-ready pill: shows in the header when an update has been
+// downloaded and is queued for install. Click to trigger the install
+// helper (app quits + bundle swap + relaunch).
+const updatePillEl = document.getElementById('updatePill');
+const updatePillLabel = document.getElementById('updatePillLabel');
+function pollUpdateStatus() {
+  if (!api || !api.getUpdateStatus || !updatePillEl) return;
+  api.getUpdateStatus()
+    .then((s) => {
+      if (!s) return;
+      const type = s.result && s.result.type;
+      if (type === 'downloaded') {
+        updatePillEl.hidden = false;
+        const v = s.result.version;
+        updatePillLabel.textContent = v ? `Update v${v} ready` : 'Update ready';
+        updatePillEl.title = `Click to install ${v ? 'v' + v : 'the update'}. Nowtify will restart.`;
+      } else {
+        updatePillEl.hidden = true;
+      }
+    })
+    .catch(() => {});
+}
+if (updatePillEl && api && api.installUpdateNow) {
+  updatePillEl.onclick = async () => {
+    updatePillEl.disabled = true;
+    updatePillLabel.textContent = 'Installing…';
+    try {
+      await api.installUpdateNow();
+    } catch (_err) {
+      updatePillEl.disabled = false;
+      updatePillLabel.textContent = 'Install failed';
+    }
+  };
+}
+pollUpdateStatus();
+setInterval(pollUpdateStatus, 15_000);
 const tabsEl = el('tabs');
 const tabCountIncidents = el('tabCountIncidents');
 const tabCountApprovals = el('tabCountApprovals');
