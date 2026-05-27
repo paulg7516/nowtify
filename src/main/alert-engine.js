@@ -184,9 +184,20 @@ class AlertEngine extends EventEmitter {
 
     const alerts = [];
 
+    // Resolve a display name for an assignee. Prefer cached scope-display
+    // names (collected from all SLA triggers' scope.users) so the popover
+    // shows the same name the user typed when picking the watcher; fall
+    // back to the assignee's own displayName from the JSM API.
+    const scopeNameById = new Map();
+    for (const trig of slaTriggers) {
+      for (const u of (trig.scope || {}).users || []) {
+        if (u && u.accountId && u.displayName) scopeNameById.set(u.accountId, u.displayName);
+      }
+    }
     const nameFor = (assignee) => {
-      const watchee = watchList.find((u) => u.accountId === (assignee && assignee.accountId));
-      return watchee ? watchee.displayName : (assignee && assignee.displayName) || 'Unassigned';
+      const accountId = assignee && assignee.accountId;
+      if (accountId && scopeNameById.has(accountId)) return scopeNameById.get(accountId);
+      return (assignee && assignee.displayName) || 'Unassigned';
     };
 
     // For Major Incident tickets, fetch the Teams meeting URL in parallel.
