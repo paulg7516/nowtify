@@ -129,6 +129,7 @@ async function load() {
   }
   renderConnectionButton();
   applyConnectionLockState();
+  renderTeamsState();
 }
 
 // Lock the connection inputs when a token is stored so the user has to
@@ -570,6 +571,83 @@ el('connectionBtn').onclick = async () => {
     setConnectionState('error', 'Connection failed');
   }
 };
+
+/* ---------------- Microsoft Teams connection ---------------- */
+
+// Inline SVG for the Teams logo - keeps offline + avoids external requests.
+const TEAMS_LOGO_SVG = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="5" width="11" height="14" rx="1.5"/>
+    <rect x="14" y="7" width="6" height="10" rx="1" opacity="0.65"/>
+    <line x1="5.5" y1="9" x2="11.5" y2="9"/>
+    <line x1="8.5" y1="9" x2="8.5" y2="15"/>
+  </svg>
+`;
+
+function renderTeamsState() {
+  if (!workingConfig) return;
+  const teams = workingConfig.teams || {};
+  const block = el('teamsStatusBlock');
+  const icon = el('teamsStatusIcon');
+  const title = el('teamsStatusTitle');
+  const sub = el('teamsStatusSub');
+  const btn = el('teamsConnectBtn');
+  if (!block || !btn) return;
+
+  icon.innerHTML = TEAMS_LOGO_SVG;
+
+  if (teams.isConnected) {
+    block.dataset.connected = 'true';
+    title.textContent = `Connected as ${teams.userDisplayName || 'unknown'}`;
+    sub.textContent = 'Nowtify will use this account to watch for unread Teams messages from your VIPs.';
+    btn.textContent = 'Disconnect';
+    btn.className = 'btn btn-ghost btn-danger';
+  } else {
+    block.dataset.connected = 'false';
+    title.textContent = 'Not connected';
+    sub.textContent = 'Sign in with your Xolv account to enable Teams VIP alerts. A browser tab will open for Microsoft sign-in.';
+    btn.textContent = 'Connect Microsoft Teams';
+    btn.className = 'btn btn-primary';
+  }
+}
+
+el('teamsConnectBtn').onclick = async () => {
+  const teams = (workingConfig && workingConfig.teams) || {};
+  if (teams.isConnected) {
+    const ok = await customConfirm({
+      title: 'Disconnect Microsoft Teams',
+      message:
+        'Your Teams sign-in will be removed from this Mac. To reconnect later, click Connect Microsoft Teams and sign in again.',
+      confirmLabel: 'Disconnect',
+      confirmDanger: true,
+    });
+    if (!ok) return;
+    workingConfig = await api.teamsDisconnect();
+    setStatus(el('teamsResult'), true, '');
+    renderTeamsState();
+    return;
+  }
+  // Connect path
+  setStatus(el('teamsResult'), true, 'Opening browser for sign-in…');
+  el('teamsConnectBtn').disabled = true;
+  const result = await api.teamsBeginAuth();
+  el('teamsConnectBtn').disabled = false;
+  if (!result.ok) {
+    setStatus(el('teamsResult'), false, `Failed: ${result.error}`);
+  }
+  // The actual "connected" event arrives async via the open-url handler
+  // in main, which sends settings:teams-connected to this renderer.
+};
+
+api.onTeamsConnected(async (info) => {
+  workingConfig = await api.getConfig();
+  setStatus(el('teamsResult'), true, '');
+  renderTeamsState();
+});
+
+api.onTeamsError((msg) => {
+  setStatus(el('teamsResult'), false, `Sign-in failed: ${msg}`);
+});
 
 /* ---------------- Updates diagnostic panel ---------------- */
 

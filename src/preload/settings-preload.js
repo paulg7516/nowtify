@@ -29,4 +29,13 @@ contextBridge.exposeInMainWorld('settingsApi', {
     ipcRenderer.on('settings:triggers-updated', (_event, triggers) => cb(triggers));
   },
   openExternal: (url) => ipcRenderer.invoke('settings:open-external', url),
+  // Microsoft Teams (Phase 1: OAuth + identity)
+  teamsBeginAuth: () => ipcRenderer.invoke('settings:teams-begin-auth'),
+  teamsDisconnect: () => ipcRenderer.invoke('settings:teams-disconnect'),
+  onTeamsConnected: (cb) => {
+    ipcRenderer.on('settings:teams-connected', (_e, info) => cb(info));
+  },
+  onTeamsError: (cb) => {
+    ipcRenderer.on('settings:teams-error', (_e, msg) => cb(msg));
+  },
 });

@@ -44,7 +44,7 @@ npm run release
 #     "shipped" before that, any installed app that polls in the next
 #     minute hits a 404 on the manifest and surfaces a scary stack trace.
 MANIFEST_URL="https://github.com/paulg7516/nowtify/releases/download/v$VERSION/latest-mac.yml"
-echo "→ Waiting for CDN propagation of $MANIFEST_URL…"
+echo "→ Waiting for CDN propagation of ${MANIFEST_URL}…"
 for i in $(seq 1 36); do
   STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$MANIFEST_URL")
   if [ "$STATUS" = "200" ]; then

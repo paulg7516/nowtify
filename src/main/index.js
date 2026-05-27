@@ -66,6 +66,7 @@ const { AlertEngine } = require('./alert-engine');
 const { OverlayWindows } = require('./overlay-windows');
 const { TrayManager } = require('./tray-manager');
 const { JsmClient } = require('./jsm-client');
+const msGraphOAuth = require('./ms-graph-oauth');
 
 // macOS: keep app running when all windows are closed (we live in the menu bar)
 app.on('window-all-closed', (e) => {
@@ -78,6 +79,44 @@ app.on('window-all-closed', (e) => {
 // affordance. Without this handler, dock clicks silently do nothing.
 app.on('activate', () => {
   openSettings();
+});
+
+// Single-instance lock: prevents a second copy of Nowtify from launching
+// when macOS hands us an OAuth callback URL. Without this, every
+// nowtify://oauth/callback click would spawn a new process and our
+// pendingAuth state (held in the original process) would be unreachable.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
+// Register nowtify:// as our custom URL scheme so macOS routes
+// nowtify://oauth/callback back to this app after Microsoft sign-in.
+// Safe to call repeatedly; idempotent at the OS level.
+app.setAsDefaultProtocolClient('nowtify');
+
+// macOS: when the system invokes nowtify://... and the app is already
+// running, this event fires with the full URL. (Cold-start invocations
+// also come through here on macOS - the OS launches us and immediately
+// dispatches open-url.)
+app.on('open-url', async (event, url) => {
+  event.preventDefault();
+  console.log('[open-url]', url);
+  if (url.startsWith('nowtify://oauth/callback')) {
+    try {
+      const user = await msGraphOAuth.handleCallback(url);
+      if (settingsWin && !settingsWin.isDestroyed()) {
+        settingsWin.webContents.send('settings:teams-connected', {
+          userDisplayName: user.displayName,
+          userId: user.id,
+        });
+      }
+    } catch (err) {
+      console.warn('[teams-oauth] callback failed:', err.message);
+      if (settingsWin && !settingsWin.isDestroyed()) {
+        settingsWin.webContents.send('settings:teams-error', err.message);
+      }
+    }
+  }
 });
 
 if (process.platform === 'darwin') {
@@ -276,6 +315,20 @@ function wireIpc() {
   ipcMain.handle('popover:poke-engine', () => engine.pokeNow());
   ipcMain.handle('popover:open-settings', () => openSettings());
   ipcMain.handle('popover:get-version', () => app.getVersion());
+
+  // Microsoft Teams OAuth (Phase 1: just the auth handshake)
+  ipcMain.handle('settings:teams-begin-auth', async () => {
+    try {
+      await msGraphOAuth.beginAuth();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
+  ipcMain.handle('settings:teams-disconnect', () => {
+    msGraphOAuth.disconnect();
+    return store.getAll();
+  });
 
   // Updates diagnostic panel
   ipcMain.handle('settings:get-update-status', () => updaterStatus);

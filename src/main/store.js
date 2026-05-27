@@ -12,6 +12,14 @@ const defaults = {
     // restore across app restarts without re-fetching /myself.
     userDisplayName: '',
   },
+  // Microsoft Teams (via Graph API) - Phase 1: OAuth + identity verification
+  teams: {
+    expiresAt: 0, // epoch ms when current access token expires
+    userId: '', // Graph user id of the authenticated user
+    userDisplayName: '', // cached for "Connected as <name>" pill
+    // accessTokenEnc + refreshTokenEnc live alongside but are written via
+    // writeEncryptedTeamsToken (not in defaults; presence = connected)
+  },
   watchList: [],
   watchGroups: [],
   triggers: [
@@ -230,7 +238,9 @@ function set(key, value) {
 function getAllForRenderer() {
   const all = store.store;
   const jsm = all.jsm || {};
+  const teams = all.teams || {};
   const hasApiToken = Boolean(jsm.apiTokenEnc || jsm.apiToken);
+  const teamsConnected = Boolean(teams.accessTokenEnc);
   return {
     ...all,
     jsm: {
@@ -240,6 +250,12 @@ function getAllForRenderer() {
       userDisplayName: jsm.userDisplayName || '',
       apiToken: '', // never sent to renderer
       hasApiToken,
+    },
+    teams: {
+      // Tokens never sent to renderer.
+      isConnected: teamsConnected,
+      userId: teams.userId || '',
+      userDisplayName: teams.userDisplayName || '',
     },
   };
 }
@@ -334,12 +350,91 @@ function setUserDisplayName(name) {
   setJsm({ userDisplayName: name || '' });
 }
 
+/* ============ Microsoft Teams (via Graph OAuth) ============ *
+ * Same encryption pattern as the JSM token: access + refresh tokens
+ * encrypted via safeStorage (macOS Keychain), stored as base64 under
+ * teams.accessTokenEnc / teams.refreshTokenEnc. Non-secret metadata
+ * (expiresAt, userId, userDisplayName) stays plaintext in the same teams
+ * object.
+ * ========================================================= */
+
+function readEncryptedTeamsField(fieldName) {
+  const teams = store.get('teams') || {};
+  const enc = teams[fieldName];
+  if (!enc) return '';
+  if (!safeStorage.isEncryptionAvailable()) return '';
+  try {
+    return safeStorage.decryptString(Buffer.from(enc, 'base64'));
+  } catch (err) {
+    console.warn(`[store] failed to decrypt teams.${fieldName}:`, err.message);
+    return '';
+  }
+}
+
+function writeEncryptedTeamsField(fieldName, value) {
+  const teams = store.get('teams') || {};
+  const next = { ...teams };
+  if (!value) {
+    delete next[fieldName];
+  } else {
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error('OS keystore (Keychain) is not available - cannot store Teams token securely.');
+    }
+    const enc = safeStorage.encryptString(value);
+    next[fieldName] = enc.toString('base64');
+  }
+  store.set('teams', next);
+  lockdownConfigFile();
+}
+
+function getTeams() {
+  const teams = store.get('teams') || {};
+  return {
+    accessToken: readEncryptedTeamsField('accessTokenEnc'),
+    refreshToken: readEncryptedTeamsField('refreshTokenEnc'),
+    expiresAt: Number(teams.expiresAt) || 0,
+    userId: teams.userId || '',
+    userDisplayName: teams.userDisplayName || '',
+  };
+}
+
+function setTeamsTokens({ accessToken, refreshToken, expiresAt }) {
+  const teams = store.get('teams') || {};
+  store.set('teams', { ...teams, expiresAt: Number(expiresAt) || 0 });
+  if (typeof accessToken === 'string') writeEncryptedTeamsField('accessTokenEnc', accessToken);
+  if (typeof refreshToken === 'string') writeEncryptedTeamsField('refreshTokenEnc', refreshToken);
+}
+
+function setTeamsUser({ userId, userDisplayName }) {
+  const teams = store.get('teams') || {};
+  store.set('teams', {
+    ...teams,
+    userId: userId || '',
+    userDisplayName: userDisplayName || '',
+  });
+}
+
+function clearTeams() {
+  writeEncryptedTeamsField('accessTokenEnc', '');
+  writeEncryptedTeamsField('refreshTokenEnc', '');
+  store.set('teams', {
+    expiresAt: 0,
+    userId: '',
+    userDisplayName: '',
+  });
+  lockdownConfigFile();
+}
+
 module.exports = {
   get,
   set,
   getAll: getAllForRenderer,
   clearApiToken,
   setUserDisplayName,
+  getTeams,
+  setTeamsTokens,
+  setTeamsUser,
+  clearTeams,
   addWatchee,
   removeWatchee,
   addGroup,
