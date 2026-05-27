@@ -174,34 +174,39 @@ body {
 }
 .panel-sub {
   margin: 0;
-  color: var(--text-2);
+  color: var(--text-3);
   font-size: 13px;
+  line-height: 1.5;
+  max-width: 64ch;
 }
 
-/* Card */
+/* Card: white container against the gray panel background. Matches the
+   trigger-list visual so all sections share the same containment
+   language. Slightly more elevated shadow + 10px radius for a premium
+   "pop" against the page.                                              */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
+  border-radius: 10px;
+  padding: 18px 20px;
   margin-bottom: 14px;
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
 }
 .card-header {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .card-header h3 {
-  margin: 0 0 2px;
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-3);
+  color: var(--text);
+  letter-spacing: -0.005em;
 }
 .card-sub {
   margin: 0;
-  font-size: 12px;
-  color: var(--text-2);
+  font-size: 12.5px;
+  color: var(--text-3);
+  line-height: 1.5;
 }
 .card-header .card-sub {
   margin-top: 4px;
@@ -482,13 +487,16 @@ ul.list:empty {
   line-height: 1.5;
   max-width: 60ch;
 }
+/* Empty state: lives inside the container so it shares the same white
+   card frame. No dashed border (the container already provides one).    */
 .trigger-group-empty {
   font-size: 12.5px;
-  padding: 14px 16px;
+  padding: 22px 16px;
   color: var(--text-3, #6b7280);
-  border: 1px dashed var(--border);
-  border-radius: 8px;
   text-align: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 /* Add button: refined text-button, not heavy primary */
@@ -515,32 +523,41 @@ ul.list:empty {
   opacity: 0.85;
 }
 
+/* Each section's triggers live in a single white container against the
+   gray panel - gives clear visual chunks and lets the cards "pop" the
+   way the user asked for. Rows inside are divided by hairlines.        */
 .trigger-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  overflow: hidden;
 }
 
-/* Card: flex layout so the title/body always fills available space and
-   the toggle + delete hug the right edge. min-width: 0 on the body lets
-   the dropdown grow without being clipped by flex defaults.             */
+/* Row: lives inside the container. No own border/background; divider
+   comes from a top border on every row except the first.                */
 .trigger-card {
   position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  transition: background 120ms ease, border-color 120ms ease;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  transition: background 120ms ease;
+}
+.trigger-card:first-child {
+  border-top: 0;
 }
 .trigger-card:hover {
   background: var(--surface-2, #f8fafc);
-  border-color: var(--border);
 }
 .trigger-card.disabled .trigger-title,
 .trigger-card.disabled .trigger-title-select {
