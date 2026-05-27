@@ -903,8 +903,7 @@ function renderTeamsState() {
     block.dataset.connected = 'true';
     title.textContent = `Connected as ${teams.userDisplayName || 'unknown'}`;
     sub.textContent =
-      'Nowtify will use this account to watch for unread Teams messages and Outlook emails. ' +
-      'Pick who to watch under Triggers - Teams group for chat, Email group for mail.';
+      'Nowtify will use this account to watch for unread Teams messages and Outlook emails.';
     btn.textContent = 'Disconnect';
     btn.className = 'btn btn-ghost btn-danger';
   } else {
