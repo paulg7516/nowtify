@@ -106,16 +106,19 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
   const idSet = new Set(watchedUserIds);
 
   // NOTE: Graph's /me/chats does not support $orderby (returns 400 if you
-  // try). Just pull the top 50 and filter client-side - the alert engine
-  // deduplicates by chatId+messageId so server-side ordering doesn't matter.
-  const data = await graphGet(
-    '/me/chats?$expand=lastMessagePreview&$top=50',
-  );
+  // try). Just pull the top 50 and filter client-side.
+  const data = await graphGet('/me/chats?$expand=lastMessagePreview&$top=50');
   const chats = data.value || [];
   console.log(`[graph] /me/chats returned ${chats.length} chats`);
   const hits = [];
   const sampleSenderIds = [];
   for (const chat of chats) {
+    // Skip meeting-sidebar chats - these are auto-created when you join a
+    // Teams meeting and often persist invisibly in Graph long after the
+    // meeting is over. They create false-positive alerts ("ghost messages"
+    // the user doesn't see in their Teams app). 1:1 + group chats only.
+    if (chat.chatType === 'meeting') continue;
+
     const msg = chat.lastMessagePreview;
     if (!msg) continue;
     if (msg.isDeleted) continue;
@@ -133,18 +136,34 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
           displayName: (msg.from.user.displayName) || '',
         },
         createdDateTime: msg.createdDateTime,
-        preview: (msg.body && msg.body.content) || '',
+        // Graph returns the body as HTML (<p>, <div>, etc). Strip tags +
+        // collapse whitespace so the popover shows the actual text.
+        preview: stripHtml((msg.body && msg.body.content) || ''),
       },
     });
   }
-  // If we got chats but no hits, log a sample of sender IDs so we can
-  // tell whether the watched-user IDs are matching what Graph reports.
   if (chats.length > 0 && hits.length === 0) {
     console.log(
       `[graph] no matches. Sample sender IDs from latest chats: ${sampleSenderIds.join(', ')} | watching: ${Array.from(idSet).join(', ')}`,
     );
   }
   return hits;
+}
+
+function stripHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/p>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 module.exports = {
