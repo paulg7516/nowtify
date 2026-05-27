@@ -183,26 +183,38 @@ async function getUnreadEmailsFromUsers(emailAddresses) {
     .map((e) => String(e || '').trim().toLowerCase())
     .filter(Boolean);
   if (cleaned.length === 0) return [];
+  const addressSet = new Set(cleaned);
 
-  // Graph $filter doesn't support `in` for sender address, so we OR them.
-  // Quotes inside the address are escaped by doubling them (OData rule).
-  const orClause = cleaned
-    .map((addr) => `from/emailAddress/address eq '${addr.replace(/'/g, "''")}'`)
-    .join(' or ');
-  const filter = `isRead eq false and (${orClause})`;
-
+  // Graph's /me/messages $filter only allows ONE indexed property at a
+  // time on mail items. Combining `isRead eq false` AND
+  // `from/emailAddress/address eq '...'` returns 400 "InefficientFilter".
+  // Strategy: filter server-side by isRead=false, pull the top 150
+  // most-recent unread, then filter by sender client-side. For users with
+  // an enormous unread backlog this could miss older unread from a
+  // watched sender, but the most-recent 150 captures the "needs attention
+  // today" set which is what alerting is about.
   const path =
     '/me/messages?$select=id,subject,bodyPreview,from,receivedDateTime,webLink' +
     '&$filter=' +
-    encodeURIComponent(filter) +
+    encodeURIComponent('isRead eq false') +
     '&$orderby=receivedDateTime desc' +
-    '&$top=50';
+    '&$top=150';
 
   const data = await graphGet(path);
   const messages = data.value || [];
-  console.log(`[graph] /me/messages returned ${messages.length} unread from watched`);
 
-  return messages.map((m) => ({
+  const matches = messages.filter((m) => {
+    const addr = (
+      (m.from && m.from.emailAddress && m.from.emailAddress.address) ||
+      ''
+    ).toLowerCase();
+    return addr && addressSet.has(addr);
+  });
+  console.log(
+    `[graph] /me/messages returned ${messages.length} unread, ${matches.length} from watched`,
+  );
+
+  return matches.map((m) => ({
     messageId: m.id,
     subject: m.subject || '(no subject)',
     preview: (m.bodyPreview || '').trim(),
