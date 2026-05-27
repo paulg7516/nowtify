@@ -39,20 +39,16 @@ const TEAMS_BRAND_SVG = `
   <path fill="#fff" d="M94.208 95.125h-21.82v59.416H58.487V95.125H36.769V83.599h57.439z"/>
 </svg>`;
 
-// Microsoft Outlook brand mark (Iconify logos:microsoft-outlook, multi-color
-// envelope-shaped O on the classic Outlook blue background).
+// Microsoft Outlook brand mark - clean simplified version that reads
+// cleanly at the badge's small size (the full multi-color Iconify version
+// has too many overlapping paths and turns to mud at 13px). Captures the
+// essential Outlook identity: blue square + white envelope-O + flap.
 const OUTLOOK_BRAND_SVG = `
-<svg viewBox="0 0 256 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path fill="#0a2767" d="M180.768 99.024L210 78.336c2.4-1.824 5.184-2.736 8.064-2.736c2.88 0 5.664.912 8.064 2.736L255.36 99.024c.816 1.248.624 2.928-.432 3.936L210.864 132.288c-1.248.864-2.88 1.056-4.32.48L161.616 102.96c-1.152-1.008-1.248-2.688-.432-3.936z"/>
-  <path fill="#0364b8" d="M161.376 76.32 105.408 17.328c-2.832-2.736-7.296-2.736-10.128 0L0 71.808v95.808l161.376-19.968z"/>
-  <path fill="#28a8ea" d="M161.376 76.32v90.144L210 138.96l-48.624-62.64z"/>
-  <path fill="#0078d4" d="M255.36 99.024c-.048.096-.096.192-.144.288l-90.336 60.768c-1.248.864-2.88 1.056-4.32.48l45.168 30.864v-50.736z"/>
-  <path fill="#14447d" d="M210 130.32v37.296l46.368-37.296z"/>
-  <path fill="#0078d4" d="M210 167.616v-37.632L0 167.616v25.488l21.072 14.832 235.296-65.04-46.368-37.632z"/>
-  <path fill="#50d9ff" d="M255.36 99.024 109.968 170.256 0 167.616v25.488l21.072 14.832 234.288-108.912z"/>
-  <path fill="#fff" d="M138.48 49.488H59.04c-5.664 0-10.224 4.56-10.224 10.224v94.752c0 5.664 4.56 10.224 10.224 10.224h79.44c5.664 0 10.224-4.56 10.224-10.224V59.712c0-5.664-4.56-10.224-10.224-10.224"/>
-  <path fill="#1490df" d="M98.4 117.792c-19.584 0-35.472-15.984-35.472-35.664c0-19.68 15.888-35.664 35.472-35.664c19.584 0 35.472 15.984 35.472 35.664c0 19.68-15.888 35.664-35.472 35.664"/>
-  <path fill="#fff" d="M98.4 67.92c-7.872 0-14.208 6.336-14.208 14.208c0 7.872 6.336 14.208 14.208 14.208c7.872 0 14.208-6.336 14.208-14.208c0-7.872-6.336-14.208-14.208-14.208"/>
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect x="1.5" y="4" width="14" height="16" rx="1.5" fill="#0078d4"/>
+  <ellipse cx="8.5" cy="12" rx="3.6" ry="4.1" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <path fill="#28a8ea" d="M15.5 8 L22.5 5 L22.5 19 L15.5 16 Z"/>
+  <path fill="#0078d4" d="M15.5 12 L19 10.5 L15.5 9 Z" opacity="0.55"/>
 </svg>`;
 
 // Engine health indicator: small ⚠ next to version when last tick errored.

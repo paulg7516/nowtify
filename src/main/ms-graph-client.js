@@ -125,6 +125,26 @@ async function getRecentMessagesFromWatchedUsers(watchedUserIds) {
     const fromId = msg.from && msg.from.user && msg.from.user.id;
     if (sampleSenderIds.length < 5 && fromId) sampleSenderIds.push(fromId);
     if (!fromId || !idSet.has(fromId)) continue;
+
+    // Read-status filter: skip if the user has already viewed this chat
+    // since the message arrived. Matches email "read = clears alert"
+    // behavior. Graph exposes the read receipt as
+    // chat.viewpoint.lastMessageReadDateTime - the timestamp of the last
+    // message the current user has read in this chat.
+    //
+    // Fallback: if viewpoint or lastMessageReadDateTime is missing
+    // (some tenants disable read receipts, or older Graph versions),
+    // treat as unread - better to alert about a possibly-seen message
+    // than to silently drop a real unread one.
+    const lastReadIso = chat.viewpoint && chat.viewpoint.lastMessageReadDateTime;
+    if (lastReadIso && msg.createdDateTime) {
+      const lastReadMs = Date.parse(lastReadIso);
+      const messageMs = Date.parse(msg.createdDateTime);
+      if (Number.isFinite(lastReadMs) && Number.isFinite(messageMs) && messageMs <= lastReadMs) {
+        continue; // already read in Teams - don't alert
+      }
+    }
+
     hits.push({
       chatId: chat.id,
       topic: chat.topic || '',
