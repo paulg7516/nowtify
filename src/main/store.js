@@ -408,6 +408,7 @@ function getTeams() {
     expiresAt: Number(teams.expiresAt) || 0,
     userId: teams.userId || '',
     userDisplayName: teams.userDisplayName || '',
+    watchedUsers: Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [],
   };
 }
 
