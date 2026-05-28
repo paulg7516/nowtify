@@ -111,11 +111,25 @@ async function beginAuth() {
  */
 async function handleCallback(callbackUrl) {
   if (!pendingAuth) {
-    throw new Error('No sign-in is in progress. Click Connect Microsoft Teams to start.');
+    // Common causes:
+    //  - macOS routed nowtify:// to a different process than the one
+    //    that initiated the OAuth (URL scheme registration not fully
+    //    resolved on a fresh install)
+    //  - App was relaunched between Connect click and the redirect
+    //  - User started Connect and quit the app before completing
+    console.warn(
+      '[teams-oauth] handleCallback fired but pendingAuth is empty - state was lost between Connect and the redirect',
+    );
+    throw new Error(
+      'Sign-in state was lost - macOS may have routed the callback to a different process. ' +
+        'Click Connect Microsoft 365 again to retry. If this keeps happening, quit and relaunch Nowtify, then try once more.',
+    );
   }
   if (Date.now() - pendingAuth.startedAt > PENDING_AUTH_TIMEOUT_MS) {
     pendingAuth = null;
-    throw new Error('Sign-in timed out. Click Connect Microsoft Teams to try again.');
+    throw new Error(
+      'Sign-in took too long (5+ minutes). Click Connect Microsoft 365 again to start a fresh sign-in.',
+    );
   }
 
   let url;

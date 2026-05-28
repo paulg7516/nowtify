@@ -101,10 +101,11 @@ app.setAsDefaultProtocolClient('nowtify');
 // dispatches open-url.)
 app.on('open-url', async (event, url) => {
   event.preventDefault();
-  console.log('[open-url]', url);
+  console.log(`[open-url] received pid=${process.pid} url=${url.slice(0, 120)}…`);
   if (url.startsWith('nowtify://oauth/callback')) {
     try {
       const user = await msGraphOAuth.handleCallback(url);
+      console.log('[open-url] OAuth callback succeeded, user:', user.displayName);
       if (settingsWin && !settingsWin.isDestroyed()) {
         settingsWin.webContents.send('settings:teams-connected', {
           userDisplayName: user.displayName,
@@ -112,11 +113,25 @@ app.on('open-url', async (event, url) => {
         });
       }
     } catch (err) {
-      console.warn('[teams-oauth] callback failed:', err.message);
+      console.warn('[open-url] OAuth callback failed:', err.message);
       if (settingsWin && !settingsWin.isDestroyed()) {
         settingsWin.webContents.send('settings:teams-error', err.message);
       }
     }
+  }
+});
+
+// If a second Nowtify instance launches (e.g. macOS spawning a new copy
+// to handle a nowtify:// URL because Launch Services didn't route to the
+// existing one), the single-instance lock above sends the second-instance
+// args here. Extract any nowtify:// URL from argv and process it in this
+// (the first) instance.
+app.on('second-instance', (_event, argv) => {
+  console.log('[second-instance] argv:', argv.slice(2));
+  const url = argv.find((a) => typeof a === 'string' && a.startsWith('nowtify://'));
+  if (url) {
+    console.log('[second-instance] forwarding URL to open-url handler:', url.slice(0, 120));
+    app.emit('open-url', { preventDefault: () => {} }, url);
   }
 });
 
