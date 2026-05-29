@@ -406,6 +406,26 @@
     .feature-grid { grid-template-columns: 1fr; }
     .section-lede { margin-top: -28px; margin-bottom: 36px; }
   }
+
+  .differentiators {
+    margin-top: 64px;
+    padding-top: 56px;
+    border-top: 1px dashed var(--border-strong);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .diff-card h4 {
+    font-size: 18px;
+    margin: 0 0 8px;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  .diff-card p { color: var(--ink-2); font-size: 14.5px; margin: 0; }
+
+  @media (max-width: 768px) {
+    .differentiators { grid-template-columns: 1fr; gap: 28px; padding-top: 36px; margin-top: 40px; }
+  }
 </style>
 </head>
 <body>
@@ -565,6 +585,20 @@
         <p>Unread Outlook emails from specific people. Same VIP pattern as Teams. Clears on read.</p>
       </li>
     </ul>
+    <div class="differentiators">
+      <div class="diff-card">
+        <h4>Ambient, not intrusive.</h4>
+        <p>A glow at the edge of your screen instead of a popup that steals focus.</p>
+      </div>
+      <div class="diff-card">
+        <h4>You define urgent.</h4>
+        <p>Per-trigger watchlists let you pick who and what matters. No app vendor deciding for you.</p>
+      </div>
+      <div class="diff-card">
+        <h4>Local-only, no cloud.</h4>
+        <p>Polls Atlassian and Microsoft directly from your laptop. No backend, no telemetry, no shared inbox.</p>
+      </div>
+    </div>
   </div>
 </section>
 <!-- faq goes here -->
