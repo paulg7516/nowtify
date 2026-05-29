@@ -367,6 +367,45 @@
   @media (max-width: 768px) {
     .how-grid { grid-template-columns: 1fr; }
   }
+
+  .features { padding: var(--section-y) 0; background: #fff; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .section-lede {
+    color: var(--ink-2);
+    max-width: 640px;
+    font-size: 16px;
+    margin: -36px 0 56px;
+  }
+  .feature-grid {
+    list-style: none; padding: 0; margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: transform 200ms ease, border-color 200ms ease;
+  }
+  .feature-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+  .feature-icon {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--card-accent) 12%, white);
+    color: var(--card-accent);
+    margin-bottom: 18px;
+  }
+  .feature-icon svg { width: 22px; height: 22px; }
+  .feature-card h3 { font-size: 16px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .feature-card p { color: var(--ink-2); font-size: 14px; margin: 0; line-height: 1.55; }
+
+  @media (max-width: 768px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .section-lede { margin-top: -28px; margin-bottom: 36px; }
+  }
 </style>
 </head>
 <body>
@@ -471,7 +510,63 @@
     </ol>
   </div>
 </section>
-<!-- features goes here -->
+<section class="features" id="features">
+  <div class="container">
+    <p class="section-eyebrow">What it watches</p>
+    <h2 class="section-title">Six things Nowtify can watch.</h2>
+    <p class="section-lede">Turn on what's relevant. Each trigger has its own color, its own watchlist, and its own threshold.</p>
+
+    <ul class="feature-grid">
+      <li class="feature-card" style="--card-accent: var(--red);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 2 21h20L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="18" r="0.9" fill="currentColor"/></svg>
+        </span>
+        <h3>Major Incident</h3>
+        <p>Any open ticket flagged as a Major Incident across your Jira instance. Fires instantly, clears when the flag drops or you dismiss it.</p>
+      </li>
+
+      <li class="feature-card" style="--card-accent: var(--amber);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M12 9v4l2.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </span>
+        <h3>SLA breach imminent</h3>
+        <p>Watched users' tickets whose SLA remaining time drops under a threshold you set (e.g. 30 minutes). Per-condition color.</p>
+      </li>
+
+      <li class="feature-card" style="--card-accent: var(--red);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M12 9v4l2.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="m5 5 14 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </span>
+        <h3>SLA breached</h3>
+        <p>Watched users' tickets whose SLA cycle has already expired. Stays lit until you dismiss.</p>
+      </li>
+
+      <li class="feature-card" style="--card-accent: var(--accent);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m8 12 3 3 5-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <h3>My pending approvals</h3>
+        <p>JSM service-desk requests waiting on your approval. Counts only what's assigned to you, not the whole queue.</p>
+      </li>
+
+      <li class="feature-card" style="--card-accent: var(--teams);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9v6M7 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="19" cy="8" r="2.4" stroke="currentColor" stroke-width="1.7"/><path d="M16.5 13.5h5v3a2.5 2.5 0 0 1-2.5 2.5h0a2.5 2.5 0 0 1-2.5-2.5v-3z" stroke="currentColor" stroke-width="1.7"/></svg>
+        </span>
+        <h3>Teams VIP messages</h3>
+        <p>Unread Teams chat messages from people you've marked as VIPs. Threshold configurable. Clears on read.</p>
+      </li>
+
+      <li class="feature-card" style="--card-accent: var(--outlook);">
+        <span class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="m3 7 9 6 9-6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </span>
+        <h3>Outlook email from watched senders</h3>
+        <p>Unread Outlook emails from specific people. Same VIP pattern as Teams. Clears on read.</p>
+      </li>
+    </ul>
+  </div>
+</section>
 <!-- faq goes here -->
 <!-- footer goes here -->
 <script>
