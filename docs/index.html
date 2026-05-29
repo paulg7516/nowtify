@@ -329,18 +329,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid #f0f0f3;
   }
-  .popover-title { font-weight: 600; font-size: 12px; letter-spacing: -0.01em; }
-  .popover-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--red);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  .popover-head-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
-  .popover-dot.dot-amber { background: var(--amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
-  .popover-dot.dot-indigo { background: var(--accent); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+  .popover-burger { width: 16px; height: 16px; color: var(--accent); fill: currentColor; }
+  .popover-title { font-weight: 700; font-size: 12.5px; letter-spacing: -0.01em; color: var(--ink); }
+  .popover-version { color: var(--ink-3); font-size: 10.5px; font-family: var(--font-mono); }
   .popover-tabs {
     display: flex;
     gap: 0;
@@ -376,87 +375,83 @@
   .tab-count.count-red { background: var(--red); }
   .tab-count.count-amber { background: var(--amber); }
   .tab-count.count-indigo { background: var(--accent); }
-  .popover-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .popover-body { padding: 0; }
 
+  /* Item rows - mirror the real app: left stripe + key (indigo) + title
+     (bold dark) + sub (gray). White background to match the rest of the
+     site. Optional inline action button on the right. */
   .alert-row {
     background: #fff;
-    border-radius: 7px;
-    padding: 9px 10px;
+    border-bottom: 1px solid #f0f0f3;
+    padding: 10px 12px;
     display: flex;
-    gap: 9px;
+    gap: 10px;
     position: relative;
-    transition: background 120ms ease;
+    align-items: flex-start;
   }
-  .alert-row:hover { background: #f4f4f5; }
+  .alert-row:last-child { border-bottom: none; }
   .alert-stripe {
     width: 3px;
-    background: var(--accent);
+    align-self: stretch;
     border-radius: 2px;
     flex-shrink: 0;
   }
-  .stripe-red { background: var(--red); }
+  .stripe-red    { background: var(--red); }
+  .stripe-pink   { background: #ec4899; }
+  .stripe-amber  { background: var(--amber); }
+  .stripe-indigo { background: var(--accent); }
   .alert-content { flex: 1; min-width: 0; }
-  .alert-meta {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 10px;
-    color: #6b7280;
-    margin-bottom: 3px;
-  }
-  .alert-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 9.5px;
+  .alert-key {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    text-transform: uppercase;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
   }
-  .badge-major { background: #fef2f2; color: #b91c1c; }
-  .badge-breach { background: #fef2f2; color: #b91c1c; }
-  .badge-approval { background: #fef3c7; color: #92400e; }
-  .stripe-amber { background: var(--amber); }
-  .approval-actions { display: flex; gap: 6px; margin-top: 6px; }
-  .approve-btn {
+  .alert-key.alert-key-msg {
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
     display: inline-flex;
     align-items: center;
-    font-size: 10.5px;
-    font-weight: 500;
-    padding: 4px 11px;
-    border-radius: 999px;
+    gap: 6px;
   }
-  .approve-yes { background: #d1fae5; color: #047857; }
-  .approve-no { background: #f3f4f6; color: #525252; }
-  .alert-key { font-family: var(--font-mono); font-size: 10px; }
-  .alert-from { font-weight: 600; color: #1c1c1e; font-size: 11.5px; }
-  .alert-time { margin-left: auto; font-size: 10px; color: #9ca3af; }
-  .alert-title { font-weight: 500; font-size: 11.5px; color: #1c1c1e; }
-  .alert-sub { font-size: 10.5px; color: #6b7280; margin-top: 3px; }
-  .overdue { color: var(--red); }
-  .alert-preview { font-size: 10.5px; color: #4b5563; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .alert-actions { margin-top: 6px; }
+  .alert-key.alert-key-msg img { width: 14px; height: 14px; display: inline-block; }
+  .alert-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .alert-sub {
+    font-size: 10.5px;
+    color: var(--ink-3);
+    line-height: 1.35;
+  }
+  .overdue { color: var(--red); font-weight: 600; }
+
+  /* "Join meeting" pill on Major Incident items - Teams icon + camera glyph */
   .teams-join {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: #eef0fb;
-    color: #4f51a1;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-size: 10.5px;
     font-weight: 500;
-    padding: 4px 9px;
-    border-radius: 999px;
-  }
-  .teams-join svg { width: 12px; height: 12px; }
-  .msg-avatar {
-    width: 26px; height: 26px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid #d8dafb;
+    align-self: center;
     flex-shrink: 0;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    white-space: nowrap;
   }
-  .msg-avatar svg { width: 26px; height: 26px; }
+  .teams-join img { width: 12px; height: 12px; display: inline-block; }
+  .teams-join svg { width: 13px; height: 13px; }
 
   .section-eyebrow {
     font-size: 12px;
@@ -527,7 +522,7 @@
     justify-content: center;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
-  .brand-tile svg { width: 22px; height: 22px; }
+  .brand-tile svg, .brand-tile img { width: 22px; height: 22px; display: block; }
   .brand-now {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
@@ -882,12 +877,15 @@
                pulse below also changes color per scene to show the per-trigger
                color customization capability. -->
           <div class="popover-demo" aria-hidden="true">
-            <!-- Scene 1: Incidents tab - Major Incident + SLA breached together -->
+            <!-- Scene 1: Incidents tab - Major Incident + SLA breached -->
             <div class="popover-scene scene-1">
               <div class="popover-card">
                 <div class="popover-head">
-                  <span class="popover-title">Nowtify</span>
-                  <span class="popover-dot"></span>
+                  <span class="popover-head-left">
+                    <svg class="popover-burger" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="4" width="12" height="1.5" rx="0.75"/><rect x="3" y="8" width="12" height="1.5" rx="0.75"/><rect x="3" y="12" width="12" height="1.5" rx="0.75"/></svg>
+                    <span class="popover-title">2 alerts</span>
+                    <span class="popover-version">v0.5.10</span>
+                  </span>
                 </div>
                 <div class="popover-tabs">
                   <span class="tab tab-active-red">Incidents<span class="tab-count count-red">2</span></span>
@@ -896,64 +894,60 @@
                 </div>
                 <div class="popover-body">
                   <div class="alert-row">
-                    <span class="alert-stripe stripe-red"></span>
+                    <span class="alert-stripe stripe-pink"></span>
                     <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-badge badge-major">Major Incident</span>
-                        <span class="alert-key">INC-4521</span>
-                      </div>
+                      <div class="alert-key">SUP-53</div>
                       <div class="alert-title">Production database unresponsive</div>
-                      <div class="alert-actions">
-                        <a class="teams-join">
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5z" fill="#6264a7"/><path d="M16 9.5h4l-4 3.5z" fill="#6264a7"/></svg>
-                          Join meeting
-                        </a>
-                      </div>
+                      <div class="alert-sub">Paul Gerios · Major Incident = true</div>
                     </div>
+                    <a class="teams-join">
+                      <img src="https://cdn.simpleicons.org/microsoftteams/4f46e5" alt="" aria-hidden="true" loading="lazy">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m14 11 6-3v8l-6-3z" fill="currentColor"/></svg>
+                      Join
+                    </a>
                   </div>
                   <div class="alert-row">
-                    <span class="alert-stripe stripe-red"></span>
+                    <span class="alert-stripe stripe-pink"></span>
                     <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-badge badge-breach">SLA breached</span>
-                        <span class="alert-key">INC-4502</span>
-                        <span class="alert-time">12m ago</span>
-                      </div>
+                      <div class="alert-key">CASE-577</div>
                       <div class="alert-title">Customer X · email outage</div>
-                      <div class="alert-sub">Time to resolution: <strong class="overdue">-12m overdue</strong></div>
+                      <div class="alert-sub">David Iannucci · SLA breached <span class="overdue">-12m overdue</span></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Scene 2: Approvals tab - one JSM access request awaiting your approval -->
+            <!-- Scene 2: Approvals tab - JSM pending approvals -->
             <div class="popover-scene scene-2">
               <div class="popover-card">
                 <div class="popover-head">
-                  <span class="popover-title">Nowtify</span>
-                  <span class="popover-dot dot-amber"></span>
+                  <span class="popover-head-left">
+                    <svg class="popover-burger" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="4" width="12" height="1.5" rx="0.75"/><rect x="3" y="8" width="12" height="1.5" rx="0.75"/><rect x="3" y="12" width="12" height="1.5" rx="0.75"/></svg>
+                    <span class="popover-title">3 alerts</span>
+                    <span class="popover-version">v0.5.10</span>
+                  </span>
                 </div>
                 <div class="popover-tabs">
                   <span class="tab">Incidents</span>
-                  <span class="tab tab-active-amber">Approvals<span class="tab-count count-amber">1</span></span>
+                  <span class="tab tab-active-amber">Approvals<span class="tab-count count-amber">2</span></span>
                   <span class="tab">Messages</span>
                 </div>
                 <div class="popover-body">
                   <div class="alert-row">
                     <span class="alert-stripe stripe-amber"></span>
                     <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-badge badge-approval">Approval needed</span>
-                        <span class="alert-key">SR-1184</span>
-                        <span class="alert-time">11m</span>
-                      </div>
-                      <div class="alert-title">Access request: production-db-readonly</div>
-                      <div class="alert-sub">Marcus Lee · for migration validation</div>
-                      <div class="alert-actions approval-actions">
-                        <a class="approve-btn approve-yes">Approve</a>
-                        <a class="approve-btn approve-no">Decline</a>
-                      </div>
+                      <div class="alert-key">TR-81</div>
+                      <div class="alert-title">Request external access</div>
+                      <div class="alert-sub">Kay Faith · Pending approval</div>
+                    </div>
+                  </div>
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-amber"></span>
+                    <div class="alert-content">
+                      <div class="alert-key">CASE-547</div>
+                      <div class="alert-title">Production config change · payments worker</div>
+                      <div class="alert-sub">David Iannucci · Pending approval</div>
                     </div>
                   </div>
                 </div>
@@ -964,8 +958,11 @@
             <div class="popover-scene scene-3">
               <div class="popover-card">
                 <div class="popover-head">
-                  <span class="popover-title">Nowtify</span>
-                  <span class="popover-dot dot-indigo"></span>
+                  <span class="popover-head-left">
+                    <svg class="popover-burger" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="4" width="12" height="1.5" rx="0.75"/><rect x="3" y="8" width="12" height="1.5" rx="0.75"/><rect x="3" y="12" width="12" height="1.5" rx="0.75"/></svg>
+                    <span class="popover-title">2 alerts</span>
+                    <span class="popover-version">v0.5.10</span>
+                  </span>
                 </div>
                 <div class="popover-tabs">
                   <span class="tab">Incidents</span>
@@ -973,28 +970,20 @@
                   <span class="tab tab-active-indigo">Messages<span class="tab-count count-indigo">2</span></span>
                 </div>
                 <div class="popover-body">
-                  <div class="alert-row alert-msg">
-                    <span class="msg-avatar">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="#6264a7"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="#fff" font-weight="700" font-family="system-ui">T</text></svg>
-                    </span>
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-indigo"></span>
                     <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-from">Sarah Chen</span>
-                        <span class="alert-time">2m</span>
-                      </div>
-                      <div class="alert-preview">Need eyes on the deploy - are we good to roll forward?</div>
+                      <div class="alert-key alert-key-msg"><img src="https://cdn.simpleicons.org/microsoftteams" alt="" aria-hidden="true" loading="lazy"> Sarah Chen</div>
+                      <div class="alert-title">Need eyes on the deploy - are we good to roll forward?</div>
+                      <div class="alert-sub">Teams · unread 2m</div>
                     </div>
                   </div>
-                  <div class="alert-row alert-msg">
-                    <span class="msg-avatar">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="#0078d4"/><path d="m3 8 9 6 9-6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
-                    </span>
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-indigo"></span>
                     <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-from">Mark Hudson, CFO</span>
-                        <span class="alert-time">4m</span>
-                      </div>
-                      <div class="alert-preview">URGENT: Q3 numbers needed before EOD board call</div>
+                      <div class="alert-key alert-key-msg"><img src="https://cdn.simpleicons.org/microsoftoutlook" alt="" aria-hidden="true" loading="lazy"> Mark Hudson, CFO</div>
+                      <div class="alert-title">URGENT: Q3 numbers needed before EOD board call</div>
+                      <div class="alert-sub">Outlook · unread 4m</div>
                     </div>
                   </div>
                 </div>
@@ -1016,17 +1005,7 @@
         <div class="how-num">1</div>
         <div class="how-illus how-illus-connect">
           <span class="brand-tile brand-jira" aria-label="Jira">
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <defs>
-                <linearGradient id="jiraGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#0052cc"/>
-                  <stop offset="100%" stop-color="#2684ff"/>
-                </linearGradient>
-              </defs>
-              <!-- Atlassian-style A mark: two converging chevrons in Jira blue -->
-              <path d="M16 5 L4 27 L13 27 L16 21 L19 27 L28 27 Z" fill="url(#jiraGrad)"/>
-              <path d="M16 21 L13 27 L19 27 Z" fill="#0052cc" opacity="0.5"/>
-            </svg>
+            <img src="https://cdn.simpleicons.org/jira/0052cc" alt="" aria-hidden="true" loading="lazy">
           </span>
           <span class="flow-line flow-left" aria-hidden="true">
             <span class="flow-dot"></span><span class="flow-dot"></span><span class="flow-dot"></span>
@@ -1042,12 +1021,7 @@
             <span class="flow-dot"></span><span class="flow-dot"></span><span class="flow-dot"></span>
           </span>
           <span class="brand-tile brand-ms" aria-label="Microsoft 365">
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <rect x="3"  y="3"  width="12" height="12" fill="#f25022"/>
-              <rect x="17" y="3"  width="12" height="12" fill="#7fba00"/>
-              <rect x="3"  y="17" width="12" height="12" fill="#00a4ef"/>
-              <rect x="17" y="17" width="12" height="12" fill="#ffb900"/>
-            </svg>
+            <img src="https://cdn.simpleicons.org/microsoft" alt="" aria-hidden="true" loading="lazy">
           </span>
         </div>
         <h3>Connect Jira and/or Microsoft 365</h3>
