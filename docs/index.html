@@ -331,7 +331,26 @@
   window.addEventListener('scroll', () => {
     navEl.classList.toggle('scrolled', window.scrollY > 8);
   }, { passive: true });
-  /* download patcher goes here */
+  (async function patchDownload() {
+    const btn = document.getElementById('downloadBtn');
+    const vEl = document.getElementById('downloadVersion');
+    const sEl = document.getElementById('downloadSize');
+    try {
+      const res = await fetch('https://api.github.com/repos/paulg7516/nowtify/releases/latest', {
+        headers: { 'Accept': 'application/vnd.github+json' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const dmg = (data.assets || []).find(a => a.name.endsWith('.dmg'));
+      if (!dmg) return;
+      btn.setAttribute('href', dmg.browser_download_url);
+      vEl.textContent = data.tag_name || data.name || vEl.textContent;
+      const mb = (dmg.size / (1024 * 1024)).toFixed(0);
+      sEl.textContent = `~${mb} MB`;
+    } catch (_) {
+      // Silent fallback: leave the hardcoded version + releases page href in place.
+    }
+  })();
 </script>
 </body>
 </html>
