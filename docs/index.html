@@ -136,6 +136,122 @@
     .nav-toggle:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
     .nav-toggle:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
   }
+
+  .hero {
+    padding-top: clamp(56px, 9vw, 96px);
+    padding-bottom: var(--section-y);
+    text-align: center;
+  }
+  .hero-inner { display: flex; flex-direction: column; align-items: center; }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin: 0 0 28px;
+  }
+  .hero-title {
+    font-size: clamp(40px, 6.4vw, 72px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    margin: 0 0 24px;
+    max-width: 900px;
+  }
+  .hero-sub {
+    max-width: 640px;
+    color: var(--ink-2);
+    font-size: clamp(16px, 1.5vw, 19px);
+    margin: 0 0 40px;
+  }
+  .hero-cta { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--ink);
+    color: #fff !important;
+    padding: 16px 28px;
+    border-radius: 999px;
+    font-weight: 500;
+    font-size: 16px;
+    transition: background 200ms ease, transform 200ms ease;
+  }
+  .btn-primary:hover { background: var(--accent); transform: translateY(-1px); }
+  .btn-arrow { font-weight: 700; }
+  .hero-meta {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-meta .dot { opacity: 0.5; }
+
+  /* faux laptop */
+  .laptop {
+    margin-top: 80px;
+    width: min(880px, 100%);
+    position: relative;
+  }
+  .laptop-screen {
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(180deg, #1c1c1e 0%, #0a0a0a 100%);
+    border-radius: 14px 14px 4px 4px;
+    padding: 10px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  .laptop-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 3px transparent;
+    animation: heroPulse 4s ease-in-out infinite;
+  }
+  @keyframes heroPulse {
+    0%, 100% { box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0); }
+    50% { box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.85), inset 0 0 24px rgba(236, 72, 153, 0.35); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .laptop-pulse { animation: none; box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.55); }
+  }
+  .laptop-content {
+    width: 100%;
+    height: 100%;
+    background: #f5f5f7;
+    border-radius: 6px 6px 2px 2px;
+    overflow: hidden;
+  }
+  .laptop-menubar {
+    height: 26px;
+    background: rgba(255,255,255,0.85);
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 12px;
+    color: #1c1c1e;
+    font-weight: 500;
+  }
+  .laptop-menubar-left, .laptop-menubar-right {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .laptop-menubar-right svg { width: 14px; height: 14px; }
+  .laptop-menubar .apple { font-size: 11px; }
+  .laptop-base {
+    height: 14px;
+    background: linear-gradient(180deg, #d4d4d8 0%, #a1a1aa 100%);
+    margin: 0 auto;
+    width: 88%;
+    border-radius: 0 0 12px 12px;
+  }
 </style>
 </head>
 <body>
@@ -161,7 +277,51 @@
     </nav>
   </div>
 </header>
-<!-- hero goes here -->
+<section class="hero" id="top">
+  <div class="container hero-inner">
+    <p class="eyebrow">Ambient alerts for macOS · Jira + Microsoft 365</p>
+    <h1 class="hero-title">The urgent stuff.<br>At the edge of your screen.</h1>
+    <p class="hero-sub">
+      Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around your screen. Available when you want it, invisible when you don't.
+    </p>
+    <div class="hero-cta" id="download">
+      <a class="btn-primary" id="downloadBtn" href="https://github.com/paulg7516/nowtify/releases/latest" download>
+        <span class="btn-arrow">↓</span> Download for macOS
+      </a>
+      <p class="hero-meta">
+        <span id="downloadVersion">v0.5.10</span>
+        <span class="dot">·</span>
+        <span id="downloadSize">~173 MB</span>
+        <span class="dot">·</span>
+        <span>macOS 12+</span>
+      </p>
+    </div>
+
+    <!-- faux laptop visual -->
+    <div class="laptop">
+      <div class="laptop-screen">
+        <div class="laptop-pulse" aria-hidden="true"></div>
+        <div class="laptop-content">
+          <div class="laptop-menubar">
+            <div class="laptop-menubar-left">
+              <span class="apple">●</span>
+              <span>Slack</span><span>Edit</span><span>View</span>
+            </div>
+            <div class="laptop-menubar-right">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
+                <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55"/>
+                <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+              </svg>
+              <span>9:41</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="laptop-base"></div>
+    </div>
+  </div>
+</section>
 <!-- how-it-works goes here -->
 <!-- features goes here -->
 <!-- faq goes here -->
