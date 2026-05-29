@@ -219,19 +219,32 @@
     position: relative;
   }
   /* The on-screen pulse - lives INSIDE the laptop content area to mimic the
-     real Nowtify behavior of a thin colored stroke around the screen edge. */
+     real Nowtify behavior of a thin colored stroke around the screen edge.
+     Color changes per scene (red → amber → indigo) to demonstrate the
+     per-trigger color customization. Synced to the 9s scene cycle. */
   .laptop-pulse {
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
     box-shadow: inset 0 0 0 5px transparent;
-    animation: heroPulse 4s ease-in-out infinite;
+    animation: screenPulseSync 9s ease-in-out infinite;
     z-index: 10;
   }
-  @keyframes heroPulse {
-    0%, 100% { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0); }
-    50% { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0.95), inset 0 0 36px rgba(236, 72, 153, 0.45); }
+  @keyframes screenPulseSync {
+    /* Incidents scene (0-3s = 0-33%): red pulse */
+    0%   { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0); }
+    15%  { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0.95), inset 0 0 36px rgba(239, 68, 68, 0.4); }
+    30%  { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0); }
+    /* Approvals scene (3-6s = 33-66%): amber pulse */
+    36%  { box-shadow: inset 0 0 0 5px rgba(245, 158, 11, 0); }
+    48%  { box-shadow: inset 0 0 0 5px rgba(245, 158, 11, 0.95), inset 0 0 36px rgba(245, 158, 11, 0.4); }
+    63%  { box-shadow: inset 0 0 0 5px rgba(245, 158, 11, 0); }
+    /* Messages scene (6-9s = 66-100%): indigo pulse */
+    68%  { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0); }
+    82%  { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0.95), inset 0 0 36px rgba(99, 102, 241, 0.4); }
+    97%  { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0); }
+    100% { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0); }
   }
   @media (prefers-reduced-motion: reduce) {
     .laptop-pulse { animation: none; box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0.7); }
@@ -282,21 +295,23 @@
     position: absolute;
     inset: 0;
     opacity: 0;
-    transform: translateY(-6px);
-    animation: scene-cycle 12s ease-in-out infinite;
+    animation: scene-cycle 9s ease-in-out infinite;
   }
   .scene-1 { animation-delay: 0s; }
-  .scene-2 { animation-delay: 4s; }
-  .scene-3 { animation-delay: 8s; }
+  .scene-2 { animation-delay: 3s; }
+  .scene-3 { animation-delay: 6s; }
+  /* Each scene visible ~3s with overlapping 0.5s cross-fade. The popover
+     frame is identical across scenes so it reads as one window changing
+     tabs, not three separate popovers appearing/disappearing. */
   @keyframes scene-cycle {
-    0%   { opacity: 0; transform: translateY(-6px); }
-    3%   { opacity: 1; transform: translateY(0); }
-    30%  { opacity: 1; transform: translateY(0); }
-    33%  { opacity: 0; transform: translateY(-6px); }
-    100% { opacity: 0; transform: translateY(-6px); }
+    0%   { opacity: 0; }
+    6%   { opacity: 1; }
+    28%  { opacity: 1; }
+    38%  { opacity: 0; }
+    100% { opacity: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .popover-scene { animation: none; opacity: 1; transform: none; }
+    .popover-scene { animation: none; opacity: 1; }
     .popover-scene:not(.scene-1) { display: none; }
   }
 
@@ -324,6 +339,8 @@
     background: var(--red);
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
   }
+  .popover-dot.dot-amber { background: var(--amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+  .popover-dot.dot-indigo { background: var(--accent); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
   .popover-tabs {
     display: flex;
     gap: 0;
@@ -342,6 +359,10 @@
     gap: 4px;
   }
   .popover-tabs .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  /* Per-scene active-tab tint - matches the screen pulse color */
+  .popover-tabs .tab-active-red { color: var(--red); border-bottom-color: var(--red); }
+  .popover-tabs .tab-active-amber { color: var(--amber); border-bottom-color: var(--amber); }
+  .popover-tabs .tab-active-indigo { color: var(--accent); border-bottom-color: var(--accent); }
   .tab-count {
     background: var(--accent);
     color: #fff;
@@ -352,6 +373,9 @@
     min-width: 14px;
     text-align: center;
   }
+  .tab-count.count-red { background: var(--red); }
+  .tab-count.count-amber { background: var(--amber); }
+  .tab-count.count-indigo { background: var(--accent); }
   .popover-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 
   .alert-row {
@@ -390,6 +414,19 @@
   }
   .badge-major { background: #fef2f2; color: #b91c1c; }
   .badge-breach { background: #fef2f2; color: #b91c1c; }
+  .badge-approval { background: #fef3c7; color: #92400e; }
+  .stripe-amber { background: var(--amber); }
+  .approval-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .approve-btn {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 4px 11px;
+    border-radius: 999px;
+  }
+  .approve-yes { background: #d1fae5; color: #047857; }
+  .approve-no { background: #f3f4f6; color: #525252; }
   .alert-key { font-family: var(--font-mono); font-size: 10px; }
   .alert-from { font-weight: 600; color: #1c1c1e; font-size: 11.5px; }
   .alert-time { margin-left: auto; font-size: 10px; color: #9ca3af; }
@@ -840,11 +877,12 @@
             </div>
           </div>
 
-          <!-- Animated popover walkthrough. Three scenes cross-fade on a 12s
-               loop; each shows what the Nowtify tray popover looks like for
-               a different alert type. -->
+          <!-- Animated popover walkthrough. Three scenes cross-fade with
+               overlap so it reads as one popover changing tabs. The screen
+               pulse below also changes color per scene to show the per-trigger
+               color customization capability. -->
           <div class="popover-demo" aria-hidden="true">
-            <!-- Scene 1: Major Incident in progress with Teams Join pill -->
+            <!-- Scene 1: Incidents tab - Major Incident + SLA breached together -->
             <div class="popover-scene scene-1">
               <div class="popover-card">
                 <div class="popover-head">
@@ -852,13 +890,13 @@
                   <span class="popover-dot"></span>
                 </div>
                 <div class="popover-tabs">
-                  <span class="tab active">Incidents<span class="tab-count">1</span></span>
+                  <span class="tab tab-active-red">Incidents<span class="tab-count count-red">2</span></span>
                   <span class="tab">Approvals</span>
                   <span class="tab">Messages</span>
                 </div>
                 <div class="popover-body">
-                  <div class="alert-row alert-major">
-                    <span class="alert-stripe"></span>
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-red"></span>
                     <div class="alert-content">
                       <div class="alert-meta">
                         <span class="alert-badge badge-major">Major Incident</span>
@@ -873,26 +911,71 @@
                       </div>
                     </div>
                   </div>
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-red"></span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-badge badge-breach">SLA breached</span>
+                        <span class="alert-key">INC-4502</span>
+                        <span class="alert-time">12m ago</span>
+                      </div>
+                      <div class="alert-title">Customer X · email outage</div>
+                      <div class="alert-sub">Time to resolution: <strong class="overdue">-12m overdue</strong></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Scene 2: Messages tab - Teams + Outlook unread from VIPs -->
+            <!-- Scene 2: Approvals tab - one JSM access request awaiting your approval -->
             <div class="popover-scene scene-2">
               <div class="popover-card">
                 <div class="popover-head">
                   <span class="popover-title">Nowtify</span>
-                  <span class="popover-dot"></span>
+                  <span class="popover-dot dot-amber"></span>
+                </div>
+                <div class="popover-tabs">
+                  <span class="tab">Incidents</span>
+                  <span class="tab tab-active-amber">Approvals<span class="tab-count count-amber">1</span></span>
+                  <span class="tab">Messages</span>
+                </div>
+                <div class="popover-body">
+                  <div class="alert-row">
+                    <span class="alert-stripe stripe-amber"></span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-badge badge-approval">Approval needed</span>
+                        <span class="alert-key">SR-1184</span>
+                        <span class="alert-time">11m</span>
+                      </div>
+                      <div class="alert-title">Access request: production-db-readonly</div>
+                      <div class="alert-sub">Marcus Lee · for migration validation</div>
+                      <div class="alert-actions approval-actions">
+                        <a class="approve-btn approve-yes">Approve</a>
+                        <a class="approve-btn approve-no">Decline</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scene 3: Messages tab - Teams + Outlook unread from VIPs -->
+            <div class="popover-scene scene-3">
+              <div class="popover-card">
+                <div class="popover-head">
+                  <span class="popover-title">Nowtify</span>
+                  <span class="popover-dot dot-indigo"></span>
                 </div>
                 <div class="popover-tabs">
                   <span class="tab">Incidents</span>
                   <span class="tab">Approvals</span>
-                  <span class="tab active">Messages<span class="tab-count">2</span></span>
+                  <span class="tab tab-active-indigo">Messages<span class="tab-count count-indigo">2</span></span>
                 </div>
                 <div class="popover-body">
                   <div class="alert-row alert-msg">
-                    <span class="msg-avatar avatar-teams">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" fill="#6264a7"/><text x="9.5" y="15" text-anchor="middle" font-size="9" fill="#fff" font-weight="700" font-family="system-ui">T</text></svg>
+                    <span class="msg-avatar">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="#6264a7"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="#fff" font-weight="700" font-family="system-ui">T</text></svg>
                     </span>
                     <div class="alert-content">
                       <div class="alert-meta">
@@ -903,8 +986,8 @@
                     </div>
                   </div>
                   <div class="alert-row alert-msg">
-                    <span class="msg-avatar avatar-outlook">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="#0078d4"/><path d="m3 7 9 6 9-6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg>
+                    <span class="msg-avatar">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="#0078d4"/><path d="m3 8 9 6 9-6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
                     </span>
                     <div class="alert-content">
                       <div class="alert-meta">
@@ -912,35 +995,6 @@
                         <span class="alert-time">4m</span>
                       </div>
                       <div class="alert-preview">URGENT: Q3 numbers needed before EOD board call</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scene 3: Incidents tab - SLA Breached, red -->
-            <div class="popover-scene scene-3">
-              <div class="popover-card">
-                <div class="popover-head">
-                  <span class="popover-title">Nowtify</span>
-                  <span class="popover-dot"></span>
-                </div>
-                <div class="popover-tabs">
-                  <span class="tab active">Incidents<span class="tab-count">1</span></span>
-                  <span class="tab">Approvals</span>
-                  <span class="tab">Messages</span>
-                </div>
-                <div class="popover-body">
-                  <div class="alert-row alert-breach">
-                    <span class="alert-stripe stripe-red"></span>
-                    <div class="alert-content">
-                      <div class="alert-meta">
-                        <span class="alert-badge badge-breach">SLA breached</span>
-                        <span class="alert-key">INC-4502</span>
-                        <span class="alert-time">12m ago</span>
-                      </div>
-                      <div class="alert-title">Customer X · email outage on Mailflow worker</div>
-                      <div class="alert-sub">Time to resolution: <strong class="overdue">-12m overdue</strong></div>
                     </div>
                   </div>
                 </div>
@@ -964,17 +1018,14 @@
           <span class="brand-tile brand-jira" aria-label="Jira">
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <defs>
-                <linearGradient id="jiraGrad1" x1="0%" y1="100%" x2="50%" y2="0%">
-                  <stop offset="0%" stop-color="#0052cc"/>
-                  <stop offset="100%" stop-color="#2684ff"/>
-                </linearGradient>
-                <linearGradient id="jiraGrad2" x1="100%" y1="0%" x2="50%" y2="100%">
+                <linearGradient id="jiraGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#0052cc"/>
                   <stop offset="100%" stop-color="#2684ff"/>
                 </linearGradient>
               </defs>
-              <path d="M28.5 15.5 17 4 5.5 15.5l5.75 5.75L17 15.5z" fill="url(#jiraGrad1)"/>
-              <path d="M17 15.5 5.5 27 17 27z" fill="url(#jiraGrad2)" opacity="0.85"/>
+              <!-- Atlassian-style A mark: two converging chevrons in Jira blue -->
+              <path d="M16 5 L4 27 L13 27 L16 21 L19 27 L28 27 Z" fill="url(#jiraGrad)"/>
+              <path d="M16 21 L13 27 L19 27 Z" fill="#0052cc" opacity="0.5"/>
             </svg>
           </span>
           <span class="flow-line flow-left" aria-hidden="true">
