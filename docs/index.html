@@ -210,27 +210,31 @@
     overflow: hidden;
     box-shadow: 0 30px 80px -20px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
   }
-  .laptop-pulse {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: inset 0 0 0 3px transparent;
-    animation: heroPulse 4s ease-in-out infinite;
-  }
-  @keyframes heroPulse {
-    0%, 100% { box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0); }
-    50% { box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.85), inset 0 0 24px rgba(236, 72, 153, 0.35); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .laptop-pulse { animation: none; box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.55); }
-  }
   .laptop-content {
     width: 100%;
     height: 100%;
     background: #f5f5f7;
     border-radius: 6px 6px 2px 2px;
     overflow: hidden;
+    position: relative;
+  }
+  /* The on-screen pulse - lives INSIDE the laptop content area to mimic the
+     real Nowtify behavior of a thin colored stroke around the screen edge. */
+  .laptop-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 5px transparent;
+    animation: heroPulse 4s ease-in-out infinite;
+    z-index: 10;
+  }
+  @keyframes heroPulse {
+    0%, 100% { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0); }
+    50% { box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0.95), inset 0 0 36px rgba(236, 72, 153, 0.45); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .laptop-pulse { animation: none; box-shadow: inset 0 0 0 5px rgba(99, 102, 241, 0.7); }
   }
   .laptop-menubar {
     height: 26px;
@@ -256,6 +260,166 @@
     width: 88%;
     border-radius: 0 0 12px 12px;
   }
+  .tray-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    position: relative;
+  }
+  .tray-mark svg { width: 14px; height: 14px; }
+
+  /* Popover walkthrough - cycles through three scenes on a 12s loop. */
+  .popover-demo {
+    position: absolute;
+    top: 32px;
+    right: 14px;
+    width: 320px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .popover-scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    animation: scene-cycle 12s ease-in-out infinite;
+  }
+  .scene-1 { animation-delay: 0s; }
+  .scene-2 { animation-delay: 4s; }
+  .scene-3 { animation-delay: 8s; }
+  @keyframes scene-cycle {
+    0%   { opacity: 0; transform: translateY(-6px); }
+    3%   { opacity: 1; transform: translateY(0); }
+    30%  { opacity: 1; transform: translateY(0); }
+    33%  { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 0; transform: translateY(-6px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .popover-scene { animation: none; opacity: 1; transform: none; }
+    .popover-scene:not(.scene-1) { display: none; }
+  }
+
+  .popover-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    box-shadow: 0 16px 40px -8px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
+    font-size: 11.5px;
+    color: #1c1c1e;
+    line-height: 1.4;
+  }
+  .popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f3;
+  }
+  .popover-title { font-weight: 600; font-size: 12px; letter-spacing: -0.01em; }
+  .popover-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  }
+  .popover-tabs {
+    display: flex;
+    gap: 0;
+    padding: 4px 8px 0;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f3;
+  }
+  .popover-tabs .tab {
+    padding: 6px 10px 8px;
+    font-size: 10.5px;
+    color: #6b7280;
+    font-weight: 500;
+    border-bottom: 1.5px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .popover-tabs .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 999px;
+    min-width: 14px;
+    text-align: center;
+  }
+  .popover-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+
+  .alert-row {
+    background: #fff;
+    border-radius: 7px;
+    padding: 9px 10px;
+    display: flex;
+    gap: 9px;
+    position: relative;
+    transition: background 120ms ease;
+  }
+  .alert-row:hover { background: #f4f4f5; }
+  .alert-stripe {
+    width: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .stripe-red { background: var(--red); }
+  .alert-content { flex: 1; min-width: 0; }
+  .alert-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: #6b7280;
+    margin-bottom: 3px;
+  }
+  .alert-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+  .badge-major { background: #fef2f2; color: #b91c1c; }
+  .badge-breach { background: #fef2f2; color: #b91c1c; }
+  .alert-key { font-family: var(--font-mono); font-size: 10px; }
+  .alert-from { font-weight: 600; color: #1c1c1e; font-size: 11.5px; }
+  .alert-time { margin-left: auto; font-size: 10px; color: #9ca3af; }
+  .alert-title { font-weight: 500; font-size: 11.5px; color: #1c1c1e; }
+  .alert-sub { font-size: 10.5px; color: #6b7280; margin-top: 3px; }
+  .overdue { color: var(--red); }
+  .alert-preview { font-size: 10.5px; color: #4b5563; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .alert-actions { margin-top: 6px; }
+  .teams-join {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eef0fb;
+    color: #4f51a1;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+  .teams-join svg { width: 12px; height: 12px; }
+  .msg-avatar {
+    width: 26px; height: 26px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .msg-avatar svg { width: 26px; height: 26px; }
 
   .section-eyebrow {
     font-size: 12px;
@@ -314,22 +478,60 @@
     gap: 14px;
     padding: 0 16px;
   }
-  .badge {
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
+  /* Step 1 illustration: Jira ▸ Nowtify ◂ Microsoft 365 with flowing dots */
+  .how-illus-connect { gap: 10px; }
+  .brand-tile {
+    width: 38px; height: 38px;
     background: #fff;
+    border-radius: 9px;
     border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
-  .badge-jira { color: #0052cc; }
-  .badge-ms { color: var(--accent); }
-  .how-illus-line {
+  .brand-tile svg { width: 22px; height: 22px; }
+  .brand-now {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .flow-line {
     width: 28px;
     height: 2px;
-    background: var(--accent);
+    background: linear-gradient(to right, transparent, var(--accent) 25%, var(--accent) 75%, transparent);
     opacity: 0.35;
     border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .flow-line .flow-dot {
+    position: absolute;
+    top: -1px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+  }
+  .flow-left .flow-dot { animation: flow-toward-right 2.4s ease-in-out infinite; }
+  .flow-right .flow-dot { animation: flow-toward-left 2.4s ease-in-out infinite; }
+  .flow-line .flow-dot:nth-child(1) { animation-delay: 0s; }
+  .flow-line .flow-dot:nth-child(2) { animation-delay: 0.4s; }
+  .flow-line .flow-dot:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes flow-toward-right {
+    0%   { left: -4px; opacity: 0; }
+    25%  { opacity: 1; }
+    75%  { opacity: 1; }
+    100% { left: 32px; opacity: 0; }
+  }
+  @keyframes flow-toward-left {
+    0%   { left: 32px; opacity: 0; }
+    25%  { opacity: 1; }
+    75%  { opacity: 1; }
+    100% { left: -4px; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow-line .flow-dot { animation: none; opacity: 0.5; left: 50%; }
   }
   .how-illus-watch { gap: 10px; }
   .check {
@@ -616,23 +818,133 @@
       </p>
     </div>
 
-    <!-- faux laptop visual -->
+    <!-- faux laptop visual with animated app walkthrough -->
     <div class="laptop">
       <div class="laptop-screen">
-        <div class="laptop-pulse" aria-hidden="true"></div>
         <div class="laptop-content">
+          <div class="laptop-pulse" aria-hidden="true"></div>
           <div class="laptop-menubar">
             <div class="laptop-menubar-left">
               <span class="apple">●</span>
-              <span>Slack</span><span>Edit</span><span>View</span>
+              <span>Finder</span><span>Edit</span><span>View</span>
             </div>
             <div class="laptop-menubar-right">
-              <svg viewBox="0 0 120 120" aria-hidden="true">
-                <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
-                <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55"/>
-                <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
-              </svg>
+              <span class="tray-mark" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
+                  <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55"/>
+                  <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+                </svg>
+              </span>
               <span>9:41</span>
+            </div>
+          </div>
+
+          <!-- Animated popover walkthrough. Three scenes cross-fade on a 12s
+               loop; each shows what the Nowtify tray popover looks like for
+               a different alert type. -->
+          <div class="popover-demo" aria-hidden="true">
+            <!-- Scene 1: Major Incident in progress with Teams Join pill -->
+            <div class="popover-scene scene-1">
+              <div class="popover-card">
+                <div class="popover-head">
+                  <span class="popover-title">Nowtify</span>
+                  <span class="popover-dot"></span>
+                </div>
+                <div class="popover-tabs">
+                  <span class="tab active">Incidents<span class="tab-count">1</span></span>
+                  <span class="tab">Approvals</span>
+                  <span class="tab">Messages</span>
+                </div>
+                <div class="popover-body">
+                  <div class="alert-row alert-major">
+                    <span class="alert-stripe"></span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-badge badge-major">Major Incident</span>
+                        <span class="alert-key">INC-4521</span>
+                      </div>
+                      <div class="alert-title">Production database unresponsive</div>
+                      <div class="alert-actions">
+                        <a class="teams-join">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5z" fill="#6264a7"/><path d="M16 9.5h4l-4 3.5z" fill="#6264a7"/></svg>
+                          Join meeting
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scene 2: Messages tab - Teams + Outlook unread from VIPs -->
+            <div class="popover-scene scene-2">
+              <div class="popover-card">
+                <div class="popover-head">
+                  <span class="popover-title">Nowtify</span>
+                  <span class="popover-dot"></span>
+                </div>
+                <div class="popover-tabs">
+                  <span class="tab">Incidents</span>
+                  <span class="tab">Approvals</span>
+                  <span class="tab active">Messages<span class="tab-count">2</span></span>
+                </div>
+                <div class="popover-body">
+                  <div class="alert-row alert-msg">
+                    <span class="msg-avatar avatar-teams">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" fill="#6264a7"/><text x="9.5" y="15" text-anchor="middle" font-size="9" fill="#fff" font-weight="700" font-family="system-ui">T</text></svg>
+                    </span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-from">Sarah Chen</span>
+                        <span class="alert-time">2m</span>
+                      </div>
+                      <div class="alert-preview">Need eyes on the deploy - are we good to roll forward?</div>
+                    </div>
+                  </div>
+                  <div class="alert-row alert-msg">
+                    <span class="msg-avatar avatar-outlook">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="#0078d4"/><path d="m3 7 9 6 9-6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg>
+                    </span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-from">Mark Hudson, CFO</span>
+                        <span class="alert-time">4m</span>
+                      </div>
+                      <div class="alert-preview">URGENT: Q3 numbers needed before EOD board call</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scene 3: Incidents tab - SLA Breached, red -->
+            <div class="popover-scene scene-3">
+              <div class="popover-card">
+                <div class="popover-head">
+                  <span class="popover-title">Nowtify</span>
+                  <span class="popover-dot"></span>
+                </div>
+                <div class="popover-tabs">
+                  <span class="tab active">Incidents<span class="tab-count">1</span></span>
+                  <span class="tab">Approvals</span>
+                  <span class="tab">Messages</span>
+                </div>
+                <div class="popover-body">
+                  <div class="alert-row alert-breach">
+                    <span class="alert-stripe stripe-red"></span>
+                    <div class="alert-content">
+                      <div class="alert-meta">
+                        <span class="alert-badge badge-breach">SLA breached</span>
+                        <span class="alert-key">INC-4502</span>
+                        <span class="alert-time">12m ago</span>
+                      </div>
+                      <div class="alert-title">Customer X · email outage on Mailflow worker</div>
+                      <div class="alert-sub">Time to resolution: <strong class="overdue">-12m overdue</strong></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -649,9 +961,43 @@
       <li class="how-card">
         <div class="how-num">1</div>
         <div class="how-illus how-illus-connect">
-          <span class="badge badge-jira">Jira</span>
-          <span class="how-illus-line"></span>
-          <span class="badge badge-ms">Microsoft 365</span>
+          <span class="brand-tile brand-jira" aria-label="Jira">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <defs>
+                <linearGradient id="jiraGrad1" x1="0%" y1="100%" x2="50%" y2="0%">
+                  <stop offset="0%" stop-color="#0052cc"/>
+                  <stop offset="100%" stop-color="#2684ff"/>
+                </linearGradient>
+                <linearGradient id="jiraGrad2" x1="100%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" stop-color="#0052cc"/>
+                  <stop offset="100%" stop-color="#2684ff"/>
+                </linearGradient>
+              </defs>
+              <path d="M28.5 15.5 17 4 5.5 15.5l5.75 5.75L17 15.5z" fill="url(#jiraGrad1)"/>
+              <path d="M17 15.5 5.5 27 17 27z" fill="url(#jiraGrad2)" opacity="0.85"/>
+            </svg>
+          </span>
+          <span class="flow-line flow-left" aria-hidden="true">
+            <span class="flow-dot"></span><span class="flow-dot"></span><span class="flow-dot"></span>
+          </span>
+          <span class="brand-tile brand-now" aria-label="Nowtify">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.32"/>
+              <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.62"/>
+              <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+            </svg>
+          </span>
+          <span class="flow-line flow-right" aria-hidden="true">
+            <span class="flow-dot"></span><span class="flow-dot"></span><span class="flow-dot"></span>
+          </span>
+          <span class="brand-tile brand-ms" aria-label="Microsoft 365">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <rect x="3"  y="3"  width="12" height="12" fill="#f25022"/>
+              <rect x="17" y="3"  width="12" height="12" fill="#7fba00"/>
+              <rect x="3"  y="17" width="12" height="12" fill="#00a4ef"/>
+              <rect x="17" y="17" width="12" height="12" fill="#ffb900"/>
+            </svg>
+          </span>
         </div>
         <h3>Connect Jira and/or Microsoft 365</h3>
         <p>Sign in with an Atlassian API token, Microsoft 365 (OAuth), or both. Credentials stay in your macOS Keychain.</p>
