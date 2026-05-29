@@ -252,6 +252,121 @@
     width: 88%;
     border-radius: 0 0 12px 12px;
   }
+
+  .section-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  .section-title {
+    font-size: clamp(28px, 3.6vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0 0 56px;
+    max-width: 780px;
+  }
+  .how { padding: var(--section-y) 0; }
+  .how-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .how-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    transition: transform 200ms ease, border-color 200ms ease;
+  }
+  .how-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+  .how-num {
+    width: 28px; height: 28px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .how-card h3 { font-size: 17px; margin: 18px 0 8px; font-weight: 600; letter-spacing: -0.01em; }
+  .how-card p { color: var(--ink-2); font-size: 14.5px; margin: 0; }
+
+  .how-illus {
+    height: 80px;
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 0 16px;
+  }
+  .badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #fff;
+    border: 1px solid var(--border);
+  }
+  .badge-jira { color: #0052cc; }
+  .badge-ms { color: var(--accent); }
+  .how-illus-line {
+    width: 28px;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.35;
+    border-radius: 2px;
+  }
+  .how-illus-watch { gap: 10px; }
+  .check {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border-strong);
+    border-radius: 4px;
+    background: #fff;
+  }
+  .check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+    position: relative;
+  }
+  .check.checked::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 0;
+    width: 4px; height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .mini-screen {
+    width: 90px; height: 56px;
+    background: #1c1c1e;
+    border-radius: 6px;
+    padding: 4px;
+    position: relative;
+  }
+  .mini-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0);
+    animation: heroPulse 4s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+
+  @media (max-width: 768px) {
+    .how-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -322,7 +437,40 @@
     </div>
   </div>
 </section>
-<!-- how-it-works goes here -->
+<section class="how" id="how">
+  <div class="container">
+    <p class="section-eyebrow">How it works</p>
+    <h2 class="section-title">Three steps. Then you forget it's there.</h2>
+    <ol class="how-grid">
+      <li class="how-card">
+        <div class="how-num">1</div>
+        <div class="how-illus how-illus-connect">
+          <span class="badge badge-jira">Jira</span>
+          <span class="how-illus-line"></span>
+          <span class="badge badge-ms">Microsoft 365</span>
+        </div>
+        <h3>Connect Jira and/or Microsoft 365</h3>
+        <p>Sign in with an Atlassian API token, Microsoft 365 (OAuth), or both. Credentials stay in your macOS Keychain.</p>
+      </li>
+      <li class="how-card">
+        <div class="how-num">2</div>
+        <div class="how-illus how-illus-watch">
+          <span class="check"></span><span class="check"></span><span class="check checked"></span><span class="check"></span>
+        </div>
+        <h3>Tell Nowtify what's urgent to you</h3>
+        <p>Per-trigger watchlists. Pick which users' tickets count for SLA, which colleagues are Teams VIPs, which senders' emails matter.</p>
+      </li>
+      <li class="how-card">
+        <div class="how-num">3</div>
+        <div class="how-illus how-illus-pulse">
+          <div class="mini-screen"><div class="mini-pulse"></div></div>
+        </div>
+        <h3>A pulse at the edge of your screen when it fires</h3>
+        <p>No popups. No sounds. No dock badge. Just a thin colored glow you can look at when you want to.</p>
+      </li>
+    </ol>
+  </div>
+</section>
 <!-- features goes here -->
 <!-- faq goes here -->
 <!-- footer goes here -->
