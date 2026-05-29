@@ -35,17 +35,19 @@ Nowtify is not "notifications for Jira." It's a different *category* of tool, an
 
 ## Audience
 
-Strangers arriving from a shared link (Slack, Twitter, blog mention). Default assumption: skeptical, unfamiliar with the project, evaluating "is this worth my install effort?" in under 30 seconds.
+**Primary (≈90%):** internal employees of the author's organization (Xolv). They already know about Nowtify from internal channels, they trust the source, they are all in the Xolv Microsoft 365 tenant, and they need a clean download + Gatekeeper-bypass walkthrough + quick feature reference. They are not evaluating "should I install this" - they are executing "install this and get it working."
 
-Secondary audience: existing internal users sending the link to teammates.
+**Secondary (≈10%):** occasional external visitors (job candidates checking out what the team builds, friends-of-team given the link for feedback). The page should still read well for them - explain what the tool does and credit it as open-source - but the design is not optimized for cold conversion.
+
+**Implication for tone:** insider-friendly, direct, light on marketing puffery. "Here's the tool we built for ourselves, here's how to install it, here's what it does" - not "introducing Nowtify, the revolutionary..."
 
 ## Goals
 
-1. **Communicate the category** (peripheral-vision alerts, not notifications) in under 5 seconds via the hero.
-2. **Communicate the scope** (Jira AND Microsoft 365, six trigger types, user-defined watchlists) in under 30 seconds via the features grid.
-3. Make the download obvious and one-click.
-4. Pre-empt the Gatekeeper-bypass failure mode that would otherwise kill ~80% of first installs.
-5. Convey credibility (real product, local-only, open source) without overpromising or making it look enterprise-y.
+1. **Make the download obvious and one-click** - the primary action for nearly every visitor.
+2. **Pre-empt the Gatekeeper-bypass failure mode** that would otherwise kill ~80% of first installs.
+3. **Reference the six trigger types** so an installing employee can decide which ones to enable.
+4. **Communicate the category** (peripheral-vision alerts, not notifications) for the small fraction of visitors who are unfamiliar with Nowtify.
+5. **Stay credible to external visitors** without leaning into marketing puffery that internal employees would find off-putting.
 
 ## Non-goals
 
@@ -127,7 +129,7 @@ Accordion (`<details>` elements, native HTML, no JS framework).
 
 - **(open by default)** "How do I install it?" - the right-click → Open → System-Settings-Open-Anyway Gatekeeper workflow, with a small inline CSS mockup of the macOS dialog and an arrow callout. This is the most important content on the page.
 - "What do I connect it to?" - "Atlassian (Jira or Jira Service Management) via an API token, and/or Microsoft 365 via OAuth (Teams chat + Outlook mail). You can use just one or both."
-- "Do I need admin permissions?" - "For Atlassian: just your own user with an API token. For Microsoft 365: the current Nowtify build is registered as a single-tenant Entra app in the author's organization, which means M365 sign-in only works for users in that tenant today. **A multi-tenant build is on the roadmap** so any Microsoft 365 user can connect; until then the Jira side works for everyone, the M365 side does not. The site should make this explicit on the M365 feature cards (badge: 'limited availability') and in this FAQ entry."
+- "Do I need admin permissions?" - "For Atlassian: just your own user with an API token. For Microsoft 365: the first time you sign in, an admin in your tenant has to consent to the Nowtify Entra app once - this has already been done for the internal employee audience. External users in other tenants would need their own admin's consent (the current Entra app is single-tenant, so this is effectively internal-only today; multi-tenant is a separate roadmap item)."
 - "Is this safe to install?" - unsigned ≠ malicious, source is on GitHub, link to repo.
 - "What does it do with my data?" - "Everything stays local. Atlassian tokens and Microsoft refresh tokens are stored in your macOS Keychain via Electron `safeStorage`. Polling happens from your laptop directly to Atlassian and Microsoft. There is no Nowtify backend, no telemetry, no analytics."
 - "Why isn't it code-signed?" - honest answer about Apple Developer ID being $99/yr and not yet justified for a free tool.
@@ -219,16 +221,11 @@ For a static HTML site, "testing" is lightweight:
 
 No automated test suite. The site is small enough that visual inspection catches regressions.
 
-## Known gap: Microsoft 365 multi-tenancy
+## Microsoft 365 tenant note
 
-The current Nowtify OAuth flow is hard-coded to a single Entra tenant (the author's org). External users will not be able to sign in to Microsoft 365 from the public download until the app registration is converted to multi-tenant. The website should reflect this honestly:
+The current Nowtify OAuth flow is single-tenant (the author's Xolv org). Since the primary audience IS that tenant, this is not a problem for the v1 website - the M365 features simply work for everyone the site is built for. No badging or warning copy required on the page.
 
-- The hero eyebrow stays "Jira + Microsoft 365" (we are not removing M365 from the pitch).
-- The M365 feature cards (Teams, Outlook) carry a small "Limited availability" pill.
-- The FAQ "Do I need admin permissions?" entry explains the situation.
-- The "How it works" Step 1 says "Connect Jira today, Microsoft 365 if you're in a supported tenant (multi-tenant coming soon)."
-
-This is a product follow-up to track separately from the website work, but the website must not over-promise.
+The FAQ "Do I need admin permissions?" entry mentions the single-tenant nature in passing for the external-visitor segment, but the hero, features grid, and "How it works" do NOT need to caveat M365 functionality. If the site audience widens later (external orgs adopting Nowtify), the spec gets revisited and the M365 cards get a "Limited availability" pill - but not in v1.
 
 ## Out of scope (deferred for later)
 
