@@ -544,6 +544,29 @@
     font-size: 13px;
     margin: 14px 0 0;
   }
+
+  .site-footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    background: #fff;
+  }
+  .site-footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .footer-brand { display: inline-flex; align-items: center; gap: 10px; }
+  .footer-mark { width: 22px; height: 22px; }
+  .footer-links { display: flex; gap: 18px; }
+  .footer-links a:hover { color: var(--ink); }
+  .footer-credit { margin: 0; font-family: var(--font-mono); font-size: 12px; }
+
+  @media (max-width: 768px) {
+    .site-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -806,7 +829,24 @@
     </details>
   </div>
 </section>
-<!-- footer goes here -->
+<footer class="site-footer">
+  <div class="container site-footer-inner">
+    <div class="footer-brand">
+      <svg class="footer-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
+        <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55"/>
+        <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+      </svg>
+      <span>Nowtify is free and open source.</span>
+    </div>
+    <nav class="footer-links">
+      <a href="https://github.com/paulg7516/nowtify">GitHub</a>
+      <a href="https://github.com/paulg7516/nowtify/releases">Releases</a>
+      <a href="https://github.com/paulg7516/nowtify/issues">Issues</a>
+    </nav>
+    <p class="footer-credit">© <span id="footerYear">2026</span> · Built by Paul Gerios.</p>
+  </div>
+</footer>
 <script>
   const navEl = document.getElementById('siteNav');
   window.addEventListener('scroll', () => {
@@ -832,6 +872,7 @@
       // Silent fallback: leave the hardcoded version + releases page href in place.
     }
   })();
+  document.getElementById('footerYear').textContent = String(new Date().getFullYear());
 </script>
 </body>
 </html>
