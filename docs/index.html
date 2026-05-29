@@ -426,6 +426,124 @@
   @media (max-width: 768px) {
     .differentiators { grid-template-columns: 1fr; gap: 28px; padding-top: 36px; margin-top: 40px; }
   }
+
+  .faq { padding: var(--section-y) 0; }
+  .faq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .faq-item > summary {
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 16px;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-item > summary::-webkit-details-marker { display: none; }
+  .faq-item > summary::after {
+    content: '+';
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink-3);
+    transition: transform 200ms ease;
+  }
+  .faq-item[open] > summary::after { transform: rotate(45deg); }
+  .faq-body {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+  .faq-body p { margin: 0 0 12px; }
+  .faq-body p:last-child { margin-bottom: 0; }
+  .faq-body code {
+    font-family: var(--font-mono);
+    background: #f4f4f5;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .install-steps { padding-left: 22px; margin: 0 0 20px; }
+  .install-steps li { margin-bottom: 10px; color: var(--ink); }
+
+  /* Gatekeeper dialog mockup */
+  .install-mockup {
+    background: #ecebeb;
+    border-radius: 10px;
+    padding: 28px;
+    margin: 20px 0;
+  }
+  .install-mockup-window {
+    background: #f5f5f5;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 380px;
+    margin: 0 auto;
+    box-shadow: 0 12px 36px -8px rgba(0,0,0,0.2);
+  }
+  .install-mockup-titlebar {
+    height: 22px;
+    background: linear-gradient(180deg, #e8e8e8, #dcdcdc);
+    border-bottom: 1px solid #c8c8c8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+  }
+  .install-mockup-titlebar .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .install-mockup-titlebar .red { background: #ff5f57; }
+  .install-mockup-titlebar .amber { background: #febc2e; }
+  .install-mockup-titlebar .green { background: #28c840; }
+  .install-mockup-body {
+    padding: 22px 22px 18px;
+    text-align: center;
+    font-size: 13px;
+    color: #1c1c1e;
+  }
+  .install-mockup-body p { margin: 0 0 10px; }
+  .install-mockup-icon {
+    width: 44px; height: 44px;
+    background: var(--amber);
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+  .install-mockup-sub { color: var(--ink-3); font-size: 12.5px; }
+  .install-mockup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .install-btn {
+    background: #fff;
+    border: 1px solid #c8c8c8;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 13px;
+  }
+  .install-btn.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .install-caption {
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 13px;
+    margin: 14px 0 0;
+  }
 </style>
 </head>
 <body>
@@ -601,7 +719,93 @@
     </div>
   </div>
 </section>
-<!-- faq goes here -->
+<section class="faq" id="faq">
+  <div class="container">
+    <p class="section-eyebrow">FAQ</p>
+    <h2 class="section-title">Install, security, and everything else.</h2>
+
+    <details class="faq-item" open>
+      <summary>How do I install it?</summary>
+      <div class="faq-body">
+        <p>Nowtify is not Apple-code-signed (we're not paying $99/yr for a free tool yet), so macOS Gatekeeper will block the first launch. Here is the one-time bypass:</p>
+        <ol class="install-steps">
+          <li>Download the <code>.dmg</code> and double-click to mount it.</li>
+          <li>Drag <strong>Nowtify</strong> into <strong>Applications</strong>.</li>
+          <li><strong>Right-click</strong> Nowtify.app in Applications, choose <strong>Open</strong>, then click <strong>Open</strong> in the warning dialog.</li>
+          <li>If that dialog does not give you an Open button, instead open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, and click <strong>Open Anyway</strong> next to the Nowtify message.</li>
+        </ol>
+        <div class="install-mockup" aria-hidden="true">
+          <div class="install-mockup-window">
+            <div class="install-mockup-titlebar">
+              <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
+            </div>
+            <div class="install-mockup-body">
+              <div class="install-mockup-icon">!</div>
+              <p><strong>"Nowtify" cannot be opened because Apple cannot check it for malicious software.</strong></p>
+              <p class="install-mockup-sub">This software needs to be updated. Contact the developer for more information.</p>
+              <div class="install-mockup-actions">
+                <button class="install-btn">Move to Trash</button>
+                <button class="install-btn primary">Open Anyway</button>
+              </div>
+            </div>
+          </div>
+          <p class="install-caption">↑ The dialog in System Settings → Privacy &amp; Security. Click "Open Anyway."</p>
+        </div>
+        <p>After the first launch, auto-update handles every future version. You only do this once.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>What do I connect it to?</summary>
+      <div class="faq-body">
+        <p>Atlassian (Jira or Jira Service Management) via an API token, and/or Microsoft 365 via OAuth (Teams chat + Outlook mail). You can use just one or both.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Do I need admin permissions?</summary>
+      <div class="faq-body">
+        <p><strong>Atlassian:</strong> just your own user and an API token (create one at id.atlassian.com → Security → API tokens).</p>
+        <p><strong>Microsoft 365:</strong> the first time you sign in, an admin in your tenant has to consent to the Nowtify Entra app once. This has already been done for the internal employee audience this site targets. External users would need their own admin's consent (the current Entra app is single-tenant; multi-tenant is on the roadmap).</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Is this safe to install?</summary>
+      <div class="faq-body">
+        <p>Yes. Unsigned does not mean malicious - it just means we haven't paid Apple's Developer Program fee. Every line of source is public on GitHub. The app makes outbound HTTPS calls only to <code>*.atlassian.net</code> and <code>graph.microsoft.com</code> (plus GitHub for update checks). No remote command-and-control, no telemetry, no shared inbox.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>What does it do with my data?</summary>
+      <div class="faq-body">
+        <p>Everything stays local. Atlassian API tokens and Microsoft refresh tokens are encrypted in your macOS Keychain via Electron's <code>safeStorage</code>. Polling happens from your laptop directly to Atlassian and Microsoft. There is no Nowtify backend, no telemetry, no analytics.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Why isn't it code-signed?</summary>
+      <div class="faq-body">
+        <p>Apple's Developer ID is $99/year. For a free internal tool, that hasn't been justified yet. If usage grows or the friction of the Gatekeeper bypass becomes a real blocker, we'll revisit.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Windows or Linux?</summary>
+      <div class="faq-body">
+        <p>macOS only. The peripheral-pulse UX is built on macOS-specific window-level APIs (transparent, click-through, always-on-top windows per display). No roadmap commitment for other platforms.</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>How do I uninstall?</summary>
+      <div class="faq-body">
+        <p>Drag <code>Nowtify.app</code> from <code>/Applications</code> to the Trash, then optionally delete <code>~/Library/Application Support/Nowtify</code> to remove your config.</p>
+      </div>
+    </details>
+  </div>
+</section>
 <!-- footer goes here -->
 <script>
   const navEl = document.getElementById('siteNav');
