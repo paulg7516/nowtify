@@ -53,16 +53,124 @@
     padding-left: var(--pad-x);
     padding-right: var(--pad-x);
   }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(250, 250, 250, 0.7);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms ease;
+  }
+  .nav.scrolled { border-bottom-color: var(--border); }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .nav-mark { width: 28px; height: 28px; }
+  .nav-wordmark { font-size: 18px; }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink);
+    color: var(--bg) !important;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .nav-cta:hover { background: var(--accent); color: #fff !important; }
+  .nav-toggle, .nav-burger { display: none; }
+
+  @media (max-width: 768px) {
+    .nav-burger {
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 22px;
+      height: 16px;
+      cursor: pointer;
+    }
+    .nav-burger span {
+      display: block;
+      height: 2px;
+      background: var(--ink);
+      border-radius: 2px;
+      transition: transform 200ms ease, opacity 200ms ease;
+    }
+    .nav-links {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      gap: 0;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px var(--pad-x) 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 240ms ease;
+    }
+    .nav-links a { padding: 12px 0; font-size: 15px; }
+    .nav-toggle:checked ~ .nav-links { max-height: 360px; }
+    .nav-toggle:checked ~ .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
+    .nav-toggle:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
 </style>
 </head>
 <body>
-<!-- nav goes here -->
+<header class="nav" id="siteNav">
+  <div class="container nav-inner">
+    <a class="nav-brand" href="#top" aria-label="Nowtify home">
+      <svg class="nav-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
+        <rect x="26" y="52" width="68" height="14" rx="3.5" fill="#4f46e5" opacity="0.55"/>
+        <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
+      </svg>
+      <span class="nav-wordmark">Nowtify</span>
+    </a>
+    <input type="checkbox" id="navToggle" class="nav-toggle" aria-label="Toggle navigation">
+    <label for="navToggle" class="nav-burger" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </label>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+      <a href="#download" class="nav-cta">Download</a>
+    </nav>
+  </div>
+</header>
 <!-- hero goes here -->
 <!-- how-it-works goes here -->
 <!-- features goes here -->
 <!-- faq goes here -->
 <!-- footer goes here -->
 <script>
+  const navEl = document.getElementById('siteNav');
+  window.addEventListener('scroll', () => {
+    navEl.classList.toggle('scrolled', window.scrollY > 8);
+  }, { passive: true });
   /* download patcher goes here */
 </script>
 </body>
