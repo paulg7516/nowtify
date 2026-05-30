@@ -1027,6 +1027,16 @@
        the sticky nav and the dropdown menu read as solid surfaces. */
     .nav { background: rgba(250, 250, 250, 0.95); }
     .nav-links { background: #ffffff; }
+    /* The popover demo overwhelms the small laptop screen on phones -
+       hide it on mobile and let the screen-edge pulse alone carry the
+       hero metaphor. The colored pulse still cycles red → amber → indigo
+       on its 9s loop, so the per-trigger color-customization story still
+       reads. The Features section below covers the actual trigger types. */
+    .popover-demo { display: none; }
+    /* Without the popover, the laptop screen looks bare - go back to 16:10
+       (the more familiar laptop proportion) instead of the stretched 4:3
+       we used to make popover content fit. */
+    .laptop-screen { aspect-ratio: 16 / 10; }
   }
 </style>
 </head>
