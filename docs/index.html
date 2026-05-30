@@ -951,6 +951,77 @@
   @media (max-width: 768px) {
     .site-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
   }
+
+  /* ─── Mobile layout pass ───
+     The hero's laptop + popover-demo is the densest part of the page.
+     At narrow widths the fixed 320px popover crowds the right edge and
+     the menubar status tray runs out of room. This block scales the
+     laptop assets fluidly + trims chrome only enough that the macOS
+     read survives. The site is otherwise already responsive (nav
+     hamburger, 1-col grids, clamp() typography). */
+  @media (max-width: 768px) {
+    /* Pull the laptop closer to the CTA so the hero doesn't feel like
+       it's separated by a chasm on phones. */
+    .laptop { margin-top: 48px; }
+    /* Popover scales with the laptop instead of jutting off the right. */
+    .popover-demo {
+      width: min(86%, 300px);
+      top: 24px;
+      right: 8px;
+    }
+    /* Date label was the most "dead-text" item next to the clock when
+       space is scarce - dropping it leaves the icon tray + 9:41 clean. */
+    .menu-date { display: none; }
+  }
+
+  /* Aggressive trim at narrow phone widths (<= 480px). Apple + Finder
+     is enough for the "this is macOS" read; Edit/View are vestigial.
+     The same logic drops Battery + Search from the status tray, keeping
+     Nowtify + WiFi + clock as the meaningful items. The popover content
+     keeps its 2-line ellipsis layout so titles never overflow. */
+  @media (max-width: 480px) {
+    .laptop-menubar { padding: 0 10px; font-size: 11px; }
+    .laptop-menubar-left span:nth-of-type(3),
+    .laptop-menubar-left span:nth-of-type(4) { display: none; }
+    .laptop-menubar-right > *:nth-child(3),
+    .laptop-menubar-right > *:nth-child(4) { display: none; }
+    .popover-demo {
+      width: min(92%, 280px);
+      top: 20px;
+      right: 6px;
+    }
+    .alert-row { padding: 8px 10px; gap: 8px; }
+    /* Hero meta wraps on its own line at this width, no need for the
+       inline dot separators - they read as orphan dots when wrapped. */
+    .hero-meta { flex-wrap: wrap; justify-content: center; gap: 6px 8px; }
+    /* Differentiator cards already stack via the existing 768px rule;
+       just tighten the inner padding. */
+    .diff-card { padding: 24px; }
+    /* Less air between sections on small viewports - the page is shorter
+       and the desktop 96-160px vertical padding feels cavernous on phones. */
+    :root { --section-y: 64px; }
+    /* The 16:10 laptop is too short for the popover demo content at mobile
+       widths - go a touch taller so the popover doesn't get clipped. */
+    .laptop-screen { aspect-ratio: 4 / 3; }
+    /* Tighten the Gatekeeper dialog mockup so it fits comfortably inside
+       the FAQ card padding on narrow screens. */
+    .install-mockup { padding: 14px; }
+    .install-mockup-body { padding: 18px 16px 14px; }
+    /* FAQ items: smaller padding, slightly smaller summary font. */
+    .faq-item { padding: 16px 18px; }
+    .faq-item > summary { font-size: 15px; }
+    .faq-body { font-size: 14px; }
+    /* Popover internals: smaller type so the 2-item scenes fit the
+       shorter mobile popover-demo width. */
+    .popover-card { font-size: 11px; }
+    .popover-tabs .tab { padding: 5px 8px 7px; font-size: 10px; }
+    .alert-title { font-size: 11.5px; }
+    /* Step 1 illustration: tighter tile spacing on small screens. */
+    .how-illus { padding: 0 12px; }
+    .flow-line { width: 20px; }
+    .brand-tile { width: 34px; height: 34px; }
+    .brand-tile svg, .brand-tile img { width: 19px; height: 19px; }
+  }
 </style>
 </head>
 <body>
