@@ -1021,6 +1021,12 @@
     .flow-line { width: 20px; }
     .brand-tile { width: 34px; height: 34px; }
     .brand-tile svg, .brand-tile img { width: 19px; height: 19px; }
+    /* Mobile browsers either drop backdrop-filter or leave the nav too
+       transparent for the dense graphics underneath (laptop visual, hero
+       meta line bleeding through). Push to a near-opaque background so
+       the sticky nav and the dropdown menu read as solid surfaces. */
+    .nav { background: rgba(250, 250, 250, 0.95); }
+    .nav-links { background: #ffffff; }
   }
 </style>
 </head>
