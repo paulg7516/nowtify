@@ -20,7 +20,7 @@
     --accent-pink: #ec4899;
     --teams: #6264a7;
     --outlook: #0078d4;
-    --red: #ef4444;
+    --red: #dc2626;
     --amber: #f59e0b;
     --green: #10b981;
     --maxw: 1120px;
@@ -33,7 +33,15 @@
   }
 
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  html { scroll-behavior: smooth; scroll-padding-top: 60px; }
+  /* Anchored sections (#how, #features, #faq) have ~160px of internal
+     top padding for visual rhythm. Without compensation, clicking a
+     nav link lands the user at the section's empty top edge, with the
+     title pushed far down the viewport. A negative scroll-margin-top
+     equal to that padding cancels it out, so the scroll lands at the
+     title itself (still 80px below the nav, courtesy of
+     scroll-padding-top above). */
+  section[id] { scroll-margin-top: calc(-1 * var(--section-y)); }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
   }
@@ -233,9 +241,9 @@
   }
   @keyframes screenPulseSync {
     /* Incidents scene (0-3s = 0-33%): red pulse */
-    0%   { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0); }
-    15%  { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0.95), inset 0 0 36px rgba(239, 68, 68, 0.4); }
-    30%  { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 0); }
+    0%   { box-shadow: inset 0 0 0 5px rgba(220, 38, 38, 0); }
+    15%  { box-shadow: inset 0 0 0 5px rgba(220, 38, 38, 0.95), inset 0 0 36px rgba(220, 38, 38, 0.4); }
+    30%  { box-shadow: inset 0 0 0 5px rgba(220, 38, 38, 0); }
     /* Approvals scene (3-6s = 33-66%): amber pulse */
     36%  { box-shadow: inset 0 0 0 5px rgba(245, 158, 11, 0); }
     48%  { box-shadow: inset 0 0 0 5px rgba(245, 158, 11, 0.95), inset 0 0 36px rgba(245, 158, 11, 0.4); }
@@ -264,8 +272,40 @@
   .laptop-menubar-left, .laptop-menubar-right {
     display: flex; align-items: center; gap: 14px;
   }
+  .laptop-menubar-right { gap: 11px; }
   .laptop-menubar-right svg { width: 14px; height: 14px; }
-  .laptop-menubar .apple { font-size: 11px; }
+  /* Apple logo silhouette - sits in the same slot the placeholder dot
+     used to, just with the real shape so the menu bar reads as a real
+     macOS bar instead of a stand-in. */
+  .laptop-menubar .apple {
+    display: inline-flex;
+    align-items: center;
+    color: #1c1c1e;
+  }
+  .laptop-menubar .apple svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+  }
+  /* Right-side status tray icons (battery, wifi, spotlight). Slightly
+     muted so the user's eye still lands on the popover below, not on
+     the chrome above. */
+  .menu-icon {
+    display: inline-flex;
+    align-items: center;
+    color: #1c1c1e;
+    opacity: 0.78;
+  }
+  .menu-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+  .menu-date {
+    font-weight: 500;
+    font-size: 12px;
+    color: #1c1c1e;
+  }
   .laptop-base {
     height: 14px;
     background: linear-gradient(180deg, #d4d4d8 0%, #a1a1aa 100%);
@@ -397,21 +437,56 @@
     flex-shrink: 0;
   }
   .stripe-red    { background: var(--red); }
-  .stripe-pink   { background: #ec4899; }
   .stripe-amber  { background: var(--amber); }
   .stripe-indigo { background: var(--accent); }
-  .alert-content { flex: 1; min-width: 0; }
+  /* 2-row layout: bold title on row 1, key + sub inline on row 2.
+     Mirrors the real popover (src/renderer/popover/popover.html) so
+     the mockups read as the real app, not a different design. */
+  .alert-content {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "title title"
+      "key   sub";
+    align-items: baseline;
+    gap: 2px 6px;
+    /* The popover lives inside the .hero which has text-align: center.
+       That cascades into every cell and pushes the title + sub into the
+       middle of their grid cells. Force-left here so the bold title
+       and the key column share the same left edge. */
+    text-align: left;
+  }
+  .alert-title {
+    grid-area: title;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .alert-key {
+    grid-area: key;
     font-family: var(--font-mono);
     font-size: 10.5px;
     font-weight: 600;
     color: var(--accent);
     letter-spacing: 0.02em;
-    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  /* Bullet divider between key and sub - quiet metadata punctuation. */
+  .alert-key::after {
+    content: "·";
+    margin-left: 6px;
+    color: var(--ink-3);
+    font-weight: 400;
   }
   .alert-key.alert-key-msg {
     font-family: var(--font);
-    font-size: 12px;
+    font-size: 11px;
     color: var(--ink);
     text-transform: none;
     letter-spacing: 0;
@@ -419,18 +494,15 @@
     align-items: center;
     gap: 6px;
   }
-  .alert-key.alert-key-msg svg { width: 18px; height: 18px; display: inline-block; flex-shrink: 0; }
-  .alert-title {
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--ink);
-    line-height: 1.3;
-    margin-bottom: 3px;
-  }
+  .alert-key.alert-key-msg svg { width: 14px; height: 14px; display: inline-block; flex-shrink: 0; }
   .alert-sub {
+    grid-area: sub;
     font-size: 10.5px;
     color: var(--ink-3);
     line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .overdue { color: var(--red); font-weight: 600; }
 
@@ -564,26 +636,76 @@
   @media (prefers-reduced-motion: reduce) {
     .flow-line .flow-dot { animation: none; opacity: 0.5; left: 50%; }
   }
-  .how-illus-watch { gap: 10px; }
-  .check {
-    width: 14px; height: 14px;
-    border: 2px solid var(--border-strong);
-    border-radius: 4px;
-    background: #fff;
+  .how-illus-watch { gap: 16px; }
+  /* Step 2 illustration: 4 mini "person rows" - avatar above first
+     name - representing the people on a watchlist (Jira assignees,
+     Teams VIPs, Outlook senders all map to "people you care about").
+     The names provide the missing context that bare avatars lacked
+     so the row reads as "people I'm picking" rather than a tab
+     switcher. The selected state walks left-to-right across the row
+     using the brand indigo accent. Reduced-motion falls back to the
+     `.checked` avatar staying statically selected. */
+  .watch-person {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
-  .check.checked {
-    background: var(--accent);
-    border-color: var(--accent);
-    position: relative;
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    background: #f3f4f6;
+    color: var(--ink-2);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
+    user-select: none;
+    animation: avatarSelect 3.2s linear infinite;
   }
-  .check.checked::after {
-    content: '';
-    position: absolute;
-    left: 3px; top: 0;
-    width: 4px; height: 8px;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+  .watch-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ink-3);
+    letter-spacing: 0.01em;
+    line-height: 1;
+    animation: watchNameSelect 3.2s linear infinite;
+  }
+  .watch-person:nth-child(2) .avatar,
+  .watch-person:nth-child(2) .watch-name { animation-delay: 0.8s; }
+  .watch-person:nth-child(3) .avatar,
+  .watch-person:nth-child(3) .watch-name { animation-delay: 1.6s; }
+  .watch-person:nth-child(4) .avatar,
+  .watch-person:nth-child(4) .watch-name { animation-delay: 2.4s; }
+  @keyframes avatarSelect {
+    0%, 22% {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    25%, 100% {
+      background: #f3f4f6;
+      color: var(--ink-2);
+      border-color: rgba(0, 0, 0, 0.04);
+    }
+  }
+  @keyframes watchNameSelect {
+    0%, 22%   { color: var(--ink); font-weight: 600; }
+    25%, 100% { color: var(--ink-3); font-weight: 500; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .avatar, .watch-name { animation: none; }
+    .watch-person.checked .avatar {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .watch-person.checked .watch-name { color: var(--ink); font-weight: 600; }
   }
   .mini-screen {
     width: 90px; height: 56px;
@@ -596,9 +718,28 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0);
+    box-shadow: inset 0 0 0 2px rgba(220, 38, 38, 0);
     animation: heroPulse 4s ease-in-out infinite;
     animation-delay: 1s;
+  }
+  /* Soft edge-glow that rises + decays, mirroring the real overlay's
+     "thin colored glow at the screen edge" affordance. Red here so it
+     stands out on the page (the page accent is indigo, so a red pulse
+     reads as the most-urgent trigger; matches Major Incident). */
+  @keyframes heroPulse {
+    0%, 100% {
+      box-shadow:
+        inset 0 0 0 2px rgba(220, 38, 38, 0),
+        inset 0 0 12px 0 rgba(220, 38, 38, 0);
+    }
+    50% {
+      box-shadow:
+        inset 0 0 0 2px rgba(220, 38, 38, 0.9),
+        inset 0 0 18px 4px rgba(220, 38, 38, 0.55);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mini-pulse { animation: none; box-shadow: inset 0 0 0 2px rgba(220, 38, 38, 0.65); }
   }
 
   @media (max-width: 768px) {
@@ -635,7 +776,13 @@
     color: var(--card-accent);
     margin-bottom: 18px;
   }
-  .feature-icon svg { width: 22px; height: 22px; }
+  .feature-icon svg,
+  .feature-icon img { width: 22px; height: 22px; display: block; }
+  /* Brand-coloured logos (Teams, Outlook) override the card's accent tint
+     so users see the marks they recognise from Microsoft, not a
+     desaturated currentColor outline. Container background still picks
+     up the card accent so the row reads as cohesive. */
+  .feature-icon--brand { color: transparent; }
   .feature-card h3 { font-size: 16px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
   .feature-card p { color: var(--ink-2); font-size: 14px; margin: 0; line-height: 1.55; }
 
@@ -831,7 +978,7 @@
 </header>
 <section class="hero" id="top">
   <div class="container hero-inner">
-    <p class="eyebrow">Ambient alerts for macOS · Jira + Microsoft 365</p>
+    <p class="eyebrow">Ambient alerts for macOS</p>
     <h1 class="hero-title">The urgent stuff.<br>At the edge of your screen.</h1>
     <p class="hero-sub">
       Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around your screen. Available when you want it, invisible when you don't.
@@ -856,10 +1003,17 @@
           <div class="laptop-pulse" aria-hidden="true"></div>
           <div class="laptop-menubar">
             <div class="laptop-menubar-left">
-              <span class="apple">●</span>
+              <span class="apple" aria-hidden="true">
+                <svg viewBox="0 0 22 22" fill="currentColor">
+                  <path d="M17.564 11.46c-.024-2.7 2.2-3.997 2.302-4.06-1.255-1.834-3.21-2.085-3.906-2.115-1.66-.17-3.243.974-4.084.974-.847 0-2.144-.95-3.527-.924-1.813.026-3.487 1.054-4.418 2.677-1.886 3.27-.482 8.108 1.353 10.768.9 1.3 1.972 2.762 3.378 2.71 1.36-.056 1.872-.882 3.515-.882 1.643 0 2.103.882 3.534.852 1.461-.024 2.387-1.327 3.282-2.633 1.034-1.512 1.46-2.978 1.487-3.053-.033-.013-2.85-1.094-2.879-4.314zm-2.69-7.926c.752-.907 1.26-2.17 1.12-3.41-1.082.044-2.39.722-3.166 1.625-.695.806-1.302 2.087-1.137 3.31 1.207.094 2.43-.617 3.184-1.525z"/>
+                </svg>
+              </span>
               <span>Finder</span><span>Edit</span><span>View</span>
             </div>
             <div class="laptop-menubar-right">
+              <!-- Order requested: Nowtify, WiFi, Battery, Search,
+                   then date + time at the far right. -->
+              <!-- Nowtify (the app this site is about, living in the tray) -->
               <span class="tray-mark" aria-hidden="true">
                 <svg viewBox="0 0 120 120">
                   <rect x="32" y="34" width="56" height="11" rx="3" fill="#4f46e5" opacity="0.28"/>
@@ -867,6 +1021,31 @@
                   <rect x="20" y="72" width="80" height="20" rx="5" fill="#4f46e5"/>
                 </svg>
               </span>
+              <!-- WiFi -->
+              <span class="menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                  <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </span>
+              <!-- Battery (filled ~70%) -->
+              <span class="menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 14" fill="none">
+                  <rect x="1" y="1" width="19" height="12" rx="2.5" stroke="currentColor" stroke-width="1.3"/>
+                  <rect x="3" y="3" width="13" height="8" rx="1" fill="currentColor"/>
+                  <rect x="21" y="5" width="2" height="4" rx="0.6" fill="currentColor"/>
+                </svg>
+              </span>
+              <!-- Spotlight (search) -->
+              <span class="menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7"/>
+                  <line x1="20" y1="20" x2="16" y2="16"/>
+                </svg>
+              </span>
+              <span class="menu-date">Thu May 29</span>
               <span>9:41</span>
             </div>
           </div>
@@ -893,11 +1072,11 @@
                 </div>
                 <div class="popover-body">
                   <div class="alert-row">
-                    <span class="alert-stripe stripe-pink"></span>
+                    <span class="alert-stripe stripe-red"></span>
                     <div class="alert-content">
                       <div class="alert-key">SUP-53</div>
                       <div class="alert-title">Production database unresponsive</div>
-                      <div class="alert-sub">Paul Gerios · Major Incident = true</div>
+                      <div class="alert-sub">John Smith · Major Incident = true</div>
                     </div>
                     <a class="teams-join">
                       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -909,11 +1088,11 @@
                     </a>
                   </div>
                   <div class="alert-row">
-                    <span class="alert-stripe stripe-pink"></span>
+                    <span class="alert-stripe stripe-red"></span>
                     <div class="alert-content">
                       <div class="alert-key">CASE-577</div>
                       <div class="alert-title">Customer X · email outage</div>
-                      <div class="alert-sub">David Iannucci · SLA breached <span class="overdue">-12m overdue</span></div>
+                      <div class="alert-sub">Jane Doe · SLA breached <span class="overdue">-12m overdue</span></div>
                     </div>
                   </div>
                 </div>
@@ -941,7 +1120,7 @@
                     <div class="alert-content">
                       <div class="alert-key">TR-81</div>
                       <div class="alert-title">Request external access</div>
-                      <div class="alert-sub">Kay Faith · Pending approval</div>
+                      <div class="alert-sub">Alex Kim · Pending approval</div>
                     </div>
                   </div>
                   <div class="alert-row">
@@ -949,7 +1128,7 @@
                     <div class="alert-content">
                       <div class="alert-key">CASE-547</div>
                       <div class="alert-title">Production config change · payments worker</div>
-                      <div class="alert-sub">David Iannucci · Pending approval</div>
+                      <div class="alert-sub">Jane Doe · Pending approval</div>
                     </div>
                   </div>
                 </div>
@@ -983,7 +1162,7 @@
                           <circle cx="19" cy="8" r="1.1" fill="#fff"/>
                           <path d="M15.8 12h6.4v3.2a3.2 3.2 0 0 1-3.2 3.2 3.2 3.2 0 0 1-3.2-3.2z" fill="#6264a7"/>
                         </svg>
-                        Sarah Chen
+                        Jordan Lee
                       </div>
                       <div class="alert-title">Need eyes on the deploy - are we good to roll forward?</div>
                       <div class="alert-sub">Teams · unread 2m</div>
@@ -997,7 +1176,7 @@
                           <rect x="2" y="6" width="20" height="13" rx="2" fill="#0078d4"/>
                           <path d="m3 7.5 9 6 9-6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
                         </svg>
-                        Mark Hudson, CFO
+                        Taylor Brown, CFO
                       </div>
                       <div class="alert-title">URGENT: Q3 numbers needed before EOD board call</div>
                       <div class="alert-sub">Outlook · unread 4m</div>
@@ -1052,7 +1231,10 @@
       <li class="how-card">
         <div class="how-num">2</div>
         <div class="how-illus how-illus-watch">
-          <span class="check"></span><span class="check"></span><span class="check checked"></span><span class="check"></span>
+          <span class="watch-person"><span class="avatar">JS</span><span class="watch-name">John</span></span>
+          <span class="watch-person"><span class="avatar">AK</span><span class="watch-name">Alex</span></span>
+          <span class="watch-person checked"><span class="avatar">JL</span><span class="watch-name">Jordan</span></span>
+          <span class="watch-person"><span class="avatar">TB</span><span class="watch-name">Taylor</span></span>
         </div>
         <h3>Tell Nowtify what's urgent to you</h3>
         <p>Per-trigger watchlists. Pick which users' tickets count for SLA, which colleagues are Teams VIPs, which senders' emails matter.</p>
@@ -1077,50 +1259,84 @@
     <ul class="feature-grid">
       <li class="feature-card" style="--card-accent: var(--red);">
         <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 2 21h20L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="18" r="0.9" fill="currentColor"/></svg>
+          <!-- Lucide triangle-alert. Filled rounded triangle reads as
+               "warning" at glance size better than the old hand-drawn
+               outline + dot. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/>
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+          </svg>
         </span>
         <h3>Major Incident</h3>
-        <p>Any open ticket flagged as a Major Incident across your Jira instance. Fires instantly, clears when the flag drops or you dismiss it.</p>
+        <p>Any Jira ticket flagged as a Major Incident. Lights up the moment one opens, stops when the flag is removed or you dismiss it.</p>
       </li>
 
       <li class="feature-card" style="--card-accent: var(--amber);">
         <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M12 9v4l2.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <!-- Lucide alarm-clock. The bells on top read as "imminent"
+               and are visually distinct from the SLA-breached clock-off
+               next to it. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="13" r="8"/>
+            <path d="M12 9v4l2 2"/>
+            <path d="M5 3 2 6"/>
+            <path d="m22 6-3-3"/>
+            <path d="m6 19-2 2"/>
+            <path d="m20 19 2 2"/>
+          </svg>
         </span>
         <h3>SLA breach imminent</h3>
-        <p>Watched users' tickets whose SLA remaining time drops under a threshold you set (e.g. 30 minutes). Per-condition color.</p>
+        <p>Tickets assigned to people you're watching whose SLA is about to expire. You decide how close to the deadline counts as urgent (e.g. under 30 minutes).</p>
       </li>
 
       <li class="feature-card" style="--card-accent: var(--red);">
         <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M12 9v4l2.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="m5 5 14 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <!-- Lucide alarm-clock-off. Same alarm-clock silhouette as
+               "imminent" but slashed - reads as "time's up". -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.87 6.87a8 8 0 1 0 11.26 11.26"/>
+            <path d="M19.9 14.25a8 8 0 0 0-9.15-9.15"/>
+            <path d="m22 6-3-3"/>
+            <path d="M6.26 18.67 4 21"/>
+            <line x1="2" y1="2" x2="22" y2="22"/>
+          </svg>
         </span>
         <h3>SLA breached</h3>
-        <p>Watched users' tickets whose SLA cycle has already expired. Stays lit until you dismiss.</p>
+        <p>Tickets assigned to people you're watching whose SLA has already expired. Stays on until you dismiss it.</p>
       </li>
 
       <li class="feature-card" style="--card-accent: var(--accent);">
         <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m8 12 3 3 5-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <!-- Lucide clipboard-check. "Clipboard + tick" reads as
+               approval better than a plain check-circle. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            <path d="m9 14 2 2 4-4"/>
+          </svg>
         </span>
         <h3>My pending approvals</h3>
-        <p>JSM service-desk requests waiting on your approval. Counts only what's assigned to you, not the whole queue.</p>
+        <p>Jira service-desk requests waiting on your approval. Only counts the ones assigned to you, not your whole team's queue.</p>
       </li>
 
       <li class="feature-card" style="--card-accent: var(--teams);">
-        <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9v6M7 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="19" cy="8" r="2.4" stroke="currentColor" stroke-width="1.7"/><path d="M16.5 13.5h5v3a2.5 2.5 0 0 1-2.5 2.5h0a2.5 2.5 0 0 1-2.5-2.5v-3z" stroke="currentColor" stroke-width="1.7"/></svg>
+        <!-- Official Microsoft Teams brand mark via Iconify CDN. Same
+             source the cards use for Jira, so the brand row reads as
+             unmistakeable marks - no more hand-drawn approximations. -->
+        <span class="feature-icon feature-icon--brand" aria-hidden="true">
+          <img src="https://api.iconify.design/logos:microsoft-teams.svg" alt="" loading="lazy">
         </span>
         <h3>Teams VIP messages</h3>
-        <p>Unread Teams chat messages from people you've marked as VIPs. Threshold configurable. Clears on read.</p>
+        <p>Unread Teams chat messages from people you've added to your VIP list. Stops as soon as you read them.</p>
       </li>
 
       <li class="feature-card" style="--card-accent: var(--outlook);">
-        <span class="feature-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="m3 7 9 6 9-6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <span class="feature-icon feature-icon--brand" aria-hidden="true">
+          <img src="https://api.iconify.design/vscode-icons:file-type-outlook.svg" alt="" loading="lazy">
         </span>
         <h3>Outlook email from watched senders</h3>
-        <p>Unread Outlook emails from specific people. Same VIP pattern as Teams. Clears on read.</p>
+        <p>Unread Outlook emails from people you've added to your VIP list. Stops as soon as you read them.</p>
       </li>
     </ul>
     <div class="differentiators">
@@ -1130,7 +1346,7 @@
       </div>
       <div class="diff-card">
         <h4>You define urgent.</h4>
-        <p>Per-trigger watchlists let you pick who and what matters. No app vendor deciding for you.</p>
+        <p>Per-trigger watchlists let you pick who and what matters.</p>
       </div>
       <div class="diff-card">
         <h4>Local-only, no cloud.</h4>
@@ -1193,7 +1409,7 @@
     <details class="faq-item">
       <summary>Is this safe to install?</summary>
       <div class="faq-body">
-        <p>Yes. Unsigned does not mean malicious - it just means we haven't paid Apple's Developer Program fee. Every line of source is public on GitHub. The app makes outbound HTTPS calls only to <code>*.atlassian.net</code> and <code>graph.microsoft.com</code> (plus GitHub for update checks). No remote command-and-control, no telemetry, no shared inbox.</p>
+        <p>Yes. Unsigned does not mean malicious - it just means we haven't registered Nowtify with Apple's Developer Program. Every line of source is public on GitHub. The app makes outbound HTTPS calls only to <code>*.atlassian.net</code> and <code>graph.microsoft.com</code> (plus GitHub for update checks). No remote command-and-control, no telemetry, no shared inbox.</p>
       </div>
     </details>
 
@@ -1205,23 +1421,16 @@
     </details>
 
     <details class="faq-item">
-      <summary>Why isn't it code-signed?</summary>
-      <div class="faq-body">
-        <p>Apple's Developer ID is $99/year. For a free internal tool, that hasn't been justified yet. If usage grows or the friction of the Gatekeeper bypass becomes a real blocker, we'll revisit.</p>
-      </div>
-    </details>
-
-    <details class="faq-item">
       <summary>Windows or Linux?</summary>
       <div class="faq-body">
-        <p>macOS only. The peripheral-pulse UX is built on macOS-specific window-level APIs (transparent, click-through, always-on-top windows per display). No roadmap commitment for other platforms.</p>
+        <p>At this time Nowtify is only supported on macOS.</p>
       </div>
     </details>
 
     <details class="faq-item">
       <summary>How do I uninstall?</summary>
       <div class="faq-body">
-        <p>Drag <code>Nowtify.app</code> from <code>/Applications</code> to the Trash, then optionally delete <code>~/Library/Application Support/Nowtify</code> to remove your config.</p>
+        <p>Open Finder, go to your Applications folder, and drag Nowtify to the Trash.</p>
       </div>
     </details>
   </div>
@@ -1241,7 +1450,7 @@
       <a href="https://github.com/paulg7516/nowtify/releases">Releases</a>
       <a href="https://github.com/paulg7516/nowtify/issues">Issues</a>
     </nav>
-    <p class="footer-credit">© <span id="footerYear">2026</span> · Built by Paul Gerios.</p>
+    <p class="footer-credit">© <span id="footerYear">2026</span> Nowtify.</p>
   </div>
 </footer>
 <script>
@@ -1249,7 +1458,20 @@
   window.addEventListener('scroll', () => {
     navEl.classList.toggle('scrolled', window.scrollY > 8);
   }, { passive: true });
+  function nowtifyParseRelease(data) {
+    if (!data || !Array.isArray(data.assets)) return null;
+    const dmg = data.assets.find(a => a && typeof a.name === 'string' && a.name.endsWith('.dmg'));
+    if (!dmg) return null;
+    return {
+      href: dmg.browser_download_url,
+      version: data.tag_name || data.name || null,
+      sizeMb: Math.round(dmg.size / (1024 * 1024)),
+    };
+  }
+  if (typeof module !== 'undefined') { module.exports = { nowtifyParseRelease }; }
+
   (async function patchDownload() {
+    if (typeof window === 'undefined') return;
     const btn = document.getElementById('downloadBtn');
     const vEl = document.getElementById('downloadVersion');
     const sEl = document.getElementById('downloadSize');
@@ -1258,13 +1480,11 @@
         headers: { 'Accept': 'application/vnd.github+json' }
       });
       if (!res.ok) return;
-      const data = await res.json();
-      const dmg = (data.assets || []).find(a => a.name.endsWith('.dmg'));
-      if (!dmg) return;
-      btn.setAttribute('href', dmg.browser_download_url);
-      vEl.textContent = data.tag_name || data.name || vEl.textContent;
-      const mb = (dmg.size / (1024 * 1024)).toFixed(0);
-      sEl.textContent = `~${mb} MB`;
+      const parsed = nowtifyParseRelease(await res.json());
+      if (!parsed) return;
+      btn.setAttribute('href', parsed.href);
+      if (parsed.version) vEl.textContent = parsed.version;
+      sEl.textContent = `~${parsed.sizeMb} MB`;
     } catch (_) {
       // Silent fallback: leave the hardcoded version + releases page href in place.
     }
