@@ -153,6 +153,10 @@
     padding-top: clamp(56px, 9vw, 96px);
     padding-bottom: var(--section-y);
     text-align: center;
+    /* Belt-and-suspenders against any decorative overhang (laptop base
+       sliver, screen-edge pulse glow at large viewports) pushing past
+       the viewport edge and creating horizontal scroll on mobile. */
+    overflow: hidden;
   }
   .hero-inner { display: flex; flex-direction: column; align-items: center; }
   .eyebrow {
@@ -1020,6 +1024,13 @@
     /* Date label was the most "dead-text" item next to the clock when
        space is scarce - dropping it leaves the icon tray + 9:41 clean. */
     .menu-date { display: none; }
+    /* Drop the desktop "wider than the lid" trick on mobile - at
+       viewport-width the 4% overhang gets close to the container's
+       padding edge. Flush to 100% reads correctly at any phone size. */
+    .laptop-base { width: 100%; margin-left: 0; }
+    /* Halve the desk-shadow fade so it doesn't add visible spacing
+       between the laptop and the next section on short viewports. */
+    .laptop-base::after { height: 3px; }
   }
 
   /* Aggressive trim at narrow phone widths (<= 480px). Apple + Finder
