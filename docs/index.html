@@ -1086,16 +1086,31 @@
        the sticky nav and the dropdown menu read as solid surfaces. */
     .nav { background: rgba(250, 250, 250, 0.95); }
     .nav-links { background: #ffffff; }
-    /* The popover demo overwhelms the small laptop screen on phones -
-       hide it on mobile and let the screen-edge pulse alone carry the
-       hero metaphor. The colored pulse still cycles red → amber → indigo
-       on its 9s loop, so the per-trigger color-customization story still
-       reads. The Features section below covers the actual trigger types. */
-    .popover-demo { display: none; }
-    /* Without the popover, the laptop screen looks bare - go back to 16:10
-       (the more familiar laptop proportion) instead of the stretched 4:3
-       we used to make popover content fit. */
-    .laptop-screen { aspect-ratio: 16 / 10; }
+    /* Popover stays visible on mobile - the alerts demo is the hero
+       feature, dropping it would gut the page. Slot it tighter inside
+       the (taller, 4:3) mobile laptop frame and shrink the internal
+       chrome enough that two alerts read cleanly without overflow. */
+    .popover-demo {
+      width: min(94%, 260px);
+      top: 16px;
+      right: 4px;
+    }
+    .popover-card { font-size: 10.5px; }
+    .popover-head { padding: 8px 10px; }
+    .popover-title { font-size: 11px; }
+    .popover-version { font-size: 9px; }
+    .popover-tabs { padding: 3px 6px 0; }
+    .popover-tabs .tab { padding: 4px 7px 6px; font-size: 9.5px; }
+    .tab-count { font-size: 8px; padding: 1px 4px; min-width: 12px; }
+    .alert-row { padding: 7px 9px; gap: 7px; }
+    .alert-stripe { width: 2px; }
+    .alert-title { font-size: 10.5px; }
+    .alert-key { font-size: 9.5px; }
+    .alert-sub { font-size: 9.5px; }
+    /* The Join pill on the Incidents item gets cramped at this width -
+       trim it down or hide its label so the row doesn't squeeze the
+       title text to nothing. */
+    .teams-join { padding: 3px 6px; font-size: 9px; gap: 3px; }
   }
 </style>
 </head>
