@@ -42,16 +42,16 @@
           Triggers
         </button>
         <div class="nav-divider"></div>
-        <button class="nav-item" data-section="appearance">
-          <!-- Eye glyph - universal "view / appearance" signal. The
-               previous sparkle silhouetted as the letter A and the
-               smaller spark above it read as a dot, which together
-               looked like "AI" to a few people. Eye is unambiguous. -->
+        <button class="nav-item" data-section="display">
+          <!-- Eye glyph - reads as "what + where you see." Section
+               renamed from Appearance to Display because the panel
+               literally chooses where the pulse renders (screen edge
+               vs tray icon), not theme/colour customisation. -->
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M 1.5 8 C 3 4.5 5.5 3 8 3 C 10.5 3 13 4.5 14.5 8 C 13 11.5 10.5 13 8 13 C 5.5 13 3 11.5 1.5 8 Z"/>
             <circle cx="8" cy="8" r="2"/>
           </svg>
-          Appearance
+          Display
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item" data-section="updates">
@@ -225,13 +225,13 @@
 
 
         <!-- UPDATES (diagnostic) -->
-        <!-- APPEARANCE: per-user pulse-target preference. Lets people opt
+        <!-- DISPLAY: per-user pulse-target preference. Lets people opt
              out of the screen-edge stroke if they find it intrusive while
              keeping a colored menu-bar pulse, or the reverse. Default
              'both' preserves the original Nowtify behaviour. -->
-        <section id="section-appearance" class="panel" hidden>
+        <section id="section-display" class="panel" hidden>
           <div class="panel-header">
-            <h2>Appearance</h2>
+            <h2>Display</h2>
             <p class="panel-sub">Choose how Nowtify gets your attention. The pulse always matches the active trigger's colour.</p>
           </div>
 

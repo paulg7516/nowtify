@@ -80,7 +80,7 @@ for (const btn of document.querySelectorAll('.nav-item')) {
   };
 }
 
-/* ---------------- Appearance > Pulse target ----------------
+/* ---------------- Display > Pulse target ----------------
    The radio writes through to store immediately on change. The main
    process re-broadcasts the live state after the save so overlays
    light/clear without a delay. Per-radio listeners attached once at
@@ -92,7 +92,7 @@ for (const radio of document.querySelectorAll('input[name="pulseTarget"]')) {
     try {
       workingConfig = await api.saveConfig({ pulseTarget: value });
     } catch (err) {
-      console.warn('[appearance] failed to save pulseTarget', err);
+      console.warn('[display] failed to save pulseTarget', err);
     }
   });
 }

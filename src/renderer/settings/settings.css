@@ -1276,7 +1276,7 @@ ul.list:empty {
   to { opacity: 1; transform: none; }
 }
 
-/* ─── Appearance > Pulse target radio group ─── */
+/* ─── Display > Pulse target radio group ─── */
 .pulse-target-options {
   display: flex;
   flex-direction: column;
