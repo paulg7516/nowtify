@@ -206,6 +206,30 @@
     gap: 8px;
   }
   .hero-meta .dot { opacity: 0.5; }
+  /* Quiet "Works with…" trust line under the download meta. Matches
+     hero-meta's calm tone so it reads as supporting detail (proof the
+     integrations are real), not a competing CTA. Brand logos inline,
+     same source as the Step 1 brand-tile illustrations so the visual
+     identity stays consistent across the page. */
+  .hero-trust {
+    margin: 12px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .hero-trust-label { font-style: italic; }
+  .hero-trust-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .hero-trust-brand img,
+  .hero-trust-brand svg { width: 16px; height: 16px; display: block; }
+  .hero-trust-plus { opacity: 0.5; padding: 0 1px; }
 
   /* faux laptop */
   .laptop {
@@ -1053,6 +1077,7 @@
     /* Hero meta wraps on its own line at this width, no need for the
        inline dot separators - they read as orphan dots when wrapped. */
     .hero-meta { flex-wrap: wrap; justify-content: center; gap: 6px 8px; }
+    .hero-trust { flex-wrap: wrap; justify-content: center; gap: 4px 6px; font-size: 12px; }
     /* Differentiator cards already stack via the existing 768px rule;
        just tighten the inner padding. */
     .diff-card { padding: 24px; }
@@ -1154,6 +1179,23 @@
         <span id="downloadSize">~173 MB</span>
         <span class="dot">·</span>
         <span>macOS 12+</span>
+      </p>
+      <p class="hero-trust">
+        <span class="hero-trust-label">Works with</span>
+        <span class="hero-trust-brand">
+          <img src="https://cdn.simpleicons.org/jira/0052cc" alt="" aria-hidden="true" loading="lazy">
+          Jira
+        </span>
+        <span class="hero-trust-plus">+</span>
+        <span class="hero-trust-brand">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2"    y="2"    width="9.5" height="9.5" fill="#f25022"/>
+            <rect x="12.5" y="2"    width="9.5" height="9.5" fill="#7fba00"/>
+            <rect x="2"    y="12.5" width="9.5" height="9.5" fill="#00a4ef"/>
+            <rect x="12.5" y="12.5" width="9.5" height="9.5" fill="#ffb900"/>
+          </svg>
+          Microsoft 365
+        </span>
       </p>
     </div>
 
