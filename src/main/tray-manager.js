@@ -75,29 +75,51 @@ function destroyRasterizerWindow() {
   _rasterizerWindow = null;
 }
 
-// Render a single SVG to a PNG NativeImage using the offscreen window.
-// Renders at LOGICAL 22px (the macOS tray-icon point size). On retina
-// displays, capturePage automatically doubles the bitmap to 44x44 while
-// keeping the logical size at 22pt - that's what macOS Tray needs so
-// the icon paints at the proper menu-bar height. The earlier version
-// rendered at 44 logical px which produced a NativeImage that macOS
-// then displayed at 44pt = roughly 2x correct height (the "giant
-// purple bars" bug).
-async function rasterizeSVGToImage(svg, logicalSize = 22) {
+// Render the SVG via the offscreen window at a specific bitmap size.
+// Returns a NativeImage whose bitmap matches that size exactly. We use
+// this to produce two reps (22 + 44) that we then stitch into a single
+// multi-rep NativeImage, mirroring the alert.png + alert@2x.png pattern
+// that worked before we ever touched the tray.
+async function rasterizeSVGAtSize(svg, sizePx) {
   const win = getRasterizerWindow();
-  win.setBounds({ x: 0, y: 0, width: logicalSize, height: logicalSize });
+  win.setBounds({ x: 0, y: 0, width: sizePx, height: sizePx });
   const html = `<!doctype html><html><head><style>
-      html,body{margin:0;padding:0;background:transparent;width:${logicalSize}px;height:${logicalSize}px;overflow:hidden;}
-      img{display:block;width:${logicalSize}px;height:${logicalSize}px;}
+      html,body{margin:0;padding:0;background:transparent;width:${sizePx}px;height:${sizePx}px;overflow:hidden;}
+      img{display:block;width:${sizePx}px;height:${sizePx}px;}
     </style></head><body>
     <img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">
     </body></html>`;
   await win.loadURL('data:text/html;base64,' + Buffer.from(html).toString('base64'));
   // Brief tick so the <img> finishes its first paint into the offscreen
-  // buffer before capturePage reads it. ~80ms is conservative; tested
-  // reliable across cold-start and warm reuse.
+  // buffer before capturePage reads it. ~80ms tested reliable cold +
+  // warm.
   await new Promise((resolve) => setTimeout(resolve, 80));
-  return win.webContents.capturePage({ x: 0, y: 0, width: logicalSize, height: logicalSize });
+  return win.webContents.capturePage({ x: 0, y: 0, width: sizePx, height: sizePx });
+}
+
+// Build a multi-rep NativeImage that matches the original PNG asset
+// shape exactly: a 22pt-logical icon with a 22x22 rep for 1x displays
+// and a 44x44 rep for retina. macOS Tray picks the right rep for the
+// menu-bar density and paints it at 22 logical points - same as
+// loadFromPath('alert.png') used to do. The earlier single-rep
+// approach produced an image whose logical size came out wrong
+// (rendered ~2x the correct menu-bar height).
+async function buildColoredAlertImage(color, alpha) {
+  const svg = buildAlertSVG(color, alpha);
+  const [img1x, img2x] = await Promise.all([
+    rasterizeSVGAtSize(svg, 22),
+    rasterizeSVGAtSize(svg, 44),
+  ]);
+  const final = nativeImage.createEmpty();
+  final.addRepresentation({
+    scaleFactor: 1,
+    dataURL: 'data:image/png;base64,' + img1x.toPNG().toString('base64'),
+  });
+  final.addRepresentation({
+    scaleFactor: 2,
+    dataURL: 'data:image/png;base64,' + img2x.toPNG().toString('base64'),
+  });
+  return final;
 }
 
 // Per-colour { full, dim } cache. Both frames precomputed so the pulse
@@ -117,13 +139,11 @@ function ensureAlertImagesForColor(color, onReady) {
   alertRasterizing.add(color);
   (async () => {
     try {
-      const fullSvg = buildAlertSVG(color, 1);
-      const dimSvg = buildAlertSVG(color, 0.4);
       const [full, dim] = await Promise.all([
-        rasterizeSVGToImage(fullSvg),
-        rasterizeSVGToImage(dimSvg),
+        buildColoredAlertImage(color, 1),
+        buildColoredAlertImage(color, 0.4),
       ]);
-      if (!full.isEmpty() && full.getSize().width > 0) {
+      if (!full.isEmpty()) {
         alertImageCache.set(color, { full, dim });
         if (onReady) onReady();
       } else {
