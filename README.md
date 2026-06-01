@@ -1,119 +1,106 @@
 # Nowtify
 
-Ambient JSM alert overlay for a fully-remote IT ops team. Renders a thin colored border around every screen on every laptop, polling JSM for the watch list of users you care about. Two trigger families:
+Ambient alerts for Jira and Microsoft 365 on macOS.
 
-- **Major Incident = true** on any watched user's open ticket → solid red flash.
-- **SLA condition met** (e.g. "Time to resolution" remaining < 30 min, or breached) → flash in the color you set per condition.
+Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around the edge of your screen. Available when you want it, invisible when you don't. Lives in the menu bar. No dock icon, no browser tab, no dashboard.
 
-Lives in the macOS menu bar. No browser tab, no dashboard.
+Website: [paulg7516.github.io/nowtify](https://paulg7516.github.io/nowtify/)
 
-## Setup
+## What it watches
 
-1. **Install Node 20+ and clone this repo.**
+You turn on the triggers that matter to you. Each one has its own color, its own watchlist, and its own threshold.
 
-2. **Install deps:**
+- **Major Incident.** Any Jira ticket flagged as a Major Incident. Lights up the moment one opens, stops when the flag is removed or you dismiss it.
+- **SLA breach imminent.** Tickets assigned to people you're watching whose SLA is about to expire. You decide how close to the deadline counts as urgent.
+- **SLA breached.** Tickets assigned to people you're watching whose SLA has already expired. Stays on until you dismiss it.
+- **My pending approvals.** Jira Service Desk requests waiting on your approval. Only counts the ones assigned to you, not your whole team's queue.
+- **Teams VIP messages.** Unread Teams chats from people you've added to your VIP list. Stops as soon as you read them.
+- **Outlook email from watched senders.** Unread Outlook emails from people you've added to your VIP list. Stops as soon as you read them.
 
-   ```sh
-   npm install
-   ```
+## Install
 
-3. **Create an Atlassian API token:**
+Download the latest `.dmg` from the [Releases page](https://github.com/paulg7516/nowtify/releases/latest).
 
-   - Visit `https://id.atlassian.com/manage-profile/security/api-tokens`
-   - Click **Create API token**, copy it.
+1. Double-click the `.dmg` and drag Nowtify into your Applications folder.
+2. The first time you run it, right-click the app and choose **Open** instead of double-clicking. macOS will warn you about an unidentified developer; click **Open**. You only have to do this once.
+3. Nowtify lives in the menu bar. There's no dock icon.
 
-4. **Run the app:**
+To launch it automatically when you sign in: System Settings, General, Login Items, click `+`, and pick Nowtify.
 
-   ```sh
-   npm start
-   ```
+## First-time setup
 
-   On first launch the settings window opens automatically.
+Open Settings from the menu bar icon.
 
-5. **In Settings:**
+**For Jira:**
 
-   - **Site URL:** `https://your-company.atlassian.net`
-   - **Account email:** the email of the Atlassian account that owns the API token
-   - **API token:** paste it
-   - Click **Test connection** - you should see "Connected as Your Name".
-   - Click **Detect fields now** - this auto-discovers your Major Incident custom field and SLA fields. If your Major Incident field is named something other than literally "Major Incident", paste its field ID (e.g. `customfield_10210`) into the override box.
-   - **Search and add** the users you want to watch (yourself counts - add yourself).
-   - Tune SLA conditions and colors as needed.
-   - Click **Save & apply**.
+1. Create an Atlassian API token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
+2. In Settings, enter your Atlassian site URL (like `your-company.atlassian.net`), the email of the account that owns the token, and paste the token.
+3. Click **Test connection**. You should see "Connected as Your Name".
+4. Click **Detect fields**. This auto-discovers your Major Incident custom field and SLA fields. If your Major Incident field has a custom name, paste its field ID (like `customfield_10210`) into the override box.
+5. Search for and add the people whose tickets count as urgent. You can watch yourself, individual teammates, or whole groups.
 
-## How it works
+**For Microsoft 365:**
 
-- **`AlertEngine`** polls JSM every N seconds. JQL: `assignee in (...) AND statusCategory != Done`. Reads Major Incident + SLA custom fields off each returned issue. Evaluates each trigger condition. Computes overall overlay state (highest-severity alert wins, pulsing if any alert pulses).
-- **`OverlayWindows`** creates one transparent click-through always-on-top BrowserWindow per display. CSS-only border with an optional pulse animation. Receives state updates over IPC.
-- **`TrayManager`** lives in the menu bar. Status dot reflects current state (green idle, red alerting, yellow snoozed). Left-click opens a popover listing each triggering ticket - click a ticket key to open it in your browser. Right-click for the full menu (Snooze, Clear dismissals, Settings, Quit).
-- **`store.js`** persists config + snooze + dismissal state via `electron-store` (JSON file in your app data dir).
+1. Click **Connect** in the Microsoft Teams card. Sign in to your work account in the popup.
+2. Search for and add the colleagues whose unread Teams messages should fire an alert.
+3. Same for Outlook senders whose unread emails should fire an alert.
 
-## Trigger rules
+Save and you're done. Nowtify polls every 30 seconds and pulses the screen edge in the trigger's color when something matches.
 
-- A Major Incident alert fires the moment the field flips to `true` and stays until either the field flips back to `false` *or* you dismiss it.
-- An SLA alert fires when remaining time on any ongoing SLA cycle drops below a condition's `thresholdMinutes`. A condition with `thresholdMinutes = 0` matches breached cycles only.
-- **Dismiss** is per `(ticket, condition)` - dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
-- **Snooze** suppresses the overlay border entirely for the chosen duration. Alerts still accumulate in the popover so you can see what fired while snoozed.
+## Settings you'll want to know about
 
-## Notes / known POC limits
+- **Display.** Choose where the pulse renders: the screen edge, the menu-bar icon, or both. Same color either way.
+- **Triggers.** Turn each trigger on or off individually. Each one has its own color picker.
+- **Snooze.** Right-click the menu-bar icon, pick "Until I resume" to silence the pulse, then "Resume now" when you're ready. Alerts still accumulate in the menu-bar popover while snoozed, so you can see what fired.
+- **Dismiss.** Per ticket per condition. Dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
 
-- Single user, single machine: each agent runs their own copy with their own API token. There is no central poller - the app talks to JSM directly.
-- Screen-share auto-hide is **not implemented**. If you share your whole desktop and a P1 fires, the border is visible to viewers. Deferred until POC validates.
-- No central watch-list sync - your watch list is local to each install.
-- Tested only on macOS. Tray icon uses macOS named system images (`NSStatusAvailable`/`NSStatusUnavailable`/`NSStatusPartiallyAvailable`); on other platforms the tray icon will be blank until a fallback is added.
+## What's not implemented yet
 
-## Distributing to your team
+Honest list of stuff that doesn't work yet, so you know what to expect:
 
-### Build the `.dmg` (unsigned, for internal use)
+- **Screen-share auto-hide.** If you share your whole desktop and a Major Incident fires, the border is visible to viewers. On the to-do list.
+- **Central watchlist sync.** Your watchlist is local to each Mac. There's no shared "team watchlist" yet.
+- **Windows and Linux.** macOS only. The peripheral-pulse experience is built on macOS-specific window APIs.
+
+## Building from source
+
+You'll need Node 20 or newer.
+
+```sh
+git clone https://github.com/paulg7516/nowtify.git
+cd nowtify
+npm install
+npm start
+```
+
+To build a `.dmg`:
 
 ```sh
 npm run dist
 ```
 
-Produces `dist/Nowtify-<version>-universal.dmg` (universal binary: Intel + Apple Silicon). AirDrop or email to each agent.
+Output lands in `dist/Nowtify-<version>-universal.dmg` (a universal binary that runs on Intel and Apple Silicon).
 
-### What each agent does on first install
+To cut a release (requires push access + a GitHub Personal Access Token in `GH_TOKEN`):
 
-1. Double-click the `.dmg`, drag **Nowtify** to Applications.
-2. First launch: **right-click → Open** (don't double-click). macOS will warn about an unidentified developer; click **Open**. This is a one-time bypass.
-3. App lives in the menu bar (no dock icon).
-4. Open Settings (right-click tray → Settings…) and enter:
-   - JSM site URL, email, Atlassian API token (each agent makes their own at id.atlassian.com)
-   - Click **Detect fields**
-   - Add themselves (and any teammates / groups) to the watch list
-5. **Auto-launch on login:** System Settings → General → Login Items → click `+` → pick **Nowtify**.
+```sh
+npm run ship           # patch bump
+npm run ship:minor     # minor bump
+```
 
-### Auto-updates (via electron-updater)
+This bumps the version, builds, publishes the release to GitHub, and pushes the source. Auto-updates work for unsigned macOS apps as long as the app is installed in `/Applications`.
 
-To enable automatic update delivery:
-
-Publish target is already configured in `package.json` for `paulg7516/nowtify`.
-
-1. **Generate a GitHub Personal Access Token** with `repo` scope. Export as env var when releasing:
-   ```sh
-   export GH_TOKEN=ghp_xxx
-   npm run release
-   ```
-   This builds the DMG, uploads it as a GitHub release asset, and publishes release metadata.
-2. **On each agent's machine:** the app checks for updates on launch and every 6 hours. When a new version is available, it downloads in the background and prompts the user to restart.
-
-Note: auto-updates work fine for unsigned macOS apps as long as the app is installed in `/Applications`.
-
-### Going further
-
-- **Apple Developer signing + notarization** ($99/year) removes the right-click-Open step entirely. Worth it if this rolls out beyond the team.
-- **MDM push** (Intune / Jamf / Kandji): if you have MDM, push the unsigned `.dmg` silently and whitelist the binary to skip Gatekeeper.
-
-## Layout
+## How it's organized
 
 ```
 src/
 ├── main/
 │   ├── index.js              # Electron entrypoint, IPC wiring
-│   ├── alert-engine.js       # Polling loop + trigger evaluation + state machine
-│   ├── jsm-client.js         # JSM REST client (auth, search, fields, JQL)
+│   ├── alert-engine.js       # Polling loop, trigger evaluation, state machine
+│   ├── jsm-client.js         # Jira REST client (auth, search, fields, JQL)
+│   ├── ms-graph-client.js    # Microsoft Graph client (Teams + Outlook)
 │   ├── overlay-windows.js    # Per-display transparent border windows
-│   ├── tray-manager.js       # Menu bar tray + popover window
+│   ├── tray-manager.js       # Menu-bar tray + popover
 │   └── store.js              # Persistent config via electron-store
 ├── preload/
 │   ├── overlay-preload.js
@@ -121,6 +108,21 @@ src/
 │   └── popover-preload.js
 └── renderer/
     ├── overlay/              # Border (transparent click-through)
-    ├── settings/             # First-run + ongoing config UI
-    └── popover/              # Triggering tickets list (under tray icon)
+    ├── settings/             # First-run and ongoing config UI
+    └── popover/              # Menu-bar popover (alerts list)
 ```
+
+## Contributing
+
+Bug reports and feature requests welcome on the [issue tracker](https://github.com/paulg7516/nowtify/issues). If you're sending a pull request, please run the linter and tests first:
+
+```sh
+npm run lint
+npm test
+```
+
+Both are part of the pre-ship gate so a PR that doesn't pass them won't be releasable anyway.
+
+## License
+
+Source available, no formal open-source license yet. Personal and internal use is fine. If you want to use this in a commercial product, open an issue and we'll talk.
