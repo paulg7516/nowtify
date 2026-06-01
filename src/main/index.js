@@ -715,12 +715,14 @@ function setupAutoUpdater() {
     const zipPath = info && (info.downloadedFile || info.path);
     if (Notification.isSupported()) {
       try {
-        const dialogIcon = getAppDialogIcon();
         const n = new Notification({
           title: 'Nowtify update ready',
           body: `Version ${info.version} is ready - click to install now.`,
           silent: false,
-          ...(dialogIcon ? { icon: dialogIcon } : {}),
+          // No explicit icon - macOS already draws the app's bundle
+          // icon on the LEFT of every notification banner. Setting
+          // `icon` adds a SECOND tile on the right (contentImage),
+          // which makes the banner read as doubled.
         });
         n.on('click', () => {
           if (zipPath) {
