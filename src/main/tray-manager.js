@@ -17,12 +17,14 @@ function sanitizeColor(c) {
 
 // Build the three-bar Nowtify mark coloured to the active trigger, with
 // an alpha that the pulse loop alternates between full and dim to read
-// as "breathing." 22x22 viewBox matches the macOS template-icon scale
-// (22pt at 1x). The mark itself is the same stacked-bars silhouette
-// used everywhere else in the brand (website hero, popover, etc.).
-function buildAlertSVG(color, alpha) {
+// as "breathing." 22pt = macOS template-icon scale at 1x; we declare
+// width/height on the root SVG (not just viewBox) because Electron's
+// NSImage SVG import on macOS won't reliably size from viewBox alone
+// and the tray slot collapses to invisible. The mark itself is the
+// same stacked-bars silhouette used everywhere else in the brand.
+function buildAlertSVG(color, alpha, size = 22) {
   const c = sanitizeColor(color);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22">`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 22 22">`
     + `<g opacity="${alpha}">`
     + `<rect x="6"   y="6"    width="10"   height="2"   rx="0.7"  fill="${c}" fill-opacity="0.32"/>`
     + `<rect x="5"   y="9.4"  width="12"   height="2.6" rx="0.85" fill="${c}" fill-opacity="0.62"/>`
@@ -31,14 +33,19 @@ function buildAlertSVG(color, alpha) {
 }
 
 // Build a NativeImage for the colored alert state at a given pulse frame.
-// frame 0 = full alpha (bright), frame 1 = ~40% alpha (dim). Encoded as
-// an inline SVG data URL — no rasteriser dependency, and the same image
-// works at 1x and 2x menu-bar densities.
+// frame 0 = full alpha (bright), frame 1 = ~40% alpha (dim). Try the
+// buffer path first (most reliable on macOS through Skia), fall back to
+// data-URL form, and treat zero-size as failure so the caller can use
+// the legacy PNG instead of setting an invisible icon.
 function buildAlertImage(color, frame) {
   const alpha = frame === 0 ? 1 : 0.4;
   const svg = buildAlertSVG(color, alpha);
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-  return nativeImage.createFromDataURL(dataUrl);
+  const buf = Buffer.from(svg, 'utf8');
+  let img = nativeImage.createFromBuffer(buf);
+  if (img.isEmpty() || img.getSize().width === 0) {
+    img = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${buf.toString('base64')}`);
+  }
+  return img;
 }
 
 /**
@@ -135,7 +142,13 @@ class TrayManager {
     // state - shouldn't happen in practice since alert-engine always
     // emits a colour when alerting.
     if (state.status === 'alerting') {
-      if (state.color) return buildAlertImage(state.color, frame);
+      if (state.color) {
+        const dynImg = buildAlertImage(state.color, frame);
+        if (!dynImg.isEmpty() && dynImg.getSize().width > 0) return dynImg;
+        // Dynamic SVG returned empty - the legacy red PNGs are visible
+        // even if monochrome, much better than an invisible tray icon.
+        console.warn('[tray] dynamic alert icon empty for color', state.color, 'falling back to PNG');
+      }
       const variant = frame === 0 ? 'alert' : 'alert-dim';
       const img = this.loadTrayIcon(variant);
       if (!img.isEmpty()) return img;
