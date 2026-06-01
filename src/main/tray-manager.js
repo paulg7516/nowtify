@@ -75,49 +75,54 @@ function destroyRasterizerWindow() {
   _rasterizerWindow = null;
 }
 
-// Render the SVG via the offscreen window at a specific bitmap size.
-// Returns a NativeImage whose bitmap matches that size exactly. We use
-// this to produce two reps (22 + 44) that we then stitch into a single
-// multi-rep NativeImage, mirroring the alert.png + alert@2x.png pattern
-// that worked before we ever touched the tray.
-async function rasterizeSVGAtSize(svg, sizePx) {
+// Render SVG via the offscreen window AND force the resulting PNG
+// down to exactly targetPx x targetPx pixels. The force-resize is
+// load-bearing: capturePage on retina returns a NativeImage whose
+// PNG bitmap is 2x the requested logical size (44 when we asked for
+// 22), and macOS's addRepresentation reads the PNG header for the
+// rep's dimensions. Without the resize, a "1x" rep tagged with a
+// 44px PNG paints at 44 logical points - twice the correct menu-bar
+// height. Resizing collapses both logical AND bitmap dimensions to
+// the intended pixel count.
+async function rasterizeSVGToExactPx(svg, targetPx) {
   const win = getRasterizerWindow();
-  win.setBounds({ x: 0, y: 0, width: sizePx, height: sizePx });
+  win.setBounds({ x: 0, y: 0, width: targetPx, height: targetPx });
   const html = `<!doctype html><html><head><style>
-      html,body{margin:0;padding:0;background:transparent;width:${sizePx}px;height:${sizePx}px;overflow:hidden;}
-      img{display:block;width:${sizePx}px;height:${sizePx}px;}
+      html,body{margin:0;padding:0;background:transparent;width:${targetPx}px;height:${targetPx}px;overflow:hidden;}
+      img{display:block;width:${targetPx}px;height:${targetPx}px;}
     </style></head><body>
     <img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">
     </body></html>`;
   await win.loadURL('data:text/html;base64,' + Buffer.from(html).toString('base64'));
-  // Brief tick so the <img> finishes its first paint into the offscreen
-  // buffer before capturePage reads it. ~80ms tested reliable cold +
-  // warm.
   await new Promise((resolve) => setTimeout(resolve, 80));
-  return win.webContents.capturePage({ x: 0, y: 0, width: sizePx, height: sizePx });
+  const captured = await win.webContents.capturePage({
+    x: 0, y: 0, width: targetPx, height: targetPx,
+  });
+  // Resize even if the captured size already looks right - this
+  // forces both the logical AND bitmap dimensions to targetPx,
+  // independent of whatever retina factor capturePage applied.
+  return captured.resize({ width: targetPx, height: targetPx, quality: 'best' });
 }
 
-// Build a multi-rep NativeImage that matches the original PNG asset
-// shape exactly: a 22pt-logical icon with a 22x22 rep for 1x displays
-// and a 44x44 rep for retina. macOS Tray picks the right rep for the
-// menu-bar density and paints it at 22 logical points - same as
-// loadFromPath('alert.png') used to do. The earlier single-rep
-// approach produced an image whose logical size came out wrong
-// (rendered ~2x the correct menu-bar height).
+// Build a multi-rep NativeImage that matches the alert.png +
+// alert@2x.png pattern exactly: a 22pt logical icon with a 22x22 PNG
+// for 1x displays and a 44x44 PNG for retina. macOS Tray picks the
+// right rep based on the menu-bar density - same code path the
+// original tray icons go through.
 async function buildColoredAlertImage(color, alpha) {
   const svg = buildAlertSVG(color, alpha);
-  const [img1x, img2x] = await Promise.all([
-    rasterizeSVGAtSize(svg, 22),
-    rasterizeSVGAtSize(svg, 44),
+  const [img22, img44] = await Promise.all([
+    rasterizeSVGToExactPx(svg, 22),
+    rasterizeSVGToExactPx(svg, 44),
   ]);
   const final = nativeImage.createEmpty();
   final.addRepresentation({
     scaleFactor: 1,
-    dataURL: 'data:image/png;base64,' + img1x.toPNG().toString('base64'),
+    dataURL: 'data:image/png;base64,' + img22.toPNG().toString('base64'),
   });
   final.addRepresentation({
     scaleFactor: 2,
-    dataURL: 'data:image/png;base64,' + img2x.toPNG().toString('base64'),
+    dataURL: 'data:image/png;base64,' + img44.toPNG().toString('base64'),
   });
   return final;
 }
