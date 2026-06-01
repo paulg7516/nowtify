@@ -76,16 +76,19 @@ function destroyRasterizerWindow() {
 }
 
 // Render a single SVG to a PNG NativeImage using the offscreen window.
-// Size is rendered at 2x logical (44px) so macOS retina menu bars get a
-// crisp icon. The HTML wrapper is minimal: just the <img> with explicit
-// dimensions so layout completes immediately.
+// Renders at LOGICAL 22px (the macOS tray-icon point size). On retina
+// displays, capturePage automatically doubles the bitmap to 44x44 while
+// keeping the logical size at 22pt - that's what macOS Tray needs so
+// the icon paints at the proper menu-bar height. The earlier version
+// rendered at 44 logical px which produced a NativeImage that macOS
+// then displayed at 44pt = roughly 2x correct height (the "giant
+// purple bars" bug).
 async function rasterizeSVGToImage(svg, logicalSize = 22) {
-  const px = logicalSize * 2;
   const win = getRasterizerWindow();
-  win.setBounds({ x: 0, y: 0, width: px, height: px });
+  win.setBounds({ x: 0, y: 0, width: logicalSize, height: logicalSize });
   const html = `<!doctype html><html><head><style>
-      html,body{margin:0;padding:0;background:transparent;width:${px}px;height:${px}px;overflow:hidden;}
-      img{display:block;width:${px}px;height:${px}px;}
+      html,body{margin:0;padding:0;background:transparent;width:${logicalSize}px;height:${logicalSize}px;overflow:hidden;}
+      img{display:block;width:${logicalSize}px;height:${logicalSize}px;}
     </style></head><body>
     <img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">
     </body></html>`;
@@ -94,7 +97,7 @@ async function rasterizeSVGToImage(svg, logicalSize = 22) {
   // buffer before capturePage reads it. ~80ms is conservative; tested
   // reliable across cold-start and warm reuse.
   await new Promise((resolve) => setTimeout(resolve, 80));
-  return win.webContents.capturePage({ x: 0, y: 0, width: px, height: px });
+  return win.webContents.capturePage({ x: 0, y: 0, width: logicalSize, height: logicalSize });
 }
 
 // Per-colour { full, dim } cache. Both frames precomputed so the pulse

@@ -5,6 +5,30 @@ const { spawn } = require('child_process');
 const { app, BrowserWindow, Notification, ipcMain, shell, Menu, dialog, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+// macOS dialogs + notifications fall back to a generic icon on
+// freshly-installed unsigned bundles with LSUIElement: true because
+// Launch Services hasn't fully registered the app's bundle icon yet.
+// We work around that by loading assets/icon.png at runtime and
+// passing it explicitly. Lazy + cached so repeat opens don't re-read
+// the PNG from disk. Returns null if the asset is missing so callers
+// can skip the icon option rather than passing an empty image.
+let _appDialogIcon = null;
+let _appDialogIconLoaded = false;
+function getAppDialogIcon() {
+  if (_appDialogIconLoaded) return _appDialogIcon;
+  _appDialogIconLoaded = true;
+  try {
+    const iconPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
+    const img = nativeImage.createFromPath(iconPath);
+    if (!img.isEmpty() && img.getSize().width > 0) {
+      _appDialogIcon = img;
+    }
+  } catch (e) {
+    console.warn('[icon] failed to load assets/icon.png', e && e.message);
+  }
+  return _appDialogIcon;
+}
+
 /* ----- security helpers ----- */
 
 // Top-level config keys the renderer is allowed to write via settings:save.
@@ -691,10 +715,12 @@ function setupAutoUpdater() {
     const zipPath = info && (info.downloadedFile || info.path);
     if (Notification.isSupported()) {
       try {
+        const dialogIcon = getAppDialogIcon();
         const n = new Notification({
           title: 'Nowtify update ready',
           body: `Version ${info.version} is ready - click to install now.`,
           silent: false,
+          ...(dialogIcon ? { icon: dialogIcon } : {}),
         });
         n.on('click', () => {
           if (zipPath) {
@@ -710,6 +736,7 @@ function setupAutoUpdater() {
     // it appears as a sheet rather than a free-floating window.
     const parent =
       settingsWin && !settingsWin.isDestroyed() ? settingsWin : undefined;
+    const dialogIcon = getAppDialogIcon();
     const { response } = await dialog.showMessageBox(parent, {
       type: 'info',
       title: 'Nowtify update ready',
@@ -721,6 +748,11 @@ function setupAutoUpdater() {
       buttons: ['Restart now', 'Later'],
       defaultId: 0,
       cancelId: 1,
+      // Pass the icon explicitly so freshly-installed unsigned bundles
+      // with LSUIElement: true don't render with the generic system icon
+      // (Launch Services takes time to register bundle icons for
+      // unsigned + dockless apps).
+      ...(dialogIcon ? { icon: dialogIcon } : {}),
     });
 
     if (response === 0) {
