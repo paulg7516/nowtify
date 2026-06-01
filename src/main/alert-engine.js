@@ -20,6 +20,12 @@ class AlertEngine extends EventEmitter {
     this.timer = null;
     this.lastState = { status: 'idle', color: null, pulse: false, alerts: [] };
     this.running = false;
+    // Pokes that arrive during an in-flight tick set this flag, and the
+    // tick's `finally` block schedules a follow-up tick so the user's
+    // intent (e.g. "Resume now" cancelling a snooze) takes effect on
+    // the next event-loop tick instead of waiting up to a full poll
+    // interval for the next scheduled tick.
+    this._needsReTick = false;
     this.previousActiveKeys = new Set(); // ticketKeys of last tick's active alerts
     // Health: surfaced via IPC so the UI can show "engine working / engine
     // broken" instead of silently presenting an empty popover when a code
@@ -93,9 +99,15 @@ class AlertEngine extends EventEmitter {
     // and the resolution-detection logic - leading to spurious
     // "ticket resolved" green-pulses or missed clears.
     if (this._ticking) {
-      console.log('[engine] tick skipped (previous tick still running)');
+      // Don't drop the poke - flag it so we re-tick once the current
+      // one resolves. Resume-now / snooze-clear depend on this for
+      // immediate feedback (otherwise pulse can stay dark for up to
+      // a full poll interval, see "Pulse Off / Pulse On" bug).
+      this._needsReTick = true;
+      console.log('[engine] tick already running - re-tick queued');
       return;
     }
+    this._needsReTick = false;
     this._ticking = true;
     const tickStart = Date.now();
     // Tick is wrapped in an outer try/catch: any uncaught throw from the
@@ -114,6 +126,14 @@ class AlertEngine extends EventEmitter {
       this.recordStepError('fatal', err);
     } finally {
       this._ticking = false;
+      if (this._needsReTick) {
+        this._needsReTick = false;
+        // Defer one event-loop tick so any awaiters of the just-
+        // finished tick resolve before the follow-up tick starts.
+        setTimeout(() => {
+          this.tick().catch((err) => this.emit('error', err));
+        }, 0);
+      }
     }
   }
 

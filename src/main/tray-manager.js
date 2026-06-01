@@ -15,21 +15,22 @@ function sanitizeColor(c) {
   return '#dc2626';
 }
 
-// Build the three-bar Nowtify mark coloured to the active trigger, with
-// an alpha that the pulse loop alternates between full and dim to read
-// as "breathing." 22pt = macOS template-icon scale at 1x; we declare
-// width/height on the root SVG (not just viewBox) because Electron's
-// NSImage SVG import on macOS won't reliably size from viewBox alone
-// and the tray slot collapses to invisible. The mark itself is the
-// same stacked-bars silhouette used everywhere else in the brand.
-function buildAlertSVG(color, alpha, size = 22) {
+// Build the three-bar Nowtify mark coloured to the active trigger.
+// Bar geometry + opacities mirror scripts/generate-icon.js:traySvg()
+// exactly - that's the canonical generator the bundled alert.png +
+// alert@2x.png were rendered from, so this image is pixel-equivalent
+// to the original tray asset, just coloured to the active trigger.
+// alpha is the pulse-loop dim factor (1.0 = full, 0.4 = dim) and is
+// multiplied into each bar's base opacity, matching the original
+// generator's baseOpacity parameter.
+function buildAlertSVG(color, alpha) {
   const c = sanitizeColor(color);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 22 22">`
-    + `<g opacity="${alpha}">`
-    + `<rect x="6"   y="6"    width="10"   height="2"   rx="0.7"  fill="${c}" fill-opacity="0.32"/>`
-    + `<rect x="5"   y="9.4"  width="12"   height="2.6" rx="0.85" fill="${c}" fill-opacity="0.62"/>`
-    + `<rect x="3.8" y="13.2" width="14.4" height="3.6" rx="1.1"  fill="${c}"/>`
-    + `</g></svg>`;
+  const o = (n) => (n * alpha).toFixed(3);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">`
+    + `<rect x="5"   y="5.0"  width="12" height="2.5" rx="1.25" fill="${c}" opacity="${o(0.55)}"/>`
+    + `<rect x="3.5" y="9.0"  width="15" height="3.0" rx="1.50" fill="${c}" opacity="${o(0.80)}"/>`
+    + `<rect x="2"   y="13.5" width="18" height="3.5" rx="1.75" fill="${c}" opacity="${o(1.00)}"/>`
+    + `</svg>`;
 }
 
 // nativeImage.createFromDataURL / createFromBuffer with SVG bytes
