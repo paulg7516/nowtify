@@ -77,6 +77,11 @@ class OverlayWindows {
       fullscreenable: false,
       skipTaskbar: true,
       show: false,
+      // Hide the overlay from the macOS Window menu + Cmd-` window
+      // cycle. Without this, every overlay (one per display) shows up
+      // as a "Nowtify" entry in those menus.
+      title: '',
+      excludedFromShownWindowsMenu: true,
       webPreferences: {
         preload: path.join(__dirname, '..', 'preload', 'overlay-preload.js'),
         contextIsolation: true,
@@ -89,6 +94,14 @@ class OverlayWindows {
     win.setAlwaysOnTop(true, 'screen-saver');
     if (typeof win.setVisibleOnAllWorkspaces === 'function') {
       win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    }
+    // Keep the overlay out of Mission Control + App Expose. This is
+    // the load-bearing call - without it the window is publicly listed
+    // as a Nowtify window tile when the user invokes the macOS window
+    // switcher, even though it's transparent + click-through. Electron
+    // 18+ exposes this; guard for older builds just in case.
+    if (typeof win.setHiddenInMissionControl === 'function') {
+      win.setHiddenInMissionControl(true);
     }
 
     win.loadFile(path.join(__dirname, '..', 'renderer', 'overlay', 'overlay.html'));
