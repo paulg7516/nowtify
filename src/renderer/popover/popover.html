@@ -301,34 +301,59 @@
         border-radius: 2px;
         align-self: stretch;
       }
+      /* 2-row layout: bold title on top, [key · sub] inline below.
+         Caps every alert at 2 lines tall so the popover stays a fixed,
+         scannable height instead of growing per item depending on
+         title length. */
       .meta {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+          "summary summary"
+          "key     sub";
+        align-items: baseline;
+        gap: 2px 6px;
         min-width: 0;
       }
       .key {
+        grid-area: key;
         font-weight: 600;
         font-size: 11px;
         color: var(--accent);
         text-decoration: none;
         cursor: pointer;
         letter-spacing: 0.01em;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      /* Bullet separator between key and sub. Picks up the muted sub
+         colour so the key keeps its accent tint while the divider
+         reads as quiet metadata punctuation. */
+      .key::after {
+        content: "·";
+        margin-left: 6px;
+        color: var(--text-3);
+        font-weight: 400;
       }
       .key:hover {
         text-decoration: underline;
       }
       .summary {
+        grid-area: summary;
         font-size: 13px;
+        font-weight: 600;
         color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .sub {
+        grid-area: sub;
         font-size: 11px;
         color: var(--text-3);
-        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       /* Per-row medium badge (Teams vs Outlook) in the Messages tab.
          Uses the official Iconify brand SVGs - same logos that appear on
