@@ -1087,30 +1087,30 @@
     .nav { background: rgba(250, 250, 250, 0.95); }
     .nav-links { background: #ffffff; }
     /* Popover stays visible on mobile - the alerts demo is the hero
-       feature, dropping it would gut the page. Slot it tighter inside
-       the (taller, 4:3) mobile laptop frame and shrink the internal
-       chrome enough that two alerts read cleanly without overflow. */
+       feature. Position it BELOW the 26px menu bar (top: 32) and
+       constrain width hard so it reads as a "small floating popup"
+       rather than a full-width sheet. 70% of the laptop screen with
+       a 220px ceiling keeps it proportional on any phone size. */
     .popover-demo {
-      width: min(94%, 260px);
-      top: 16px;
-      right: 4px;
+      width: min(70%, 220px);
+      top: 32px;
+      right: 8px;
     }
-    .popover-card { font-size: 10.5px; }
-    .popover-head { padding: 8px 10px; }
-    .popover-title { font-size: 11px; }
-    .popover-version { font-size: 9px; }
+    .popover-card { font-size: 10px; }
+    .popover-head { padding: 7px 9px; }
+    .popover-title { font-size: 10.5px; }
+    .popover-version { font-size: 8.5px; }
     .popover-tabs { padding: 3px 6px 0; }
-    .popover-tabs .tab { padding: 4px 7px 6px; font-size: 9.5px; }
-    .tab-count { font-size: 8px; padding: 1px 4px; min-width: 12px; }
-    .alert-row { padding: 7px 9px; gap: 7px; }
+    .popover-tabs .tab { padding: 4px 6px 5px; font-size: 9px; gap: 3px; }
+    .tab-count { font-size: 7.5px; padding: 1px 4px; min-width: 12px; }
+    .alert-row { padding: 6px 8px; gap: 6px; }
     .alert-stripe { width: 2px; }
-    .alert-title { font-size: 10.5px; }
-    .alert-key { font-size: 9.5px; }
-    .alert-sub { font-size: 9.5px; }
-    /* The Join pill on the Incidents item gets cramped at this width -
-       trim it down or hide its label so the row doesn't squeeze the
-       title text to nothing. */
-    .teams-join { padding: 3px 6px; font-size: 9px; gap: 3px; }
+    .alert-title { font-size: 10px; line-height: 1.25; }
+    .alert-key { font-size: 9px; }
+    .alert-sub { font-size: 9px; }
+    /* The Join pill on Incidents gets cramped at this width; tuck it
+       small so it doesn't squeeze the title to nothing. */
+    .teams-join { padding: 2px 5px; font-size: 8.5px; gap: 2px; }
   }
 </style>
 </head>
