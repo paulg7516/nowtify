@@ -80,6 +80,30 @@ for (const btn of document.querySelectorAll('.nav-item')) {
   };
 }
 
+/* ---------------- Appearance > Pulse target ----------------
+   The radio writes through to store immediately on change. The main
+   process re-broadcasts the live state after the save so overlays
+   light/clear without a delay. Per-radio listeners attached once at
+   module load; load() handles the initial checked state. */
+for (const radio of document.querySelectorAll('input[name="pulseTarget"]')) {
+  radio.addEventListener('change', async (e) => {
+    if (!e.target.checked) return;
+    const value = e.target.value;
+    try {
+      workingConfig = await api.saveConfig({ pulseTarget: value });
+    } catch (err) {
+      console.warn('[appearance] failed to save pulseTarget', err);
+    }
+  });
+}
+
+function applyPulseTargetFromConfig() {
+  const current = (workingConfig && workingConfig.pulseTarget) || 'both';
+  for (const radio of document.querySelectorAll('input[name="pulseTarget"]')) {
+    radio.checked = radio.value === current;
+  }
+}
+
 /* ---------------- Connection pill ---------------- */
 function setConnectionState(state, label) {
   const pill = el('connectionPill');
@@ -111,6 +135,7 @@ async function load() {
     el('apiToken').placeholder = 'Atlassian API token';
   }
   renderTriggers();
+  applyPulseTargetFromConfig();
 
   if (workingConfig.jsm.siteUrl && workingConfig.jsm.email && workingConfig.jsm.hasApiToken) {
     // Restore "Connected as <name>" if we have the cached display name from

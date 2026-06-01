@@ -6,10 +6,14 @@ const { BrowserWindow, screen } = require('electron');
  * Refreshes on display add/remove.
  */
 class OverlayWindows {
-  constructor() {
+  constructor({ getPulseTarget } = {}) {
     this.windows = new Map(); // displayId -> BrowserWindow
     this.lastState = { status: 'idle', color: null, pulse: false, alerts: [] };
     this._onDisplayChanged = this.rebuild.bind(this);
+    // Live read of the user's pulseTarget. 'tray' means the user opted
+    // out of the screen-edge pulse, so the overlays stay dark even when
+    // alerting. Falls back to 'both' (pre-feature behaviour).
+    this.getPulseTarget = getPulseTarget || (() => 'both');
   }
 
   init() {
@@ -94,9 +98,19 @@ class OverlayWindows {
 
   broadcast(state) {
     this.lastState = state;
+    // 'tray' mode: user wants the pulse to live only in the menu bar.
+    // Rewrite alerting states to idle BEFORE forwarding to the overlay
+    // renderer so no screen-edge stroke ever paints. The tray manager
+    // still receives the unmodified state from alert-engine and pulses
+    // its own icon. 'screen' and 'both' modes pass through unchanged.
+    const target = this.getPulseTarget();
+    const out =
+      target === 'tray' && state.status === 'alerting'
+        ? { ...state, status: 'idle', color: null, pulse: false }
+        : state;
     for (const win of this.windows.values()) {
       if (!win.isDestroyed()) {
-        win.webContents.send('overlay:state', state);
+        win.webContents.send('overlay:state', out);
       }
     }
   }

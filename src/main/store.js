@@ -31,7 +31,12 @@ const defaults = {
       type: 'major',
       label: 'Major Incident = true',
       enabled: true,
-      color: '#ff0033',
+      // True red. The previous #ff0033 had a #33 blue channel that
+      // pushed it toward pink/magenta at small sizes (the 4px
+      // popover swatch read as hot pink even though the screen-edge
+      // pulse looked red). #dc2626 has no blue, reads as red both
+      // at 4px and at full-screen edge glow.
+      color: '#dc2626',
       pulse: true,
     },
     {
@@ -48,7 +53,7 @@ const defaults = {
       type: 'sla',
       label: 'SLA already breached',
       enabled: true,
-      color: '#ff0033',
+      color: '#dc2626',
       pulse: true,
       thresholdMinutes: 0,
     },
@@ -82,6 +87,12 @@ const defaults = {
   ],
   pollIntervalSeconds: 30,
   snoozeUntil: 0,
+  // Where the per-trigger pulse renders. 'screen' = thin colored stroke
+  // around every display (the original ambient UX). 'tray' = pulse the
+  // menu-bar icon in the trigger's color only (no screen border, less
+  // intrusive). 'both' = belt + suspenders. Default 'both' preserves
+  // pre-feature behaviour for existing users; new users see the same.
+  pulseTarget: 'both',
 };
 
 const store = new Store({
@@ -128,6 +139,36 @@ function backfillDefaultTriggers() {
   );
 }
 backfillDefaultTriggers();
+
+// One-shot color migration for the incident triggers. v0.5.x bumps
+// the major-incident + sla-breached colors from #ff0033 (which read
+// as hot pink at small sizes) to #dc2626 (true red). Only touches
+// triggers still at the old value - if the user has customized the
+// color to something else, we leave it alone.
+function migrateIncidentColorsToTrueRed() {
+  const triggers = store.get('triggers') || [];
+  if (!Array.isArray(triggers) || triggers.length === 0) return;
+  const PINKY = '#ff0033';
+  const TRUE_RED = '#dc2626';
+  let changed = false;
+  const next = triggers.map((t) => {
+    if (
+      t &&
+      (t.id === 'major-incident' || t.id === 'sla-breached') &&
+      typeof t.color === 'string' &&
+      t.color.toLowerCase() === PINKY
+    ) {
+      changed = true;
+      return { ...t, color: TRUE_RED };
+    }
+    return t;
+  });
+  if (changed) {
+    store.set('triggers', next);
+    console.log('[store] migrated incident trigger colors to true red');
+  }
+}
+migrateIncidentColorsToTrueRed();
 
 // Migrate global watch lists into per-trigger scope. v0.4.x moves the
 // "who do I watch" concept from app-level config (watchList, watchGroups,

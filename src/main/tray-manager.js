@@ -3,6 +3,44 @@ const { Tray, Menu, BrowserWindow, nativeImage, screen } = require('electron');
 
 const TRAY_DIR = path.join(__dirname, '..', '..', 'assets', 'tray');
 
+// Hex/rgba color sanitiser for the dynamic alert icon. The colour comes
+// from per-trigger config (store.triggers[].color), which is user-editable
+// in Settings — so we treat it as untrusted before splicing it into an
+// SVG. Anything that doesn't look like a #rgb / #rrggbb is replaced with
+// a safe red so the user still sees something fire.
+function sanitizeColor(c) {
+  if (typeof c === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)) {
+    return c;
+  }
+  return '#dc2626';
+}
+
+// Build the three-bar Nowtify mark coloured to the active trigger, with
+// an alpha that the pulse loop alternates between full and dim to read
+// as "breathing." 22x22 viewBox matches the macOS template-icon scale
+// (22pt at 1x). The mark itself is the same stacked-bars silhouette
+// used everywhere else in the brand (website hero, popover, etc.).
+function buildAlertSVG(color, alpha) {
+  const c = sanitizeColor(color);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22">`
+    + `<g opacity="${alpha}">`
+    + `<rect x="6"   y="6"    width="10"   height="2"   rx="0.7"  fill="${c}" fill-opacity="0.32"/>`
+    + `<rect x="5"   y="9.4"  width="12"   height="2.6" rx="0.85" fill="${c}" fill-opacity="0.62"/>`
+    + `<rect x="3.8" y="13.2" width="14.4" height="3.6" rx="1.1"  fill="${c}"/>`
+    + `</g></svg>`;
+}
+
+// Build a NativeImage for the colored alert state at a given pulse frame.
+// frame 0 = full alpha (bright), frame 1 = ~40% alpha (dim). Encoded as
+// an inline SVG data URL — no rasteriser dependency, and the same image
+// works at 1x and 2x menu-bar densities.
+function buildAlertImage(color, frame) {
+  const alpha = frame === 0 ? 1 : 0.4;
+  const svg = buildAlertSVG(color, alpha);
+  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  return nativeImage.createFromDataURL(dataUrl);
+}
+
 /**
  * Tray + popover window. The popover is a small frameless window positioned
  * near the tray icon, showing the list of triggering tickets.
@@ -18,6 +56,7 @@ class TrayManager {
     getState,
     getTriggers,
     getUpdateStatus,
+    getPulseTarget,
   }) {
     this.onOpenSettings = onOpenSettings;
     this.onSnooze = onSnooze;
@@ -28,6 +67,10 @@ class TrayManager {
     this.getState = getState;
     this.getTriggers = getTriggers;
     this.getUpdateStatus = getUpdateStatus;
+    // Reads the live pulseTarget setting at decision time so flipping it
+    // in Settings takes effect without restarting. Falls back to 'both'
+    // if the host forgot to wire it.
+    this.getPulseTarget = getPulseTarget || (() => 'both');
     this.tray = null;
     this.popover = null;
     this.iconCache = {};
@@ -83,10 +126,16 @@ class TrayManager {
   }
 
   iconFor(state, frame = 0) {
-    // Notification-stack glyph in 5 flavors. Idle/paused are template images
-    // (macOS tints them to match the menu bar). Alerting + snoozed are full
-    // color so they pop. Pulse animation swaps alert ↔ alert-dim every tick.
+    // Notification-stack glyph in 5 flavors. Idle/paused stay template
+    // images (macOS auto-tints them to the menu-bar foreground). When
+    // alerting, we now build the bars dynamically in the active trigger's
+    // colour so the menu bar itself communicates which trigger is firing
+    // (red Major Incident vs amber SLA vs purple Approval, etc.). Falls
+    // back to the legacy alert.png pair if no colour is available on the
+    // state - shouldn't happen in practice since alert-engine always
+    // emits a colour when alerting.
     if (state.status === 'alerting') {
+      if (state.color) return buildAlertImage(state.color, frame);
       const variant = frame === 0 ? 'alert' : 'alert-dim';
       const img = this.loadTrayIcon(variant);
       if (!img.isEmpty()) return img;
@@ -121,7 +170,13 @@ class TrayManager {
         return;
       }
       this.pulseFrame = this.pulseFrame === 0 ? 1 : 0;
-      this.tray.setImage(this.iconFor({ status: 'alerting' }, this.pulseFrame));
+      // Pull the live state so the pulse keeps the current trigger
+      // colour even if the top alert switched mid-animation (e.g. a
+      // Major Incident clears and SLA takes over).
+      const state = this.getState
+        ? this.getState()
+        : { status: 'alerting' };
+      this.tray.setImage(this.iconFor(state, this.pulseFrame));
     }, 650);
   }
 
@@ -145,9 +200,20 @@ class TrayManager {
     if (this.popover && !this.popover.isDestroyed()) {
       this.popover.webContents.send('popover:state', state);
     }
-    // Drive the pulse animation off the canonical state.
+    // Drive the pulse animation off the canonical state, BUT gate it
+    // on the user's pulseTarget preference. The tray icon itself still
+    // switches to the active trigger's colour the moment alerting
+    // begins (so users in 'screen' mode still have an always-on
+    // indicator in the menu bar); only the breathing animation is
+    // conditional. 'tray' and 'both' get the pulse; 'screen' gets a
+    // static coloured icon.
     if (state.status === 'alerting') {
-      this.startPulse();
+      const target = this.getPulseTarget();
+      if (target === 'tray' || target === 'both') {
+        this.startPulse();
+      } else {
+        this.stopPulse();
+      }
     } else {
       this.stopPulse();
     }

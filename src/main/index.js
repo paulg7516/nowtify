@@ -16,6 +16,7 @@ const ALLOWED_SAVE_KEYS = new Set([
   'watchGroups',
   'triggers',
   'pollIntervalSeconds',
+  'pulseTarget',
 ]);
 
 // Hostnames the app is allowed to hand to the user's default browser via
@@ -239,10 +240,12 @@ function wireIpc() {
     watchGroups: Array.isArray,
     triggers: Array.isArray,
     pollIntervalSeconds: (v) => typeof v === 'number' && Number.isFinite(v),
+    pulseTarget: (v) => v === 'screen' || v === 'tray' || v === 'both',
   };
 
   ipcMain.handle('settings:save', (_e, patch) => {
     if (!patch || typeof patch !== 'object') return store.getAll();
+    let pulseTargetChanged = false;
     for (const [key, value] of Object.entries(patch)) {
       if (!ALLOWED_SAVE_KEYS.has(key)) {
         console.warn('[security] rejected settings:save for disallowed key', key);
@@ -254,8 +257,17 @@ function wireIpc() {
         continue;
       }
       store.set(key, value);
+      if (key === 'pulseTarget') pulseTargetChanged = true;
     }
     engine.rebuildClient();
+    // Re-broadcast the live state so flipping pulseTarget takes effect
+    // immediately. Without this, overlays would stay in their previous
+    // mode (lit or dark) until the next engine tick (~30s default).
+    if (pulseTargetChanged) {
+      const live = engine.getState();
+      overlay.broadcast(live);
+      tray.setState(live);
+    }
     return store.getAll();
   });
   ipcMain.handle('settings:disconnect', () => {
@@ -458,7 +470,9 @@ app.whenReady().then(() => {
   );
 
   engine = new AlertEngine();
-  overlay = new OverlayWindows();
+  overlay = new OverlayWindows({
+    getPulseTarget: () => store.get('pulseTarget') || 'both',
+  });
   tray = new TrayManager({
     onOpenSettings: openSettings,
     onSnooze: (minutes) => {
@@ -481,6 +495,7 @@ app.whenReady().then(() => {
     getState: () => engine.getState(),
     getTriggers: () => store.get('triggers') || [],
     getUpdateStatus: () => updaterStatus,
+    getPulseTarget: () => store.get('pulseTarget') || 'both',
   });
 
   overlay.init();

@@ -42,6 +42,16 @@
           Triggers
         </button>
         <div class="nav-divider"></div>
+        <button class="nav-item" data-section="appearance">
+          <!-- Sparkle glyph - reads as "look + feel" without leaning on a
+               paintbrush metaphor that wouldn't match the app's voice. -->
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M 8 2 L 9 6 L 13 7 L 9 8 L 8 12 L 7 8 L 3 7 L 7 6 Z"/>
+            <path d="M 12.5 2.2 L 13 3.5 L 14.2 4 L 13 4.5 L 12.5 5.8 L 12 4.5 L 10.8 4 L 12 3.5 Z"/>
+          </svg>
+          Appearance
+        </button>
+        <div class="nav-divider"></div>
         <button class="nav-item" data-section="updates">
           <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M 8 1 v 9"/>
@@ -213,6 +223,47 @@
 
 
         <!-- UPDATES (diagnostic) -->
+        <!-- APPEARANCE: per-user pulse-target preference. Lets people opt
+             out of the screen-edge stroke if they find it intrusive while
+             keeping a colored menu-bar pulse, or the reverse. Default
+             'both' preserves the original Nowtify behaviour. -->
+        <section id="section-appearance" class="panel" hidden>
+          <div class="panel-header">
+            <h2>Appearance</h2>
+            <p class="panel-sub">Choose how Nowtify gets your attention. The pulse always matches the active trigger's colour.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Pulse target</h3>
+              <p class="card-sub">Where the per-trigger pulse renders when an alert fires.</p>
+            </div>
+            <div class="pulse-target-options" role="radiogroup" aria-label="Pulse target">
+              <label class="pulse-target-option">
+                <input type="radio" name="pulseTarget" value="screen">
+                <span class="pulse-target-label">
+                  <span class="pulse-target-title">Screen edge</span>
+                  <span class="pulse-target-hint">A thin colored stroke around every display. Most visible, most ambient.</span>
+                </span>
+              </label>
+              <label class="pulse-target-option">
+                <input type="radio" name="pulseTarget" value="tray">
+                <span class="pulse-target-label">
+                  <span class="pulse-target-title">Tray icon</span>
+                  <span class="pulse-target-hint">Only the menu-bar icon pulses. Quietest option, easy to ignore until you look up.</span>
+                </span>
+              </label>
+              <label class="pulse-target-option">
+                <input type="radio" name="pulseTarget" value="both">
+                <span class="pulse-target-label">
+                  <span class="pulse-target-title">Both</span>
+                  <span class="pulse-target-hint">Screen edge and menu-bar icon together. Hardest to miss.</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </section>
+
         <section id="section-updates" class="panel" hidden>
           <div class="panel-header">
             <h2>Updates</h2>
