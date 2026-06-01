@@ -32,20 +32,106 @@ function buildAlertSVG(color, alpha, size = 22) {
     + `</g></svg>`;
 }
 
-// Build a NativeImage for the colored alert state at a given pulse frame.
-// frame 0 = full alpha (bright), frame 1 = ~40% alpha (dim). Try the
-// buffer path first (most reliable on macOS through Skia), fall back to
-// data-URL form, and treat zero-size as failure so the caller can use
-// the legacy PNG instead of setting an invisible icon.
-function buildAlertImage(color, frame) {
-  const alpha = frame === 0 ? 1 : 0.4;
-  const svg = buildAlertSVG(color, alpha);
-  const buf = Buffer.from(svg, 'utf8');
-  let img = nativeImage.createFromBuffer(buf);
-  if (img.isEmpty() || img.getSize().width === 0) {
-    img = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${buf.toString('base64')}`);
+// nativeImage.createFromDataURL / createFromBuffer with SVG bytes
+// returns empty on macOS in Electron 33 - those entry points only
+// document PNG/JPEG support and the Skia path treats SVG as raw bitmap
+// garbage. To get a coloured tray icon we have to rasterize the SVG to
+// PNG ourselves first. We do that via a single hidden offscreen
+// BrowserWindow (lazily created on first use, kept around for the life
+// of the app since teardown costs more than the idle memory).
+//
+// Results are cached per colour so the pulse loop (650ms) doesn't kick
+// off a render every tick. First time a new colour appears we return
+// null and let the caller fall back to the legacy red PNG; the next
+// pulse tick after the rasterize promise resolves picks up the cached
+// coloured image.
+let _rasterizerWindow = null;
+
+function getRasterizerWindow() {
+  if (_rasterizerWindow && !_rasterizerWindow.isDestroyed()) return _rasterizerWindow;
+  _rasterizerWindow = new BrowserWindow({
+    width: 64,
+    height: 64,
+    show: false,
+    transparent: true,
+    frame: false,
+    skipTaskbar: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      offscreen: true,
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false,
+    },
+  });
+  return _rasterizerWindow;
+}
+
+function destroyRasterizerWindow() {
+  if (_rasterizerWindow && !_rasterizerWindow.isDestroyed()) {
+    _rasterizerWindow.destroy();
   }
-  return img;
+  _rasterizerWindow = null;
+}
+
+// Render a single SVG to a PNG NativeImage using the offscreen window.
+// Size is rendered at 2x logical (44px) so macOS retina menu bars get a
+// crisp icon. The HTML wrapper is minimal: just the <img> with explicit
+// dimensions so layout completes immediately.
+async function rasterizeSVGToImage(svg, logicalSize = 22) {
+  const px = logicalSize * 2;
+  const win = getRasterizerWindow();
+  win.setBounds({ x: 0, y: 0, width: px, height: px });
+  const html = `<!doctype html><html><head><style>
+      html,body{margin:0;padding:0;background:transparent;width:${px}px;height:${px}px;overflow:hidden;}
+      img{display:block;width:${px}px;height:${px}px;}
+    </style></head><body>
+    <img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">
+    </body></html>`;
+  await win.loadURL('data:text/html;base64,' + Buffer.from(html).toString('base64'));
+  // Brief tick so the <img> finishes its first paint into the offscreen
+  // buffer before capturePage reads it. ~80ms is conservative; tested
+  // reliable across cold-start and warm reuse.
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  return win.webContents.capturePage({ x: 0, y: 0, width: px, height: px });
+}
+
+// Per-colour { full, dim } cache. Both frames precomputed so the pulse
+// loop is a pure map lookup at 650ms cadence.
+const alertImageCache = new Map();
+const alertRasterizing = new Set();
+
+// Kick off (or fast-skip) a rasterize for a given colour. When both
+// frames land in the cache we call onReady so the tray can refresh
+// without waiting for the next pulse tick.
+function ensureAlertImagesForColor(color, onReady) {
+  if (alertImageCache.has(color)) {
+    if (onReady) onReady();
+    return;
+  }
+  if (alertRasterizing.has(color)) return;
+  alertRasterizing.add(color);
+  (async () => {
+    try {
+      const fullSvg = buildAlertSVG(color, 1);
+      const dimSvg = buildAlertSVG(color, 0.4);
+      const [full, dim] = await Promise.all([
+        rasterizeSVGToImage(fullSvg),
+        rasterizeSVGToImage(dimSvg),
+      ]);
+      if (!full.isEmpty() && full.getSize().width > 0) {
+        alertImageCache.set(color, { full, dim });
+        if (onReady) onReady();
+      } else {
+        console.warn('[tray] rasterize produced empty image for', color);
+      }
+    } catch (e) {
+      console.warn('[tray] rasterize failed for', color, e && e.message);
+    } finally {
+      alertRasterizing.delete(color);
+    }
+  })();
 }
 
 /**
@@ -115,6 +201,10 @@ class TrayManager {
     }
     if (this.popover && !this.popover.isDestroyed()) this.popover.close();
     this.popover = null;
+    // Tear down the offscreen SVG rasterizer too - it's process-wide
+    // (module-level singleton) but the only consumer is this manager,
+    // so a manager destroy is the right tear-down point.
+    destroyRasterizerWindow();
   }
 
   loadTrayIcon(name, { template = false } = {}) {
@@ -143,11 +233,21 @@ class TrayManager {
     // emits a colour when alerting.
     if (state.status === 'alerting') {
       if (state.color) {
-        const dynImg = buildAlertImage(state.color, frame);
-        if (!dynImg.isEmpty() && dynImg.getSize().width > 0) return dynImg;
-        // Dynamic SVG returned empty - the legacy red PNGs are visible
-        // even if monochrome, much better than an invisible tray icon.
-        console.warn('[tray] dynamic alert icon empty for color', state.color, 'falling back to PNG');
+        const cached = alertImageCache.get(state.color);
+        if (cached) {
+          return frame === 0 ? cached.full : cached.dim;
+        }
+        // First time we see this colour: kick off async rasterize and
+        // fall through to the red PNG for THIS tick. Once the cache
+        // populates we repaint immediately via the onReady callback.
+        ensureAlertImagesForColor(state.color, () => {
+          if (this.tray && !this.tray.isDestroyed()) {
+            const s = this.getState ? this.getState() : null;
+            if (s && s.status === 'alerting') {
+              this.tray.setImage(this.iconFor(s, this.pulseFrame));
+            }
+          }
+        });
       }
       const variant = frame === 0 ? 'alert' : 'alert-dim';
       const img = this.loadTrayIcon(variant);
