@@ -13,15 +13,20 @@ function applyState(state) {
 
 function paint(state) {
   const { status, color, pulse } = state || {};
+  console.log('[overlay-renderer] paint:', { status, color, pulse, wasAlerting });
   if (status === 'alerting' && color) {
     document.documentElement.style.setProperty('--border-color', color);
     document.documentElement.style.setProperty('--border-width', '6px');
-    if (pulse && !wasAlerting) {
-      // Fresh transition into alerting - restart the 15s pulse.
+    if (pulse) {
+      // Always force-restart the animation on every alerting paint.
+      // Trusting `wasAlerting` led to a class of bugs where a missed
+      // intermediate state (e.g. snoozed message dropped on the wire)
+      // left wasAlerting=true, the if-branch skipped the reflow trick,
+      // and the user saw a static border instead of a breathing pulse.
       frame.classList.remove('pulsing');
       void frame.offsetWidth; // force reflow so the animation restarts
       frame.classList.add('pulsing');
-    } else if (!pulse) {
+    } else {
       frame.classList.remove('pulsing');
     }
     wasAlerting = true;

@@ -121,6 +121,9 @@ class OverlayWindows {
       target === 'tray' && state.status === 'alerting'
         ? { ...state, status: 'idle', color: null, pulse: false }
         : state;
+    console.log(
+      `[overlay] broadcast: target=${target} status=${state.status} -> ${out.status} color=${out.color || 'none'} windows=${this.windows.size}`,
+    );
     for (const win of this.windows.values()) {
       if (!win.isDestroyed()) {
         win.webContents.send('overlay:state', out);

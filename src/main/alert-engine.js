@@ -554,19 +554,25 @@ class AlertEngine extends EventEmitter {
   // immediately.
   refreshSnoozeGate() {
     const last = this.lastState;
-    if (!last) return;
-    const snoozed = store.isSnoozed();
-    const snoozeUntilMs = store.get('snoozeUntil') || 0;
-    // No-op if the snooze gate hasn't actually changed - avoids
-    // emitting a duplicate state event on a no-change click.
-    if (Boolean(last.snoozed) === snoozed && (last.snoozeUntilMs || 0) === snoozeUntilMs) {
+    if (!last) {
+      console.log('[engine] refreshSnoozeGate: no lastState yet, skipping');
       return;
     }
+    const snoozed = store.isSnoozed();
+    const snoozeUntilMs = store.get('snoozeUntil') || 0;
+    const alertsCount = (last.alerts || []).length;
     const refreshed = computeOverallState(last.alerts || [], {
       snoozed,
       snoozeUntilMs,
       anyEnabled: Boolean(last.anyEnabled),
     });
+    console.log(
+      `[engine] refreshSnoozeGate: snoozed ${last.snoozed} -> ${snoozed}, status ${last.status} -> ${refreshed.status}, alerts=${alertsCount}`,
+    );
+    // No no-op early return any more. If a user clicks Resume now, we
+    // ALWAYS re-emit, even if the cached snoozed flag already matches
+    // what's in the store. The user clicking the menu is their explicit
+    // intent for the UI to refresh; trust it over our cache.
     this.emitState(refreshed);
   }
 }
