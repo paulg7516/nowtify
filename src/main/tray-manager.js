@@ -16,19 +16,23 @@ function sanitizeColor(c) {
 }
 
 // Build the three-bar Nowtify mark coloured to the active trigger.
-// Bar geometry + opacities mirror scripts/generate-icon.js:traySvg()
-// exactly - that's the canonical generator the bundled alert.png +
-// alert@2x.png were rendered from, so this image is pixel-equivalent
-// to the original tray asset, just coloured to the active trigger.
+// Bar geometry matches scripts/generate-icon.js:traySvg() but the
+// per-bar opacities are bumped from the canonical 0.55/0.80/1.00 to
+// 0.80/0.92/1.00. At the dock-icon scale the original gradient reads
+// fine, but at the 22px tray scale the top bar at 55% opacity looked
+// washed-out next to the solid WiFi / battery / Spotlight icons. The
+// new opacities preserve the bar-thickness gradient (still reads as
+// stacked, not slabby) while bringing the colour weight up to match
+// the surrounding system glyphs.
+//
 // alpha is the pulse-loop dim factor (1.0 = full, 0.4 = dim) and is
-// multiplied into each bar's base opacity, matching the original
-// generator's baseOpacity parameter.
+// multiplied into each bar's base opacity.
 function buildAlertSVG(color, alpha) {
   const c = sanitizeColor(color);
   const o = (n) => (n * alpha).toFixed(3);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">`
-    + `<rect x="5"   y="5.0"  width="12" height="2.5" rx="1.25" fill="${c}" opacity="${o(0.55)}"/>`
-    + `<rect x="3.5" y="9.0"  width="15" height="3.0" rx="1.50" fill="${c}" opacity="${o(0.80)}"/>`
+    + `<rect x="5"   y="5.0"  width="12" height="2.5" rx="1.25" fill="${c}" opacity="${o(0.80)}"/>`
+    + `<rect x="3.5" y="9.0"  width="15" height="3.0" rx="1.50" fill="${c}" opacity="${o(0.92)}"/>`
     + `<rect x="2"   y="13.5" width="18" height="3.5" rx="1.75" fill="${c}" opacity="${o(1.00)}"/>`
     + `</svg>`;
 }
