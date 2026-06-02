@@ -545,6 +545,30 @@ class AlertEngine extends EventEmitter {
   getState() {
     return this.lastState;
   }
+
+  // Synchronously rebuild + re-emit the cached state with the current
+  // snooze gate. Called from the "Resume now" / "Snooze for X" menu
+  // actions so the pulse comes back (or goes away) the instant the
+  // user clicks, not after a JIRA round-trip. The next pokeNow tick
+  // will reconfirm with fresh data; this just gets the UI in sync
+  // immediately.
+  refreshSnoozeGate() {
+    const last = this.lastState;
+    if (!last) return;
+    const snoozed = store.isSnoozed();
+    const snoozeUntilMs = store.get('snoozeUntil') || 0;
+    // No-op if the snooze gate hasn't actually changed - avoids
+    // emitting a duplicate state event on a no-change click.
+    if (Boolean(last.snoozed) === snoozed && (last.snoozeUntilMs || 0) === snoozeUntilMs) {
+      return;
+    }
+    const refreshed = computeOverallState(last.alerts || [], {
+      snoozed,
+      snoozeUntilMs,
+      anyEnabled: Boolean(last.anyEnabled),
+    });
+    this.emitState(refreshed);
+  }
 }
 
 /**

@@ -501,6 +501,12 @@ app.whenReady().then(() => {
     onOpenSettings: openSettings,
     onSnooze: (minutes) => {
       store.setSnooze(minutes);
+      // Synchronously rebuild the cached state with the new snooze
+      // gate so Resume now / snooze take effect IMMEDIATELY in the
+      // pulse + tray icon, without waiting for the next JIRA tick
+      // (which can be seconds away). The pokeNow below still runs
+      // so the engine reconfirms with fresh data on the next round.
+      engine.refreshSnoozeGate();
       engine.pokeNow();
     },
     onPoke: () => engine.pokeNow(),
