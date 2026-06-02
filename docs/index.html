@@ -25,7 +25,14 @@
     --green: #10b981;
     --maxw: 1120px;
     --pad-x: clamp(20px, 5vw, 48px);
-    --section-y: clamp(96px, 14vw, 160px);
+    /* Section vertical padding token. Used as both padding-top and
+       padding-bottom on every section, so the gap BETWEEN sections is
+       2x this value. Was clamp(96px, 14vw, 160px) which produced
+       ~320px gaps at desktop widths and made the page feel stretched.
+       Tightened to clamp(64px, 9vw, 110px) so desktop tops out at
+       ~220px between sections (still substantial breathing room, no
+       longer cavernous). Mobile <=480px overrides to 64px directly. */
+    --section-y: clamp(64px, 9vw, 110px);
     --radius: 14px;
     --radius-sm: 8px;
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
