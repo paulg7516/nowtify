@@ -164,6 +164,36 @@
        sliver, screen-edge pulse glow at large viewports) pushing past
        the viewport edge and creating horizontal scroll on mobile. */
     overflow: hidden;
+    position: relative;
+  }
+  /* Subtle aurora: soft indigo + lavender radial wash in the top half
+     of the hero, fading to transparent. Reads as ambient depth, not
+     as decoration - barely visible if you look directly at it but
+     the page no longer feels paper-flat. ~10% peak opacity so it
+     never competes with the content. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        ellipse 70% 55% at 30% 0%,
+        rgba(99, 102, 241, 0.10),
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 70% 55% at 75% 8%,
+        rgba(167, 139, 250, 0.08),
+        transparent 65%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero > * { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    /* Aurora is static colour, no motion - kept on for reduced-motion
+       users too. Listed here as a no-op so future motion additions
+       remember to consider this media query. */
   }
   .hero-inner { display: flex; flex-direction: column; align-items: center; }
   .eyebrow {
@@ -173,6 +203,18 @@
     text-transform: uppercase;
     color: var(--ink-2);
     margin: 0 0 28px;
+  }
+  /* Gradient anchor on the second hero-title phrase ("At the edge of
+     your screen.") - draws the eye to the brand's most-photographed
+     phrase. One phrase only; gradient on the whole title reads as
+     cliche. Same indigo -> lavender ramp as the aurora so the page
+     reads as colour-coordinated, not random. */
+  .hero-title-grad {
+    background: linear-gradient(90deg, #4f46e5 0%, #7c6efb 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
   .hero-title {
     font-size: clamp(40px, 6.4vw, 72px);
@@ -881,6 +923,30 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 40px;
   }
+  /* Each differentiator card carries a soft pastel tint matching one of
+     the brand colours. Reads as variety + reinforces the per-trigger
+     colour story used elsewhere (red incidents / amber SLA / indigo
+     approvals etc) without being saturated enough to compete with
+     the feature-grid above. ~4-5% opacity peak so the tint is felt
+     more than seen. */
+  .diff-card {
+    padding: 24px;
+    border-radius: 12px;
+    transition: transform 200ms ease;
+  }
+  .diff-card:hover { transform: translateY(-2px); }
+  .differentiators .diff-card:nth-child(1) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.02));
+    border: 1px solid rgba(99, 102, 241, 0.08);
+  }
+  .differentiators .diff-card:nth-child(2) {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(245, 158, 11, 0.02));
+    border: 1px solid rgba(245, 158, 11, 0.10);
+  }
+  .differentiators .diff-card:nth-child(3) {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(16, 185, 129, 0.02));
+    border: 1px solid rgba(16, 185, 129, 0.10);
+  }
   .diff-card h4 {
     font-size: 18px;
     margin: 0 0 8px;
@@ -1171,7 +1237,7 @@
 <section class="hero" id="top">
   <div class="container hero-inner">
     <p class="eyebrow">Ambient alerts for macOS</p>
-    <h1 class="hero-title">The urgent stuff.<br>At the edge of your screen.</h1>
+    <h1 class="hero-title">The urgent stuff.<br><span class="hero-title-grad">At the edge of your screen.</span></h1>
     <p class="hero-sub">
       Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around your screen. Available when you want it, invisible when you don't.
     </p>
