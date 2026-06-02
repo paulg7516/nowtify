@@ -16,24 +16,23 @@ function sanitizeColor(c) {
 }
 
 // Build the three-bar Nowtify mark coloured to the active trigger.
-// Bar geometry matches scripts/generate-icon.js:traySvg() but the
-// per-bar opacities are bumped from the canonical 0.55/0.80/1.00 to
-// 0.80/0.92/1.00. At the dock-icon scale the original gradient reads
-// fine, but at the 22px tray scale the top bar at 55% opacity looked
-// washed-out next to the solid WiFi / battery / Spotlight icons. The
-// new opacities preserve the bar-thickness gradient (still reads as
-// stacked, not slabby) while bringing the colour weight up to match
-// the surrounding system glyphs.
+// All bars now render at full opacity (1.0) so the icon paints in the
+// trigger's actual hue at every pixel. The 0.55/0.80/1.00 gradient
+// from the dock-scale generator was too washed-out at the 22px tray
+// scale - the top bar at 55% read as a fade rather than a stacked
+// graphic next to the surrounding solid system icons.
 //
-// alpha is the pulse-loop dim factor (1.0 = full, 0.4 = dim) and is
-// multiplied into each bar's base opacity.
+// alpha is the pulse-loop dim factor (1.0 = full frame, 0.5 = dim
+// frame). At dim, all bars drop to 50% opacity in lockstep, so the
+// icon is still clearly visible (just calmer) instead of fading to
+// near-transparent.
 function buildAlertSVG(color, alpha) {
   const c = sanitizeColor(color);
-  const o = (n) => (n * alpha).toFixed(3);
+  const o = alpha.toFixed(3);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">`
-    + `<rect x="5"   y="5.0"  width="12" height="2.5" rx="1.25" fill="${c}" opacity="${o(0.80)}"/>`
-    + `<rect x="3.5" y="9.0"  width="15" height="3.0" rx="1.50" fill="${c}" opacity="${o(0.92)}"/>`
-    + `<rect x="2"   y="13.5" width="18" height="3.5" rx="1.75" fill="${c}" opacity="${o(1.00)}"/>`
+    + `<rect x="5"   y="5.0"  width="12" height="2.5" rx="1.25" fill="${c}" opacity="${o}"/>`
+    + `<rect x="3.5" y="9.0"  width="15" height="3.0" rx="1.50" fill="${c}" opacity="${o}"/>`
+    + `<rect x="2"   y="13.5" width="18" height="3.5" rx="1.75" fill="${c}" opacity="${o}"/>`
     + `</svg>`;
 }
 
@@ -115,7 +114,12 @@ async function rasterizeSVGToExactPx(svg, targetPx) {
 // right rep based on the menu-bar density - same code path the
 // original tray icons go through.
 async function buildColoredAlertImage(color, alpha) {
-  const svg = buildAlertSVG(color, alpha);
+  // Bumped dim alpha from 0.4 -> 0.5 so the pulse cycle reads as a
+  // breathing-not-blinking icon. At 0.4 the dim frame was so faded
+  // it looked like the icon momentarily disappeared rather than
+  // pulsed - making the pulse imperceptible to the user.
+  const finalAlpha = alpha >= 1 ? 1 : 0.5;
+  const svg = buildAlertSVG(color, finalAlpha);
   const [img22, img44] = await Promise.all([
     rasterizeSVGToExactPx(svg, 22),
     rasterizeSVGToExactPx(svg, 44),
@@ -309,6 +313,7 @@ class TrayManager {
 
   startPulse() {
     if (this.pulseTimer) return;
+    console.log('[tray] startPulse: kicking off 650ms tray-icon pulse loop');
     this.pulseFrame = 0;
     this.pulseTimer = setInterval(() => {
       if (!this.tray || this.tray.isDestroyed()) {
