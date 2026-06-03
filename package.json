@@ -1,6 +1,6 @@
 {
   "name": "nowtify",
-  "version": "0.5.26",
+  "version": "0.5.27",
   "description": "Nowtify - ambient JSM alert overlay. Thin screen-border glow that flashes when watched tickets cross Major Incident or SLA trigger conditions.",
   "main": "src/main/index.js",
   "scripts": {
