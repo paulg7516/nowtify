@@ -393,6 +393,44 @@ function parseMajorIncident(raw) {
 }
 
 /**
+ * True when an issue has moved to a Done-category status. JSM groups every
+ * status into one of three categories - "new" (To Do), "indeterminate" (In
+ * Progress), "done" (green: Resolved / Closed / Cancelled). We use this to
+ * drop approvals/incidents whose underlying ticket is finished: JSM's
+ * MY_PENDING_APPROVAL endpoint keeps returning an approval after the request
+ * is cancelled/closed without a decision (the approval step is never
+ * actioned), so without this gate a cancelled approval lingers in the
+ * popover forever. Safe on partial shapes - returns false if status is
+ * missing.
+ */
+function isDoneIssue(issue) {
+  const key =
+    issue &&
+    issue.fields &&
+    issue.fields.status &&
+    issue.fields.status.statusCategory &&
+    issue.fields.status.statusCategory.key;
+  return typeof key === 'string' && key.toLowerCase() === 'done';
+}
+
+/**
+ * Format a "how long ago" relative label from a created/triggered timestamp.
+ * Used on approval + Major Incident rows so the user can see at a glance how
+ * stale each item is. Returns '' when the timestamp is missing/non-finite,
+ * and clamps future timestamps (clock skew) to "just now".
+ */
+function formatTriggeredAgo(createdMs, nowMs) {
+  if (createdMs == null) return '';
+  const created = Number(createdMs);
+  if (!Number.isFinite(created) || created <= 0) return '';
+  const delta = Math.max(0, Number(nowMs) - created);
+  if (delta < 60_000) return 'just now';
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`;
+  return `${Math.floor(delta / 86_400_000)}d ago`;
+}
+
+/**
  * Map a Service Desk request payload into the issue-shape the alert engine
  * expects. The servicedeskapi response is structurally different from
  * /rest/api/3/search results (request-centric vs issue-centric), so we
@@ -436,4 +474,10 @@ function mapServiceDeskRequestToIssue(req) {
   };
 }
 
-module.exports = { JsmClient, parseSlaField, parseMajorIncident };
+module.exports = {
+  JsmClient,
+  parseSlaField,
+  parseMajorIncident,
+  isDoneIssue,
+  formatTriggeredAgo,
+};

@@ -113,21 +113,25 @@ pollUpdateStatus();
 setInterval(pollUpdateStatus, 15_000);
 const tabsEl = el('tabs');
 const tabCountIncidents = el('tabCountIncidents');
+const tabCountSla = el('tabCountSla');
 const tabCountApprovals = el('tabCountApprovals');
 const tabCountMessages = el('tabCountMessages');
 
 let currentState = { alerts: [], status: 'idle', snoozed: false };
 let lastSyncAt = null;
 let snoozeUntilMs = 0;
-let activeTab = 'incidents'; // 'incidents' | 'approvals' | 'messages'
+let activeTab = 'incidents'; // 'incidents' | 'sla' | 'approvals' | 'messages'
+let sortOrder = 'recent'; // 'recent' (newest first) | 'oldest'
 
 // Route each alert to a tab based on trigType:
-//   - major/sla    -> incidents (shared "something is on fire" urgency)
+//   - major        -> incidents (declared Major Incidents)
+//   - sla          -> sla (SLA breaches / imminent breaches)
 //   - approval     -> approvals (grooming queue)
 //   - teams/email  -> messages (relational urgency from a specific person;
 //                     per-row badge tells you which medium it came in on)
 function tabFor(alert) {
   if (!alert) return 'incidents';
+  if (alert.trigType === 'sla') return 'sla';
   if (alert.trigType === 'approval') return 'approvals';
   if (alert.trigType === 'teams' || alert.trigType === 'email') return 'messages';
   return 'incidents';
@@ -139,6 +143,20 @@ for (const btn of tabsEl.querySelectorAll('button[data-tab]')) {
     for (const b of tabsEl.querySelectorAll('button[data-tab]')) {
       b.classList.toggle('active', b.dataset.tab === activeTab);
     }
+    renderList(currentState);
+  };
+}
+
+/* ----------- Sort toggle (newest <-> oldest) ----------- */
+const sortToggle = el('sortToggle');
+const sortToggleLabel = el('sortToggleLabel');
+if (sortToggle) {
+  sortToggle.onclick = () => {
+    sortOrder = sortOrder === 'recent' ? 'oldest' : 'recent';
+    sortToggleLabel.textContent = sortOrder === 'recent' ? 'Newest' : 'Oldest';
+    // Flip the icon vertically so the arrow points the other way.
+    sortToggle.querySelector('svg').style.transform =
+      sortOrder === 'recent' ? '' : 'scaleY(-1)';
     renderList(currentState);
   };
 }
@@ -225,18 +243,21 @@ function render(state) {
   // tab while another has alerts.
   const counts = {
     incidents: alerts.filter((a) => tabFor(a) === 'incidents').length,
+    sla: alerts.filter((a) => tabFor(a) === 'sla').length,
     approvals: alerts.filter((a) => tabFor(a) === 'approvals').length,
     messages: alerts.filter((a) => tabFor(a) === 'messages').length,
   };
   tabCountIncidents.textContent = String(counts.incidents);
+  tabCountSla.textContent = String(counts.sla);
   tabCountApprovals.textContent = String(counts.approvals);
   tabCountMessages.textContent = String(counts.messages);
 
   // Auto-switch: if active tab is empty but another has alerts, jump to
-  // the first non-empty tab in priority order (incidents > messages >
-  // approvals - urgent first, then relationship-time, then grooming).
+  // the first non-empty tab in priority order (incidents > sla > messages >
+  // approvals - declared incidents first, then SLA pressure, then
+  // relationship-time, then grooming).
   if (counts[activeTab] === 0) {
-    const priority = ['incidents', 'messages', 'approvals'];
+    const priority = ['incidents', 'sla', 'messages', 'approvals'];
     const nextTab = priority.find((t) => counts[t] > 0);
     if (nextTab) {
       activeTab = nextTab;
@@ -252,6 +273,15 @@ function render(state) {
 function renderList(state) {
   const alerts = state.alerts || [];
   const visible = alerts.filter((a) => tabFor(a) === activeTab);
+
+  // Order by event time. Default 'recent' = newest at the top; toggling to
+  // 'oldest' reverses it. Items missing a timestamp sort to the bottom in
+  // newest mode (treated as oldest).
+  visible.sort((a, b) => {
+    const am = a.sortMs || 0;
+    const bm = b.sortMs || 0;
+    return sortOrder === 'recent' ? bm - am : am - bm;
+  });
 
   list.innerHTML = '';
   if (visible.length === 0) {
@@ -274,6 +304,9 @@ function renderEmpty(state) {
     // snoozed (which still polls, just doesn't pulse the border).
     titleText = 'All triggers off';
     message = 'Turn one on in Settings to start watching.';
+  } else if (activeTab === 'sla') {
+    titleText = 'No SLA alerts';
+    message = 'No watched tickets are breaching or close to breaching an SLA.';
   } else if (activeTab === 'approvals') {
     titleText = 'No approvals';
     message = 'No pending approvals assigned to you have been identified.';
@@ -282,7 +315,7 @@ function renderEmpty(state) {
     message = 'No unread Teams messages from your watched users.';
   } else {
     titleText = 'No incidents';
-    message = 'No tickets are currently triggering an incident alert.';
+    message = 'No tickets are currently flagged as a Major Incident.';
   }
   list.innerHTML = `
     <div class="empty">
@@ -307,13 +340,35 @@ function renderAlertRow(a) {
 
   const meta = document.createElement('div');
   meta.className = 'meta';
+  const isMessage = a.trigType === 'teams' || a.trigType === 'email';
+
+  // Line 1: summary + (SLA only) a colored status chip on the right.
+  const lineSummary = document.createElement('div');
+  lineSummary.className = 'row-summary';
+  const summary = document.createElement('div');
+  summary.className = 'summary';
+  summary.textContent = a.ticketSummary;
+  lineSummary.appendChild(summary);
+  // Status chip (SLA breach state, Incident priority, approval staleness, or
+  // message age). Built here but placed in the right-side aside below so it
+  // stacks cleanly above any Teams Join button instead of floating mid-row.
+  let chipEl = null;
+  if (a.statusLabel) {
+    chipEl = document.createElement('span');
+    chipEl.className = 'status-chip';
+    chipEl.dataset.kind = a.statusKind || '';
+    chipEl.textContent = a.statusLabel;
+  }
+
+  // Line 2: ticket key (or sender) · assignee. For Teams/Email the key IS
+  // the sender, so we skip the duplicate assignee and append the brand badge.
+  const lineId = document.createElement('div');
+  lineId.className = 'row-id';
   const key = document.createElement('a');
   key.className = 'key';
   key.textContent = a.ticketKey;
   key.onclick = () => api.openTicket(a.jsmUrl);
-  // For Teams/Email alerts, append a brand-badge after the sender name.
-  // Uses the official Iconify multi-color SVGs (same source as the
-  // Integrations cards) so the marks are unmistakeable.
+  lineId.appendChild(key);
   if (a.medium === 'teams' || a.medium === 'outlook') {
     const badge = document.createElement('span');
     badge.className = 'medium-badge';
@@ -324,19 +379,43 @@ function renderAlertRow(a) {
         : OUTLOOK_BRAND_SVG + 'Outlook';
     key.appendChild(badge);
   }
-  const summary = document.createElement('div');
-  summary.className = 'summary';
-  summary.textContent = a.ticketSummary;
-  const sub = document.createElement('div');
-  sub.className = 'sub';
-  const remaining =
-    a.remainingMinutes !== undefined && a.remainingMinutes !== null
-      ? ` · ${a.remainingMinutes}m remaining`
-      : '';
-  sub.textContent = `${a.assigneeName} · ${a.conditionLabel}${remaining}`;
-  meta.append(key, summary, sub);
+  if (!isMessage && a.assigneeName) {
+    const sep = document.createElement('span');
+    sep.className = 'sep';
+    sep.textContent = '·';
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = a.assigneeName;
+    lineId.append(sep, who);
+  }
+
+  // Line 3: the condition detail (wraps, never truncated). The chip already
+  // carries the time/severity, so we don't repeat it here:
+  //   - SLA / approval -> the type / condition label
+  //   - Major Incident -> age ("raised 2h ago"); priority is in the chip
+  //   - messages        -> nothing (sender badge + age chip cover it)
+  let detail = '';
+  if (a.trigType === 'sla' || a.trigType === 'approval') {
+    detail = a.conditionLabel || '';
+  } else if (a.trigType === 'major') {
+    detail = a.agoLabel || '';
+  }
+
+  meta.append(lineSummary, lineId);
+  if (detail) {
+    const lineDetail = document.createElement('div');
+    lineDetail.className = 'row-detail';
+    lineDetail.textContent = detail;
+    meta.appendChild(lineDetail);
+  }
 
   li.append(swatch, meta);
+
+  // Right-side column: holds the status chip and/or the Teams Join button,
+  // stacked + right-aligned so the two never collide.
+  const aside = document.createElement('div');
+  aside.className = 'row-aside';
+  if (chipEl) aside.appendChild(chipEl);
 
   // Teams meeting / chat button (only for MI alerts with a connection).
   // Layout: [Teams logo] [video|chat icon] Join/Chat
@@ -371,8 +450,10 @@ function renderAlertRow(a) {
       e.stopPropagation();
       api.openTicket(a.meetingUrl);
     };
-    li.appendChild(meetingBtn);
+    aside.appendChild(meetingBtn);
   }
+
+  if (aside.childNodes.length) li.appendChild(aside);
 
   return li;
 }

@@ -43,42 +43,45 @@ const ALLOWED_SAVE_KEYS = new Set([
   'pulseTarget',
 ]);
 
-// Hostnames the app is allowed to hand to the user's default browser via
-// shell.openExternal. URLs come from JSM API responses (browse URLs, Teams
-// meeting URLs) so a JSM admin could otherwise smuggle arbitrary http(s)
-// destinations into ticket data. Limited to: the configured JSM site,
-// Atlassian's account-management origin (for the API-token help link), and
-// Microsoft Teams' meeting-join origin.
+// Allow-list check for URLs we hand to the OS. URLs come from JSM API
+// responses (browse URLs, Teams meeting URLs) and Microsoft Graph (Teams
+// chat + Outlook mail links), so a JSM admin or mailbox sender could
+// otherwise smuggle arbitrary destinations into the data. The host policy
+// lives in ./links (pure + unit-tested); here we just supply the configured
+// JSM host read from the store.
 function isAllowedExternalHost(urlString) {
-  let u;
+  let jsmHost = '';
   try {
-    u = new URL(urlString);
+    const cfg = require('./store').get('jsm') || {};
+    jsmHost = cfg.siteUrl ? new URL(cfg.siteUrl).hostname.toLowerCase() : '';
   } catch (_) {
-    return false;
+    jsmHost = '';
   }
-  if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
-  const host = u.hostname.toLowerCase();
-  // Configured JSM site (e.g. xolv-sandbox.atlassian.net)
-  const jsmHost = (() => {
-    try {
-      const cfg = require('./store').get('jsm') || {};
-      return cfg.siteUrl ? new URL(cfg.siteUrl).hostname.toLowerCase() : '';
-    } catch (_) {
-      return '';
-    }
-  })();
-  if (jsmHost && host === jsmHost) return true;
-  // Atlassian identity (API-token management page)
-  if (host === 'id.atlassian.com') return true;
-  // Microsoft Teams meeting / chat endpoints
-  if (host === 'teams.microsoft.com' || host.endsWith('.teams.microsoft.com')) return true;
-  return false;
+  return isAllowedExternalHostPure(urlString, { jsmHost });
 }
 
 function safeOpenExternal(url) {
   if (typeof url !== 'string') return;
   if (!isAllowedExternalHost(url)) {
     console.warn('[security] blocked openExternal for', url.slice(0, 200));
+    return;
+  }
+  // Teams links: prefer the desktop app via the msteams: deep-link scheme,
+  // falling back to the web URL if no Teams app is registered (openExternal
+  // rejects when the OS has no handler for the scheme). Outlook + JSM links
+  // have no reliable desktop deep link, so they open in the browser.
+  let host = '';
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch (_) {
+    host = '';
+  }
+  if (host === 'teams.microsoft.com' || host.endsWith('.teams.microsoft.com')) {
+    const appUrl = toTeamsAppUrl(url);
+    shell.openExternal(appUrl).catch((err) => {
+      console.warn('[links] Teams app open failed, falling back to web:', err && err.message);
+      shell.openExternal(url);
+    });
     return;
   }
   shell.openExternal(url);
@@ -91,6 +94,10 @@ const { AlertEngine } = require('./alert-engine');
 const { OverlayWindows } = require('./overlay-windows');
 const { TrayManager } = require('./tray-manager');
 const { JsmClient } = require('./jsm-client');
+const {
+  toTeamsAppUrl,
+  isAllowedExternalHost: isAllowedExternalHostPure,
+} = require('./links');
 const msGraphOAuth = require('./ms-graph-oauth');
 const msGraphClient = require('./ms-graph-client');
 

@@ -1,5 +1,11 @@
 const EventEmitter = require('events');
-const { JsmClient, parseSlaField, parseMajorIncident } = require('./jsm-client');
+const {
+  JsmClient,
+  parseSlaField,
+  parseMajorIncident,
+  isDoneIssue,
+  formatTriggeredAgo,
+} = require('./jsm-client');
 const msGraphClient = require('./ms-graph-client');
 const msGraphOAuth = require('./ms-graph-oauth');
 const store = require('./store');
@@ -176,6 +182,7 @@ class AlertEngine extends EventEmitter {
       'assignee',
       'status',
       'project',
+      'created', // needed for the "raised Nh ago" label on Major Incidents
       ...(fields.majorIncidentFieldId ? [fields.majorIncidentFieldId] : []),
       ...fields.slaFieldIds.map((f) => f.id),
     ];
@@ -341,10 +348,14 @@ class AlertEngine extends EventEmitter {
     );
 
     // Evaluate Major Incident triggers (instance-wide).
+    const nowForMajor = Date.now();
     for (const issue of truthMajorIssues) {
       const fmap = issue.fields || {};
       const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
       const conn = connByKey.get(issue.key) || null;
+      const createdMs = fmap.created ? Date.parse(fmap.created) : null;
+      const agoLabel = formatTriggeredAgo(createdMs, nowForMajor);
+      const priorityName = (fmap.priority && fmap.priority.name) || '';
       for (const trig of majorTriggers) {
         alerts.push({
           ticketKey: issue.key,
@@ -352,6 +363,11 @@ class AlertEngine extends EventEmitter {
           assigneeName: nameFor(fmap.assignee),
           conditionId: trig.id,
           conditionLabel: trig.label,
+          agoLabel: agoLabel ? `raised ${agoLabel}` : '',
+          // Priority chip (P1/High/etc) - the "how bad" signal.
+          statusLabel: priorityName,
+          statusKind: priorityKind(priorityName),
+          sortMs: createdMs || 0,
           color: trig.color,
           pulse: Boolean(trig.pulse),
           severity: 100,
@@ -393,6 +409,9 @@ class AlertEngine extends EventEmitter {
           // Severity: scales with age, capped at 75 (below SLA-breach so
           // an active incident still wins the border color).
           severity: Math.min(75, 35 + Math.floor(ageMinutes / 5)),
+          statusLabel: formatDuration(ageMinutes),
+          statusKind: 'fresh',
+          sortMs: createdMs || 0,
           jsmUrl: hit.webUrl || '',
           trigType: 'teams',
           medium: 'teams',
@@ -427,6 +446,9 @@ class AlertEngine extends EventEmitter {
           // Same severity scaling as Teams - capped below MI/SLA-breach so
           // urgent incidents still win the screen-border color.
           severity: Math.min(70, 30 + Math.floor(ageMinutes / 10)),
+          statusLabel: formatDuration(ageMinutes),
+          statusKind: 'fresh',
+          sortMs: receivedMs || 0,
           jsmUrl: msg.webLink || '',
           trigType: 'email',
           medium: 'outlook',
@@ -439,10 +461,19 @@ class AlertEngine extends EventEmitter {
     // sat in the queue long enough yet.
     const nowMs = Date.now();
     for (const issue of approvalIssues) {
+      // Cancelled/closed requests stay in JSM's MY_PENDING_APPROVAL list
+      // because the approval step was never actioned. Drop them so a
+      // cancelled approval clears from the popover instead of lingering.
+      if (isDoneIssue(issue)) continue;
       const fmap = issue.fields || {};
       const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
       const createdMs = fmap.created ? Date.parse(fmap.created) : nowMs;
       const ageHours = (nowMs - createdMs) / 3_600_000;
+      const agoLabel = formatTriggeredAgo(createdMs, nowMs);
+      // Staleness chip: red once an approval has waited 24h+, amber at 4h+,
+      // neutral below that. Surfaces the rotting ones without scanning ages.
+      const apprStatusLabel = formatDuration(Math.round((nowMs - createdMs) / 60_000));
+      const apprStatusKind = ageHours >= 24 ? 'breached' : ageHours >= 4 ? 'soon' : 'fresh';
       for (const trig of approvalTriggers) {
         const threshold = Number(trig.ageThresholdHours) || 0;
         if (threshold > 0 && ageHours < threshold) continue;
@@ -456,6 +487,10 @@ class AlertEngine extends EventEmitter {
           assigneeName: nameFor(fmap.assignee),
           conditionId: `${trig.id}`,
           conditionLabel: ageLabel,
+          agoLabel,
+          statusLabel: apprStatusLabel,
+          statusKind: apprStatusKind,
+          sortMs: createdMs || 0,
           color: trig.color,
           pulse: Boolean(trig.pulse),
           // Severity scales with age so older approvals sort to the top of
@@ -473,21 +508,44 @@ class AlertEngine extends EventEmitter {
       for (const issue of issuesForTrig) {
         const fmap = issue.fields || {};
         const jsmUrl = `${this.client.siteUrl}/browse/${issue.key}`;
+        const slaCreatedMs = fmap.created ? Date.parse(fmap.created) : 0;
         for (const slaField of fields.slaFieldIds) {
           const parsed = parseSlaField(fmap[slaField.id]);
           if (!parsed || !parsed.hasOngoing) continue;
           if (!matchesSlaCondition(parsed, trig)) continue;
           const key = `${trig.id}:${slaField.id}:${issue.key}`;
+          // Status chip: breached (red, with how-long-overdue) vs imminent
+          // (amber, with time left). remainingMinutes goes negative once an
+          // SLA breaches, so its magnitude is the overdue duration.
+          const isBreached =
+            parsed.breached ||
+            (parsed.remainingMinutes !== null && parsed.remainingMinutes <= 0);
+          let statusLabel = '';
+          let statusKind = '';
+          if (isBreached) {
+            const overMin =
+              parsed.remainingMinutes !== null ? Math.abs(parsed.remainingMinutes) : null;
+            statusLabel = overMin && overMin > 0 ? `Breached ${formatDuration(overMin)}` : 'Breached';
+            statusKind = 'breached';
+          } else if (parsed.remainingMinutes !== null) {
+            statusLabel = `${formatDuration(parsed.remainingMinutes)} left`;
+            statusKind = 'soon';
+          }
           alerts.push({
             ticketKey: issue.key,
             ticketSummary: fmap.summary || '',
             assigneeName: nameFor(fmap.assignee),
             conditionId: key,
-            conditionLabel: `${slaField.name} - ${trig.label}`,
+            // SLA type only (e.g. "Time to resolution"); the breach state is
+            // carried separately in statusLabel so the UI can chip it.
+            conditionLabel: slaField.name,
+            statusLabel,
+            statusKind,
             color: trig.color,
             pulse: Boolean(trig.pulse),
             severity: severityFor(trig, parsed),
             remainingMinutes: parsed.remainingMinutes,
+            sortMs: slaCreatedMs || 0,
             jsmUrl,
             trigType: 'sla',
           });
@@ -589,6 +647,26 @@ function matchesSlaCondition(parsed, cond) {
   if (parsed.remainingMinutes === null) return false;
   if (parsed.breached) return false; // breached has its own zero-threshold rule
   return parsed.remainingMinutes <= cond.thresholdMinutes && parsed.remainingMinutes > 0;
+}
+
+// Map a JSM priority name to a chip severity token (red / amber / neutral).
+// Reuses the same three tokens the SLA chip uses so one set of styles covers
+// every category. Generic across naming schemes (Highest/High, P1/P2, Sev1).
+function priorityKind(name) {
+  const n = String(name || '').toLowerCase();
+  if (!n) return '';
+  if (/(highest|high|critical|blocker|urgent|p1|p0|sev\s?[01])/.test(n)) return 'breached';
+  if (/(medium|major|normal|moderate|p2|sev\s?2)/.test(n)) return 'soon';
+  return 'fresh'; // low / lowest / minor / trivial / unknown-but-present
+}
+
+// Compact human duration from a minute count: "45m", "2h", "2h 14m".
+function formatDuration(minutes) {
+  const m = Math.max(0, Math.round(Number(minutes) || 0));
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}h ${rem}m` : `${h}h`;
 }
 
 function severityFor(cond, parsed) {

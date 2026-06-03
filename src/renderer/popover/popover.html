@@ -274,6 +274,14 @@
         background: var(--accent-soft);
         color: var(--accent);
       }
+      /* Sort toggle lives in the footer (the 4-tab bar has no room). It
+         reuses .footer-btn styling; this just sizes its icon and flips it
+         when the order reverses. */
+      .sort-toggle svg {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+      }
 
       /* ============ Body (alerts list or empty state) ============ */
       .body {
@@ -305,41 +313,24 @@
          Caps every alert at 2 lines tall so the popover stays a fixed,
          scannable height instead of growing per item depending on
          title length. */
+      /* 3-line row: summary (+ optional status chip) / key · assignee /
+         detail. The detail line wraps instead of truncating so the SLA
+         type, condition, and age are always fully visible. */
       .meta {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-areas:
-          "summary summary"
-          "key     sub";
-        align-items: baseline;
-        gap: 2px 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
         min-width: 0;
       }
-      .key {
-        grid-area: key;
-        font-weight: 600;
-        font-size: 11px;
-        color: var(--accent);
-        text-decoration: none;
-        cursor: pointer;
-        letter-spacing: 0.01em;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      /* Bullet separator between key and sub. Picks up the muted sub
-         colour so the key keeps its accent tint while the divider
-         reads as quiet metadata punctuation. */
-      .key::after {
-        content: "·";
-        margin-left: 6px;
-        color: var(--text-3);
-        font-weight: 400;
-      }
-      .key:hover {
-        text-decoration: underline;
+      .row-summary {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 0;
       }
       .summary {
-        grid-area: summary;
+        flex: 1;
+        min-width: 0;
         font-size: 13px;
         font-weight: 600;
         color: var(--text);
@@ -347,13 +338,70 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .sub {
-        grid-area: sub;
+      .row-id {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-size: 11px;
         color: var(--text-3);
+        min-width: 0;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .key {
+        font-weight: 600;
+        color: var(--accent);
+        text-decoration: none;
+        cursor: pointer;
+        letter-spacing: 0.01em;
         white-space: nowrap;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+      }
+      .key:hover {
+        text-decoration: underline;
+      }
+      .row-id .sep {
+        color: var(--text-4);
+        flex-shrink: 0;
+      }
+      .row-id .who {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row-detail {
+        font-size: 11px;
+        color: var(--text-3);
+        line-height: 1.4;
+        white-space: normal;
+        word-break: break-word;
+      }
+      /* Status chip: one at-a-glance signal per row. Used for SLA breach
+         state, Incident priority, approval staleness, and message age.
+         Three severity tokens: breached (red), soon (amber), fresh (neutral). */
+      .status-chip {
+        flex-shrink: 0;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        padding: 2px 7px;
+        border-radius: 5px;
+        white-space: nowrap;
+        line-height: 1.5;
+      }
+      .status-chip[data-kind='breached'] {
+        background: rgba(248, 113, 113, 0.18);
+        color: #fca5a5;
+      }
+      .status-chip[data-kind='soon'] {
+        background: rgba(251, 191, 36, 0.16);
+        color: #fcd34d;
+      }
+      .status-chip[data-kind='fresh'] {
+        background: var(--surface-3);
+        color: var(--text-2);
       }
       /* Per-row medium badge (Teams vs Outlook) in the Messages tab.
          Uses the official Iconify brand SVGs - same logos that appear on
@@ -402,7 +450,16 @@
         cursor: pointer;
         transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
         white-space: nowrap;
-        align-self: center;
+      }
+      /* Right-side column holding the status chip and/or Teams button,
+         stacked and right-aligned so a priority pill + Join button read as
+         one tidy group instead of two elements fighting for the corner. */
+      .row-aside {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        align-self: start;
       }
       .meeting-btn:hover {
         background: rgba(80, 89, 201, 0.25);
@@ -615,6 +672,9 @@
       <button class="tab active" data-tab="incidents" type="button">
         Incidents <span class="count" id="tabCountIncidents">0</span>
       </button>
+      <button class="tab" data-tab="sla" type="button">
+        SLA <span class="count" id="tabCountSla">0</span>
+      </button>
       <button class="tab" data-tab="approvals" type="button">
         Approvals <span class="count" id="tabCountApprovals">0</span>
       </button>
@@ -629,6 +689,16 @@
 
     <footer class="app-footer">
       <span class="sync-time" id="syncTime">Not synced yet</span>
+      <button class="footer-btn sort-toggle" id="sortToggle" type="button" title="Toggle sort: newest or oldest first">
+        <svg id="sortToggleIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M 4 3 V 13"/>
+          <polyline points="1.5 10.5 4 13 6.5 10.5"/>
+          <line x1="8.5" y1="4" x2="14" y2="4"/>
+          <line x1="8.5" y1="8" x2="12" y2="8"/>
+          <line x1="8.5" y1="12" x2="10" y2="12"/>
+        </svg>
+        <span id="sortToggleLabel">Newest</span>
+      </button>
       <button id="openSettings" class="footer-btn" type="button">Settings</button>
     </footer>
 
