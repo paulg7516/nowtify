@@ -99,6 +99,22 @@ app.on('window-all-closed', (e) => {
   e.preventDefault();
 });
 
+// Global navigation + window-open guard. Every BrowserWindow our app
+// owns loads a local file:// URL with strict CSP. If a defect ever
+// caused a renderer to attempt navigation away from its file:// origin,
+// or to spawn a new window, this handler stops it. Defence in depth
+// against an XSS landing in any renderer (CSP makes that unlikely,
+// not impossible).
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  contents.on('will-navigate', (e, url) => {
+    if (!url.startsWith('file://')) {
+      console.warn('[security] blocked will-navigate to', url);
+      e.preventDefault();
+    }
+  });
+});
+
 // macOS: clicking the dock icon (when visible) fires 'activate'. Since this
 // is a menu-bar app with no main window, route the click to opening Settings
 // - that's the "if you tapped the icon, you probably wanted to see the app"
@@ -231,6 +247,11 @@ function openSettings() {
       preload: path.join(__dirname, '..', 'preload', 'settings-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Sandbox the renderer process so even a V8 exploit lands in an
+      // OS-sandboxed worker, not a full-privilege Electron process. Our
+      // preload only uses contextBridge + ipcRenderer (both sandbox-
+      // compatible) so this is a drop-in.
+      sandbox: true,
     },
   });
   settingsWin.setMenu(null);
@@ -246,6 +267,35 @@ function openSettings() {
       app.dock.hide();
     }
   });
+}
+
+// Verify the IPC sender is one of OUR own renderer mainFrames (settings
+// window or popover window). Both load file:// URLs with strict CSP that
+// has `frame-ancestors 'none'`, so a legitimate call can ONLY come from
+// the top-level frame of one of those WebContents. Applied to handlers
+// whose effects are destructive (install update, disconnect, mass-save)
+// so a defect / compromise in any other Electron process the OS might
+// own can't trigger them.
+function isTrustedSender(event) {
+  const senderFrame = event && event.senderFrame;
+  if (!senderFrame) return false;
+  if (
+    settingsWin &&
+    !settingsWin.isDestroyed() &&
+    senderFrame === settingsWin.webContents.mainFrame
+  ) return true;
+  if (
+    tray &&
+    tray.popover &&
+    !tray.popover.isDestroyed() &&
+    senderFrame === tray.popover.webContents.mainFrame
+  ) return true;
+  return false;
+}
+
+function denyUntrusted(channel, event) {
+  console.warn('[security] rejected', channel, 'from untrusted sender frame');
+  void event;
 }
 
 function wireIpc() {
@@ -267,7 +317,11 @@ function wireIpc() {
     pulseTarget: (v) => v === 'screen' || v === 'tray' || v === 'both',
   };
 
-  ipcMain.handle('settings:save', (_e, patch) => {
+  ipcMain.handle('settings:save', (event, patch) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('settings:save', event);
+      return store.getAll();
+    }
     if (!patch || typeof patch !== 'object') return store.getAll();
     let pulseTargetChanged = false;
     for (const [key, value] of Object.entries(patch)) {
@@ -294,7 +348,11 @@ function wireIpc() {
     }
     return store.getAll();
   });
-  ipcMain.handle('settings:disconnect', () => {
+  ipcMain.handle('settings:disconnect', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('settings:disconnect', event);
+      return store.getAll();
+    }
     // Clear only the encrypted API token - keep site URL + email so the user
     // can reconnect by just pasting a fresh token. The engine will see
     // isConfigured() return false on the next tick and emit idle state.
@@ -388,7 +446,11 @@ function wireIpc() {
   // Mirror of update status so the popover can show an "Update ready"
   // pill without needing the full Settings → Updates panel open.
   ipcMain.handle('popover:get-update-status', () => updaterStatus);
-  ipcMain.handle('popover:install-update-now', () => {
+  ipcMain.handle('popover:install-update-now', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('popover:install-update-now', event);
+      return false;
+    }
     if (updaterStatus.downloadedFile) {
       performUnsignedUpdate(updaterStatus.downloadedFile, updaterStatus.result.version || '');
       app.quit();
@@ -407,7 +469,11 @@ function wireIpc() {
       return { ok: false, error: err.message || String(err) };
     }
   });
-  ipcMain.handle('settings:teams-disconnect', () => {
+  ipcMain.handle('settings:teams-disconnect', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('settings:teams-disconnect', event);
+      return store.getAll();
+    }
     msGraphOAuth.disconnect();
     return store.getAll();
   });
@@ -454,7 +520,11 @@ function wireIpc() {
     }
     return updaterStatus;
   });
-  ipcMain.handle('settings:install-update-now', () => {
+  ipcMain.handle('settings:install-update-now', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('settings:install-update-now', event);
+      return false;
+    }
     // The downloaded ZIP path is captured in updaterStatus.downloadedFile
     // when update-downloaded fires (set in setupAutoUpdater below). If we
     // have it, run our unsigned-install helper directly without going

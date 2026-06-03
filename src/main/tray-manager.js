@@ -476,6 +476,10 @@ class TrayManager {
         preload: path.join(__dirname, '..', 'preload', 'popover-preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
+        // Sandbox the popover renderer. contextBridge + ipcRenderer are
+        // sandbox-compatible, so this is a no-impact change for the
+        // existing UI.
+        sandbox: true,
       },
     });
     win.loadFile(path.join(__dirname, '..', 'renderer', 'popover', 'popover.html'));

@@ -100,9 +100,16 @@ const store = new Store({
   defaults,
 });
 
-// Restrict config file to owner read/write only. electron-store writes 0644 by
-// default; we drop group + other so backup tools, sync utilities, and any
-// other process not running as this user cannot read the encrypted token blob.
+// Restrict config file to owner read/write only. electron-store writes 0644
+// by default; we drop group + other so backup tools, sync utilities, and any
+// other process not running as this user cannot read the encrypted token
+// blob.
+//
+// Runs SYNCHRONOUSLY right after `new Store({defaults})` above. electron-
+// store creates the file with default 0644 the moment that constructor runs
+// (writing the defaults to disk), so deferring this to app.whenReady leaves
+// a small window where the file is world-readable. fs.chmodSync does not
+// require Electron to be ready, so we close the window immediately.
 function lockdownConfigFile() {
   try {
     fs.chmodSync(store.path, 0o600);
@@ -110,11 +117,7 @@ function lockdownConfigFile() {
     console.warn('[store] chmod 600 failed on', store.path, err.message);
   }
 }
-
-// One-time lockdown at startup so the file is locked even if the user never
-// saves anything in this session.
-if (app.isReady()) lockdownConfigFile();
-else app.whenReady().then(lockdownConfigFile);
+lockdownConfigFile();
 
 // Trigger backfill: electron-store only applies `defaults` for missing
 // top-level keys, so users upgrading from an earlier build (where the

@@ -87,6 +87,10 @@ class OverlayWindows {
         contextIsolation: true,
         nodeIntegration: false,
         backgroundThrottling: false,
+        // Sandbox the overlay renderer - defence in depth, the renderer
+        // only sets CSS variables and class names from a narrow IPC
+        // channel so it has no need for any non-sandbox capability.
+        sandbox: true,
       },
     });
 
