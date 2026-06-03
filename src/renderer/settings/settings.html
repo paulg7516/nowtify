@@ -296,23 +296,19 @@
 
           <div class="card">
             <div class="card-header">
-              <h3>Engine health</h3>
-              <p class="card-sub">Per-step status of the background poller. If one integration is broken, the others keep running.</p>
+              <h3>Monitoring</h3>
+              <p class="card-sub">Confirms Nowtify is actively checking your tools. If one integration breaks, the others keep running and the affected one is named below.</p>
             </div>
             <div class="updater-row">
-              <div class="updater-label">Overall</div>
+              <div class="updater-label">Status</div>
               <div class="updater-value">
                 <span class="updater-dot" id="engineDot"></span>
                 <span id="engineHealthText">-</span>
               </div>
             </div>
             <div class="updater-row">
-              <div class="updater-label">Last tick</div>
+              <div class="updater-label">Last checked</div>
               <div class="updater-value" id="engineLastTick">-</div>
-            </div>
-            <div class="updater-row">
-              <div class="updater-label">Counts</div>
-              <div class="updater-value" id="engineCounts">-</div>
             </div>
             <div class="updater-row" id="engineErrorsRow" hidden>
               <div class="updater-label">Errors</div>

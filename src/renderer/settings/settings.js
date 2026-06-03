@@ -1122,12 +1122,24 @@ setInterval(() => {
 
 /* ---------------- Engine health panel ---------------- */
 
+// Map an internal poller step key to a plain-language name users recognise,
+// so a degraded status reads "Degraded - SLA, Teams" instead of leaking
+// internal step ids.
+const STEP_LABELS = {
+  fields: 'Jira',
+  major: 'Major Incidents',
+  sla: 'SLA',
+  approval: 'Approvals',
+  teams: 'Teams',
+  email: 'Outlook',
+  fatal: 'engine',
+};
+
 function renderEngineHealth(health) {
   if (!health) return;
   const dot = el('engineDot');
   const text = el('engineHealthText');
   const lastTick = el('engineLastTick');
-  const counts = el('engineCounts');
   const errorsRow = el('engineErrorsRow');
   const errorsBox = el('engineErrors');
   if (!dot || !text) return;
@@ -1136,17 +1148,24 @@ function renderEngineHealth(health) {
   const errorKeys = Object.keys(stepErrors);
   const healthy = health.isHealthy && errorKeys.length === 0;
   dot.dataset.state = healthy ? 'up-to-date' : 'error';
-  text.textContent = healthy ? 'Healthy' : `Degraded (${errorKeys.join(', ')})`;
-
-  lastTick.textContent = health.lastTickAt
-    ? `${formatRelativeTime(health.lastTickAt)} (took ${health.lastTickDurationMs}ms)`
-    : 'No tick yet';
-
-  if (health.lastCounts) {
-    const c = health.lastCounts;
-    counts.textContent = `${c.mi || 0} MI · ${c.sla || 0} SLA · ${c.approval || 0} Approval · ${c.teams || 0} Teams · ${c.alerts || 0} total alerts`;
+  if (healthy) {
+    text.textContent = 'Working';
   } else {
-    counts.textContent = '-';
+    const names = [...new Set(errorKeys.map((k) => STEP_LABELS[k] || k))];
+    text.textContent = `Degraded - ${names.join(', ')}`;
+  }
+
+  // Lead with "actively checking"; keep the raw tick duration in the tooltip
+  // for when someone is actually debugging performance.
+  if (health.lastTickAt) {
+    lastTick.textContent = formatRelativeTime(health.lastTickAt);
+    lastTick.title =
+      typeof health.lastTickDurationMs === 'number'
+        ? `Last check took ${health.lastTickDurationMs}ms`
+        : '';
+  } else {
+    lastTick.textContent = 'Not checked yet';
+    lastTick.title = '';
   }
 
   if (errorKeys.length > 0) {
@@ -1154,7 +1173,7 @@ function renderEngineHealth(health) {
     errorsBox.innerHTML = '';
     for (const k of errorKeys) {
       const line = document.createElement('div');
-      line.textContent = `${k}: ${stepErrors[k].message}`;
+      line.textContent = `${STEP_LABELS[k] || k}: ${stepErrors[k].message}`;
       line.style.fontSize = '11.5px';
       line.style.color = 'var(--danger)';
       line.style.marginBottom = '2px';
