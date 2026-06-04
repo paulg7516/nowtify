@@ -1,4 +1,4 @@
-const { app, safeStorage } = require('electron');
+const { safeStorage } = require('electron');
 const Store = require('electron-store');
 const platform = require('./platform');
 
