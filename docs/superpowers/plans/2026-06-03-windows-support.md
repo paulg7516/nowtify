@@ -28,7 +28,7 @@
 // test/platform.test.js
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { trayIconSpec, protocolClientArgs, shouldLockdownFile } = require('../src/main/platform');
+const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile } = require('../src/main/platform');
 
 describe('trayIconSpec', () => {
   test('windows uses colored png per state, never template', () => {
@@ -66,6 +66,19 @@ describe('shouldLockdownFile', () => {
     assert.equal(shouldLockdownFile('darwin'), true);
     assert.equal(shouldLockdownFile('linux'), true);
     assert.equal(shouldLockdownFile('win32'), false);
+  });
+});
+
+describe('trayStateColor', () => {
+  test('alerting uses the live trigger color, falling back to red', () => {
+    assert.equal(trayStateColor('alerting', '#a855f7'), '#a855f7');
+    assert.equal(trayStateColor('alerting', null), '#dc2626');
+  });
+  test('steady states use fixed hues', () => {
+    assert.equal(trayStateColor('snoozed'), '#fbbf24');
+    assert.equal(trayStateColor('paused'), '#6b7280');
+    assert.equal(trayStateColor('idle'), '#9aa0aa');
+    assert.equal(trayStateColor('bogus'), '#9aa0aa');
   });
 });
 ```
@@ -109,6 +122,17 @@ function trayIconSpec(platform, status) {
   return { dir: '.', file: `${base}.png`, template };
 }
 
+// Fill color for the tray mark in a given state. Alerting uses the live
+// trigger color (so the menu bar / taskbar shows WHICH trigger fired);
+// the steady states use fixed hues. Used by the rasterizer on both
+// platforms (and by Windows for every state, since it can't tint templates).
+function trayStateColor(status, alertColor) {
+  if (status === 'alerting') return alertColor || '#dc2626';
+  if (status === 'snoozed') return '#fbbf24';
+  if (status === 'paused') return '#6b7280';
+  return '#9aa0aa'; // idle
+}
+
 // The args app.setAsDefaultProtocolClient needs. Packaged apps (any OS) just
 // register the scheme. Unpackaged Windows (dev) must pass execPath + the
 // resolved entry script so the OS relaunches electron with our app, not a
@@ -140,6 +164,7 @@ module.exports = {
   isMac,
   isWin,
   trayIconSpec,
+  trayStateColor,
   protocolClientArgs,
   shouldLockdownFile,
   lockdownFile,
@@ -202,12 +227,13 @@ git commit -m "refactor(store): route config-file lockdown through platform laye
 
 ---
 
-### Task 3: Generate Windows tray icon assets
+### Task 3: Generate Windows tray fallback icons
 
-Windows tray needs visible colored PNGs (the macOS template PNGs render as
-invisible black glyphs on a dark taskbar, and the runtime SVG rasterizer is
-currently unreliable). This task produces 4 static colored PNGs once and
-commits them.
+Windows can't tint template PNGs, so it needs visible colored icons. The
+runtime rasterizer (Task 4) is the *primary* source of the colored, pulsing
+Windows tray icon; these 4 static PNGs are the *fallback* shown on the first
+tick (before the first rasterize resolves) or if rasterization ever fails on a
+given machine, so the tray is never blank.
 
 **Files:**
 - Create: `scripts/generate-win-tray.js`
@@ -286,79 +312,191 @@ Expected: four `PNG image data, 32 x 32` files.
 
 ```bash
 git add scripts/generate-win-tray.js assets/tray/win/
-git commit -m "build(tray): generate static Windows tray icon assets"
+git commit -m "build(tray): static Windows tray fallback icons"
 ```
 
 ---
 
-### Task 4: Tray manager loads platform-correct icons
+### Task 4: Cross-platform rasterizer + Windows tray wiring
+
+Make the SVG rasterizer the primary tray-icon source on **both** platforms,
+size-aware (Mac 22/44 retina, Windows 16/32), and fix the shared-offscreen-
+window race that produces the intermittent `ERR_ABORTED` (the two size renders
+currently run via `Promise.all` against one window and abort each other). On
+Windows, every state gets a colored rasterized icon (pulsing on alert); the
+Task 3 static PNGs are the fallback until the first render lands or if a render
+fails.
 
 **Files:**
-- Modify: `src/main/tray-manager.js` (the `loadTrayIcon` + `iconFor` methods)
+- Modify: `src/main/tray-manager.js` (rasterizer functions, cache, `iconFor`, and add the platform import + a fallback loader)
 
-- [ ] **Step 1: Add the platform import + a Windows-aware loader**
+- [ ] **Step 1: Add the platform import + a static fallback loader**
 
 At the top of `src/main/tray-manager.js`, after the existing requires:
 
 ```js
 const platform = require('./platform');
+
+const MAC_SIZES = [22, 44];
+const WIN_SIZES = [16, 32];
 ```
 
-Replace `loadTrayIcon` so it resolves the file through `trayIconSpec` (the
-`name`/`template` arguments are derived from platform + status by the caller):
+Add a method on `TrayManager` (next to the existing `loadTrayIcon`) that loads
+the platform-correct static fallback file via `trayIconSpec`:
 
 ```js
-  loadTrayIconFor(status) {
+  loadFallbackIcon(status) {
     const spec = platform.trayIconSpec(process.platform, status);
-    const key = `${spec.dir}/${spec.file}:${spec.template ? 't' : 'c'}`;
+    const key = `fallback:${spec.dir}/${spec.file}:${spec.template ? 't' : 'c'}`;
     if (this.iconCache[key]) return this.iconCache[key];
     const file = path.join(TRAY_DIR, spec.dir, spec.file);
     const img = nativeImage.createFromPath(file);
-    if (img.isEmpty()) {
-      console.warn('[tray] image is empty:', file);
-    } else {
-      console.log('[tray] loaded', spec.file, img.getSize(), spec.template ? '(template)' : '');
-    }
-    if (spec.template) img.setTemplateImage(true);
+    if (!img.isEmpty() && spec.template) img.setTemplateImage(true);
     this.iconCache[key] = img;
     return img;
   }
 ```
 
-- [ ] **Step 2: Branch `iconFor` for Windows**
+- [ ] **Step 2: Generalize + harden the rasterizer (size-aware, serialized)**
 
-At the very top of the `iconFor(state, frame = 0)` method body, add a Windows
-short-circuit that uses the static colored icons (no rasterizer, no template):
+Replace `buildColoredAlertImage(color, alpha)` with a size-aware version that
+renders the sizes **sequentially** (not `Promise.all`) so the two loads don't
+abort each other on the shared offscreen window:
+
+```js
+// Render the colored mark at the given sizes into one multi-rep NativeImage.
+// Sizes are rendered SEQUENTIALLY on purpose: both share the single offscreen
+// rasterizer window, and overlapping loadURL calls abort each other (the
+// source of the intermittent "[tray] rasterize failed ... ERR_ABORTED"). The
+// scaleFactor for each rep is its size relative to the base (first) size.
+async function buildColoredStateImage(color, alpha, sizes) {
+  const finalAlpha = alpha >= 1 ? 1 : 0.5;
+  const svg = buildAlertSVG(color, finalAlpha);
+  const base = sizes[0];
+  const final = nativeImage.createEmpty();
+  for (const px of sizes) {
+    const img = await rasterizeSVGToExactPx(svg, px);
+    final.addRepresentation({
+      scaleFactor: px / base,
+      dataURL: 'data:image/png;base64,' + img.toPNG().toString('base64'),
+    });
+  }
+  return final;
+}
+```
+
+Replace the `alertImageCache` / `alertRasterizing` / `ensureAlertImagesForColor`
+trio with a size-aware generalization (keyed by color + size-set so Mac and
+Windows entries coexist):
+
+```js
+const stateImageCache = new Map(); // `${color}@${sizes}` -> { full, dim }
+const stateRasterizing = new Set();
+const stateCacheKey = (color, sizes) => `${color}@${sizes.join('x')}`;
+
+function ensureStateImagesForColor(color, sizes, onReady) {
+  const key = stateCacheKey(color, sizes);
+  if (stateImageCache.has(key)) {
+    if (onReady) onReady();
+    return;
+  }
+  if (stateRasterizing.has(key)) return;
+  stateRasterizing.add(key);
+  (async () => {
+    try {
+      const full = await buildColoredStateImage(color, 1, sizes);
+      const dim = await buildColoredStateImage(color, 0.4, sizes);
+      if (!full.isEmpty()) {
+        stateImageCache.set(key, { full, dim });
+        if (onReady) onReady();
+      } else {
+        console.warn('[tray] rasterize produced empty image for', key);
+      }
+    } catch (e) {
+      console.warn('[tray] rasterize failed for', key, e && e.message);
+    } finally {
+      stateRasterizing.delete(key);
+    }
+  })();
+}
+```
+
+- [ ] **Step 3: Point the macOS alerting path at the generalized cache**
+
+In `iconFor`, inside the existing `state.status === 'alerting'` branch, replace
+the `alertImageCache.get(state.color)` lookup and the
+`ensureAlertImagesForColor(state.color, ...)` call with the generalized
+equivalents using `MAC_SIZES` (behaviour identical, just routed through the new
+cache):
+
+```js
+        const cached = stateImageCache.get(stateCacheKey(state.color, MAC_SIZES));
+        if (cached) {
+          return frame === 0 ? cached.full : cached.dim;
+        }
+        ensureStateImagesForColor(state.color, MAC_SIZES, () => {
+          if (this.tray && !this.tray.isDestroyed()) {
+            const s = this.getState ? this.getState() : null;
+            if (s && s.status === 'alerting') {
+              this.tray.setImage(this.iconFor(s, this.pulseFrame));
+            }
+          }
+        });
+```
+
+(The rest of the macOS body - template idle/paused PNGs, named-image fallback -
+stays unchanged.)
+
+- [ ] **Step 4: Add the Windows branch to `iconFor`**
+
+At the very top of the `iconFor(state, frame = 0)` body, before the macOS
+logic, add: rasterize every state in its `trayStateColor`, pulse via full/dim,
+and fall back to the static PNG until the first render lands.
 
 ```js
     if (platform.isWin) {
-      const img = this.loadTrayIconFor(state.status || 'idle');
-      if (!img.isEmpty()) return img;
-      return nativeImage.createEmpty();
+      const status = state.status || 'idle';
+      const color = platform.trayStateColor(status, state.color);
+      const cached = stateImageCache.get(stateCacheKey(color, WIN_SIZES));
+      if (cached) {
+        this._lastWinIcon = frame === 0 ? cached.full : cached.dim;
+        return this._lastWinIcon;
+      }
+      ensureStateImagesForColor(color, WIN_SIZES, () => {
+        if (this.tray && !this.tray.isDestroyed()) {
+          const s = this.getState ? this.getState() : { status };
+          this.tray.setImage(this.iconFor(s, this.pulseFrame));
+        }
+      });
+      // Until the first render resolves (or if it fails), show the static
+      // fallback PNG, then the last good rasterized icon, then empty.
+      const fallback = this.loadFallbackIcon(status);
+      if (fallback && !fallback.isEmpty()) return fallback;
+      return this._lastWinIcon || nativeImage.createEmpty();
     }
 ```
 
-Leave the entire existing macOS body (rasterizer + template PNGs + named-image
-fallback) below it unchanged. Note: on Windows the pulse loop still runs and
-calls `iconFor` each tick; since both frames resolve to the same static icon,
-the icon simply stays solid (acceptable for phase 1).
+Note: `setState` already starts the pulse loop only when `status === 'alerting'`,
+so on Windows the alert icon pulses (full/dim) and the steady states render a
+solid colored icon - full parity with macOS.
 
-- [ ] **Step 3: Manual smoke test on macOS (no regression)**
+- [ ] **Step 5: macOS smoke test (no regression + race gone)**
 
-Run: `npm run dev`
-Expected: tray icon still appears and changes on alert exactly as before
-(macOS path untouched). Quit the app.
+Run: `npm run dev`, then trigger/observe an alert.
+Expected: tray pulses in the trigger color exactly as before, AND the
+`[tray] rasterize failed ... ERR_ABORTED` line no longer appears in the logs
+(sequential rendering removed the self-collision). Quit.
 
-- [ ] **Step 4: Run lint + tests**
+- [ ] **Step 6: Run lint + tests**
 
 Run: `npm run lint && npm test`
 Expected: 0 errors; all pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/main/tray-manager.js
-git commit -m "feat(tray): static colored tray icons on Windows via platform layer"
+git commit -m "feat(tray): cross-platform rasterized icons + serialized render (fixes ERR_ABORTED); Windows parity"
 ```
 
 ---
@@ -854,6 +992,9 @@ and may need per-display or window-flag iteration.
   sections map to a task.
 - **Phase boundary:** Tasks 1-9 are independently shippable (core Windows app);
   10-11 add/verify the overlay.
-- **Known limitation (documented, intentional):** Windows tray uses static
-  per-state icons, not the per-trigger color pulse (the macOS rasterizer is
-  unreliable and out of scope). Captured as a future enhancement, not a gap.
+- **Tray parity:** Windows gets the same dynamic, per-trigger-color, pulsing
+  tray icon as macOS via the generalized rasterizer (Task 4), with the static
+  PNGs (Task 3) as a first-tick/failure fallback so the tray is never blank.
+- **Bonus fix:** Task 4 serializes the two size renders that previously raced
+  on the shared offscreen window, which removes the intermittent
+  `ERR_ABORTED` rasterize log on macOS too (non-user-visible today, but real).
