@@ -1,6 +1,6 @@
-const fs = require('fs');
 const { app, safeStorage } = require('electron');
 const Store = require('electron-store');
+const platform = require('./platform');
 
 const defaults = {
   jsm: {
@@ -108,14 +108,10 @@ const store = new Store({
 // Runs SYNCHRONOUSLY right after `new Store({defaults})` above. electron-
 // store creates the file with default 0644 the moment that constructor runs
 // (writing the defaults to disk), so deferring this to app.whenReady leaves
-// a small window where the file is world-readable. fs.chmodSync does not
-// require Electron to be ready, so we close the window immediately.
+// a small window where the file is world-readable. platform.lockdownFile does
+// not require Electron to be ready, so we close the window immediately.
 function lockdownConfigFile() {
-  try {
-    fs.chmodSync(store.path, 0o600);
-  } catch (err) {
-    console.warn('[store] chmod 600 failed on', store.path, err.message);
-  }
+  platform.lockdownFile(store.path);
 }
 lockdownConfigFile();
 
