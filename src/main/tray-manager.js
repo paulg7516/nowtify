@@ -11,7 +11,7 @@ const TRAY_DIR = path.join(__dirname, '..', '..', 'assets', 'tray');
 
 // Hex/rgba color sanitiser for the dynamic alert icon. The colour comes
 // from per-trigger config (store.triggers[].color), which is user-editable
-// in Settings — so we treat it as untrusted before splicing it into an
+// in Settings - so we treat it as untrusted before splicing it into an
 // SVG. Anything that doesn't look like a #rgb / #rrggbb is replaced with
 // a safe red so the user still sees something fire.
 function sanitizeColor(c) {
