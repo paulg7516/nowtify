@@ -13,7 +13,9 @@
     "test": "node --test 'test/**/*.test.js'",
     "ship": "bash scripts/ship.sh patch",
     "ship:minor": "bash scripts/ship.sh minor",
-    "ship:major": "bash scripts/ship.sh major"
+    "ship:major": "bash scripts/ship.sh major",
+    "dist:win": "electron-builder --win",
+    "dist:all": "electron-builder --mac --universal --win"
   },
   "license": "UNLICENSED",
   "private": true,
@@ -64,6 +66,18 @@
           }
         ]
       }
+    },
+    "win": {
+      "target": [
+        { "target": "nsis" }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false
     },
     "publish": {
       "provider": "github",
