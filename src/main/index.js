@@ -100,6 +100,7 @@ const {
 } = require('./links');
 const msGraphOAuth = require('./ms-graph-oauth');
 const msGraphClient = require('./ms-graph-client');
+const platform = require('./platform');
 
 // macOS: keep app running when all windows are closed (we live in the menu bar)
 app.on('window-all-closed', (e) => {
@@ -141,7 +142,17 @@ if (!app.requestSingleInstanceLock()) {
 // Register nowtify:// as our custom URL scheme so macOS routes
 // nowtify://oauth/callback back to this app after Microsoft sign-in.
 // Safe to call repeatedly; idempotent at the OS level.
-app.setAsDefaultProtocolClient('nowtify');
+const protoArgs = platform.protocolClientArgs(
+  process.platform,
+  process.execPath,
+  process.argv,
+  app.isPackaged,
+);
+if (protoArgs.length) {
+  app.setAsDefaultProtocolClient('nowtify', protoArgs[0], protoArgs[1]);
+} else {
+  app.setAsDefaultProtocolClient('nowtify');
+}
 
 // macOS: when the system invokes nowtify://... and the app is already
 // running, this event fires with the full URL. (Cold-start invocations
@@ -303,6 +314,20 @@ function isTrustedSender(event) {
 function denyUntrusted(channel, event) {
   console.warn('[security] rejected', channel, 'from untrusted sender frame');
   void event;
+}
+
+// Windows delivers nowtify:// URLs as a process argument rather than via the
+// macOS open-url event. On cold start, scan argv and route any callback URL
+// through the same handler the open-url event uses.
+function handleWindowsColdStartUrl() {
+  if (process.platform !== 'win32') return;
+  const url = process.argv.find(
+    (a) => typeof a === 'string' && a.startsWith('nowtify://'),
+  );
+  if (url) {
+    console.log('[cold-start] forwarding nowtify URL from argv:', url.slice(0, 120));
+    app.emit('open-url', { preventDefault: () => {} }, url);
+  }
 }
 
 function wireIpc() {
@@ -608,6 +633,7 @@ app.whenReady().then(() => {
   overlay.init();
   tray.init();
   wireIpc();
+  handleWindowsColdStartUrl();
 
   engine.on('state', (state) => {
     overlay.broadcast(state);
