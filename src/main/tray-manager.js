@@ -1,5 +1,9 @@
 const path = require('path');
 const { Tray, Menu, BrowserWindow, nativeImage, screen } = require('electron');
+const platform = require('./platform');
+
+const MAC_SIZES = [22, 44];
+const WIN_SIZES = [16, 32];
 
 const TRAY_DIR = path.join(__dirname, '..', '..', 'assets', 'tray');
 
@@ -108,65 +112,57 @@ async function rasterizeSVGToExactPx(svg, targetPx) {
   return captured.resize({ width: targetPx, height: targetPx, quality: 'best' });
 }
 
-// Build a multi-rep NativeImage that matches the alert.png +
-// alert@2x.png pattern exactly: a 22pt logical icon with a 22x22 PNG
-// for 1x displays and a 44x44 PNG for retina. macOS Tray picks the
-// right rep based on the menu-bar density - same code path the
-// original tray icons go through.
-async function buildColoredAlertImage(color, alpha) {
-  // Bumped dim alpha from 0.4 -> 0.5 so the pulse cycle reads as a
-  // breathing-not-blinking icon. At 0.4 the dim frame was so faded
-  // it looked like the icon momentarily disappeared rather than
-  // pulsed - making the pulse imperceptible to the user.
+// Render the colored mark at the given sizes into one multi-rep NativeImage.
+// Sizes are rendered SEQUENTIALLY on purpose: both share the single offscreen
+// rasterizer window, and overlapping loadURL calls abort each other (the
+// source of the intermittent "[tray] rasterize failed ... ERR_ABORTED"). The
+// scaleFactor for each rep is its size relative to the base (first) size.
+async function buildColoredStateImage(color, alpha, sizes) {
   const finalAlpha = alpha >= 1 ? 1 : 0.5;
   const svg = buildAlertSVG(color, finalAlpha);
-  const [img22, img44] = await Promise.all([
-    rasterizeSVGToExactPx(svg, 22),
-    rasterizeSVGToExactPx(svg, 44),
-  ]);
+  const base = sizes[0];
   const final = nativeImage.createEmpty();
-  final.addRepresentation({
-    scaleFactor: 1,
-    dataURL: 'data:image/png;base64,' + img22.toPNG().toString('base64'),
-  });
-  final.addRepresentation({
-    scaleFactor: 2,
-    dataURL: 'data:image/png;base64,' + img44.toPNG().toString('base64'),
-  });
+  for (const px of sizes) {
+    const img = await rasterizeSVGToExactPx(svg, px);
+    final.addRepresentation({
+      scaleFactor: px / base,
+      dataURL: 'data:image/png;base64,' + img.toPNG().toString('base64'),
+    });
+  }
   return final;
 }
 
-// Per-colour { full, dim } cache. Both frames precomputed so the pulse
-// loop is a pure map lookup at 650ms cadence.
-const alertImageCache = new Map();
-const alertRasterizing = new Set();
+// Per-colour-and-size { full, dim } cache. Both frames precomputed so the
+// pulse loop is a pure map lookup at 650ms cadence.
+const stateImageCache = new Map(); // `${color}@${sizes}` -> { full, dim }
+const stateRasterizing = new Set();
+const stateCacheKey = (color, sizes) => `${color}@${sizes.join('x')}`;
 
-// Kick off (or fast-skip) a rasterize for a given colour. When both
-// frames land in the cache we call onReady so the tray can refresh
+// Kick off (or fast-skip) a rasterize for a given colour + size set. When
+// both frames land in the cache we call onReady so the tray can refresh
 // without waiting for the next pulse tick.
-function ensureAlertImagesForColor(color, onReady) {
-  if (alertImageCache.has(color)) {
+function ensureStateImagesForColor(color, sizes, onReady) {
+  const key = stateCacheKey(color, sizes);
+  if (stateImageCache.has(key)) {
     if (onReady) onReady();
     return;
   }
-  if (alertRasterizing.has(color)) return;
-  alertRasterizing.add(color);
+  if (stateRasterizing.has(key)) return;
+  stateRasterizing.add(key);
   (async () => {
     try {
-      const [full, dim] = await Promise.all([
-        buildColoredAlertImage(color, 1),
-        buildColoredAlertImage(color, 0.4),
-      ]);
+      const full = await buildColoredStateImage(color, 1, sizes);
+      const dim = await buildColoredStateImage(color, 0.4, sizes);
       if (!full.isEmpty()) {
-        alertImageCache.set(color, { full, dim });
+        stateImageCache.set(key, { full, dim });
         if (onReady) onReady();
       } else {
-        console.warn('[tray] rasterize produced empty image for', color);
+        console.warn('[tray] rasterize produced empty image for', key);
       }
     } catch (e) {
-      console.warn('[tray] rasterize failed for', color, e && e.message);
+      console.warn('[tray] rasterize failed for', key, e && e.message);
     } finally {
-      alertRasterizing.delete(color);
+      stateRasterizing.delete(key);
     }
   })();
 }
@@ -259,7 +255,42 @@ class TrayManager {
     return img;
   }
 
+  loadFallbackIcon(status) {
+    const spec = platform.trayIconSpec(process.platform, status);
+    const key = `fallback:${spec.dir}/${spec.file}:${spec.template ? 't' : 'c'}`;
+    if (this.iconCache[key]) return this.iconCache[key];
+    const file = path.join(TRAY_DIR, spec.dir, spec.file);
+    const img = nativeImage.createFromPath(file);
+    if (!img.isEmpty() && spec.template) img.setTemplateImage(true);
+    this.iconCache[key] = img;
+    return img;
+  }
+
   iconFor(state, frame = 0) {
+    // Windows can't tint template images and has a dark taskbar, so every
+    // state renders a colored rasterized mark (idle gray, snoozed amber,
+    // paused gray, alert = trigger color). Until the first render lands -
+    // or if a render fails - we fall back to the static Task 3 PNGs in
+    // assets/tray/win/. _lastWinIcon keeps the most recent good rep so the
+    // pulse loop never flashes to the fallback once we have a colored image.
+    if (platform.isWin) {
+      const status = state.status || 'idle';
+      const color = platform.trayStateColor(status, state.color);
+      const cached = stateImageCache.get(stateCacheKey(color, WIN_SIZES));
+      if (cached) {
+        this._lastWinIcon = frame === 0 ? cached.full : cached.dim;
+        return this._lastWinIcon;
+      }
+      ensureStateImagesForColor(color, WIN_SIZES, () => {
+        if (this.tray && !this.tray.isDestroyed()) {
+          const s = this.getState ? this.getState() : { status };
+          this.tray.setImage(this.iconFor(s, this.pulseFrame));
+        }
+      });
+      const fallback = this.loadFallbackIcon(status);
+      if (fallback && !fallback.isEmpty()) return fallback;
+      return this._lastWinIcon || nativeImage.createEmpty();
+    }
     // Notification-stack glyph in 5 flavors. Idle/paused stay template
     // images (macOS auto-tints them to the menu-bar foreground). When
     // alerting, we now build the bars dynamically in the active trigger's
@@ -270,14 +301,14 @@ class TrayManager {
     // emits a colour when alerting.
     if (state.status === 'alerting') {
       if (state.color) {
-        const cached = alertImageCache.get(state.color);
+        const cached = stateImageCache.get(stateCacheKey(state.color, MAC_SIZES));
         if (cached) {
           return frame === 0 ? cached.full : cached.dim;
         }
         // First time we see this colour: kick off async rasterize and
         // fall through to the red PNG for THIS tick. Once the cache
         // populates we repaint immediately via the onReady callback.
-        ensureAlertImagesForColor(state.color, () => {
+        ensureStateImagesForColor(state.color, MAC_SIZES, () => {
           if (this.tray && !this.tray.isDestroyed()) {
             const s = this.getState ? this.getState() : null;
             if (s && s.status === 'alerting') {
