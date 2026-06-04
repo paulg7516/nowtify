@@ -3,6 +3,8 @@ const { Tray, Menu, BrowserWindow, nativeImage, screen } = require('electron');
 const platform = require('./platform');
 
 const MAC_SIZES = [22, 44];
+// Windows tray: 16px is the standard tray size, 32px covers HiDPI. Windows may
+// just use the largest rep; both are cheap to render and kept for correctness.
 const WIN_SIZES = [16, 32];
 
 const TRAY_DIR = path.join(__dirname, '..', '..', 'assets', 'tray');
@@ -112,6 +114,16 @@ async function rasterizeSVGToExactPx(svg, targetPx) {
   return captured.resize({ width: targetPx, height: targetPx, quality: 'best' });
 }
 
+// All rasterizes share one offscreen window, so a second loadURL aborts the
+// first in-flight one (ERR_ABORTED). Funnel every render through a single
+// global promise chain so only one is ever in flight, across all colors/sizes.
+let _rasterChain = Promise.resolve();
+function rasterizeSVGToExactPxQueued(svg, targetPx) {
+  const run = _rasterChain.then(() => rasterizeSVGToExactPx(svg, targetPx));
+  _rasterChain = run.catch(() => {}); // keep the chain alive past failures
+  return run;
+}
+
 // Render the colored mark at the given sizes into one multi-rep NativeImage.
 // Sizes are rendered SEQUENTIALLY on purpose: both share the single offscreen
 // rasterizer window, and overlapping loadURL calls abort each other (the
@@ -123,7 +135,7 @@ async function buildColoredStateImage(color, alpha, sizes) {
   const base = sizes[0];
   const final = nativeImage.createEmpty();
   for (const px of sizes) {
-    const img = await rasterizeSVGToExactPx(svg, px);
+    const img = await rasterizeSVGToExactPxQueued(svg, px);
     final.addRepresentation({
       scaleFactor: px / base,
       dataURL: 'data:image/png;base64,' + img.toPNG().toString('base64'),
@@ -154,7 +166,7 @@ function ensureStateImagesForColor(color, sizes, onReady) {
       const full = await buildColoredStateImage(color, 1, sizes);
       const dim = await buildColoredStateImage(color, 0.4, sizes);
       if (!full.isEmpty()) {
-        stateImageCache.set(key, { full, dim });
+        stateImageCache.set(key, { full, dim: dim.isEmpty() ? full : dim });
         if (onReady) onReady();
       } else {
         console.warn('[tray] rasterize produced empty image for', key);
@@ -203,6 +215,7 @@ class TrayManager {
     this.pulseTimer = null;
     this.pulseFrame = 0;
     this.lastStatus = null;
+    this._lastWinIcon = null;
   }
 
   // Surfaced when an update has been downloaded so the tray-menu rebuild
@@ -261,6 +274,7 @@ class TrayManager {
     if (this.iconCache[key]) return this.iconCache[key];
     const file = path.join(TRAY_DIR, spec.dir, spec.file);
     const img = nativeImage.createFromPath(file);
+    if (img.isEmpty()) console.warn('[tray] fallback image is empty:', file);
     if (!img.isEmpty() && spec.template) img.setTemplateImage(true);
     this.iconCache[key] = img;
     return img;
