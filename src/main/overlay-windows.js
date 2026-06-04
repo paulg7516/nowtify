@@ -67,6 +67,7 @@ class OverlayWindows {
       height: display.bounds.height,
       frame: false,
       transparent: true,
+      backgroundColor: '#00000000',
       alwaysOnTop: true,
       focusable: false,
       hasShadow: false,
