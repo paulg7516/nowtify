@@ -261,6 +261,7 @@ function openSettings() {
     height: 760,
     title: 'Nowtify - Settings',
     icon: BRAND_ICON_PATH,
+    skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'settings-preload.js'),
       contextIsolation: true,
