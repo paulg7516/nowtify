@@ -1242,7 +1242,8 @@
       Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around your screen. Available when you want it, invisible when you don't.
     </p>
     <div class="hero-cta" id="download">
-      <a class="btn-primary" id="downloadBtn" href="https://github.com/paulg7516/nowtify/releases/latest" download>
+      <a class="btn-primary" id="downloadBtn" href="https://github.com/paulg7516/nowtify/releases/latest" download
+        data-goatcounter-click="download-macos" data-goatcounter-title="Download button (macOS)">
         <span class="btn-arrow">↓</span> Download for macOS
       </a>
       <p class="hero-meta">
@@ -1770,6 +1771,23 @@
     }
   })();
   document.getElementById('footerYear').textContent = String(new Date().getFullYear());
+</script>
+<!-- Privacy-friendly analytics: GoatCounter (no cookies, no consent banner needed).
+     TO ENABLE: create a free site at https://www.goatcounter.com/ (pick a code,
+     e.g. "nowtify"), then set GOATCOUNTER_CODE below to that code. Until it is set,
+     this is a no-op - no script loads and no requests are made. Once enabled,
+     page views are tracked automatically and each click on the download button is
+     recorded as a "download-macos" event (via the data-goatcounter-click attr). -->
+<script>
+  (function () {
+    var GOATCOUNTER_CODE = ''; // <-- set to your GoatCounter code to turn tracking on
+    if (!GOATCOUNTER_CODE) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://gc.zgo.at/count.js';
+    s.setAttribute('data-goatcounter', 'https://' + GOATCOUNTER_CODE + '.goatcounter.com/count');
+    document.head.appendChild(s);
+  })();
 </script>
 </body>
 </html>
