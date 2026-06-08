@@ -33,6 +33,39 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Code signing is DORMANT until the certificate secrets are added. This
+      # step writes CSC_LINK to the env ONLY when the per-OS cert secret is
+      # actually present, so an absent secret leaves CSC_LINK *unset* and
+      # electron-builder skips signing (today's unsigned build). A
+      # defined-but-empty CSC_LINK must be avoided - electron-builder treats it
+      # as a real certificate path and the build fails. See docs/signing-setup.md.
+      - name: Configure code signing
+        shell: bash
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          write_env() { printf '%s<<__GHEOF__\n%s\n__GHEOF__\n' "$1" "$2" >> "$GITHUB_ENV"; }
+          if [ "${{ matrix.os }}" = "macos-latest" ] && [ -n "$MAC_CSC_LINK" ]; then
+            write_env CSC_LINK "$MAC_CSC_LINK"
+            write_env CSC_KEY_PASSWORD "$MAC_CSC_KEY_PASSWORD"
+            write_env APPLE_ID "$APPLE_ID"
+            write_env APPLE_APP_SPECIFIC_PASSWORD "$APPLE_APP_SPECIFIC_PASSWORD"
+            write_env APPLE_TEAM_ID "$APPLE_TEAM_ID"
+            echo "macOS code signing: ENABLED"
+          elif [ "${{ matrix.os }}" = "windows-latest" ] && [ -n "$WIN_CSC_LINK" ]; then
+            write_env CSC_LINK "$WIN_CSC_LINK"
+            write_env CSC_KEY_PASSWORD "$WIN_CSC_KEY_PASSWORD"
+            echo "Windows code signing: ENABLED"
+          else
+            echo "Code signing DORMANT (no certificate secret present) - unsigned build"
+          fi
       - run: npm ci
       - run: npm run lint
       - run: npm test
@@ -41,28 +74,9 @@ jobs:
         run: npx electron-builder ${{ matrix.args }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing - DORMANT until the cert secrets are added. When the
-          # *_CSC_LINK secret is empty, electron-builder skips signing and the
-          # build is unsigned (today's behavior). Add the secrets (see
-          # docs/signing-setup.md) and releases sign automatically.
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Build only (no publish)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: npx electron-builder ${{ matrix.args }} --publish never
-        env:
-          # Same dormant signing wiring as the publish step (test builds sign
-          # too once the cert secrets exist; unsigned until then).
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Upload artifacts (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
