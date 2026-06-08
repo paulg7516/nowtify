@@ -19,9 +19,17 @@ jobs:
           - os: windows-latest
             args: --win
     runs-on: ${{ matrix.os }}
+    # Tag (release) runs require approval via the protected 'release'
+    # environment (a human must approve each publish - this is the gate that
+    # keeps an unsigned auto-update build from shipping to clients without
+    # sign-off). workflow_dispatch test builds get no environment, so on-demand
+    # artifact builds stay friction-free.
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Third-party actions pinned to commit SHAs (not moveable tags) so a
+      # compromised/retargeted tag cannot inject into the release pipeline.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -38,7 +46,7 @@ jobs:
         run: npx electron-builder ${{ matrix.args }} --publish never
       - name: Upload artifacts (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: nowtify-${{ matrix.os }}
           path: |
