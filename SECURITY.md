@@ -96,8 +96,9 @@ gate that pipeline:
   history and published release tags cannot be rewritten.
 - **Least-privilege, ephemeral token.** The workflow uses the run-scoped
   `GITHUB_TOKEN` with `contents: write` only - no long-lived PAT, no org scope.
-- **Account 2FA.** 2FA must be enforced on the release-controlling GitHub
-  account (operational; verify in account settings).
+- **Account 2FA.** Enabled on the release-controlling GitHub account (TOTP
+  authenticator app, confirmed 2026-06-08). A hardware security key is an
+  optional phishing-resistant upgrade.
 
 ### Fix path (closes the gap entirely)
 
