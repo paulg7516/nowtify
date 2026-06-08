@@ -30,8 +30,13 @@ function performUnsignedUpdateMac(zipPath, newVersion) {
   // process.execPath is /Applications/Nowtify.app/Contents/MacOS/Nowtify
   // - climb three dirs to get the .app bundle root.
   const appBundlePath = path.dirname(path.dirname(path.dirname(process.execPath)));
-  const tmpDir = path.join(os.tmpdir(), `nowtify-install-${Date.now()}`);
-  const helperPath = path.join(os.tmpdir(), `nowtify-install-${Date.now()}.sh`);
+  // One timestamp for both paths so the staging dir and helper script always
+  // share a suffix (two separate Date.now() calls could desync them and leave
+  // the helper orphaned by the cleanup step). os.tmpdir() is per-user on macOS
+  // (/var/folders/...), not the shared /tmp, so there is no cross-user race.
+  const stamp = Date.now();
+  const tmpDir = path.join(os.tmpdir(), `nowtify-install-${stamp}`);
+  const helperPath = path.join(os.tmpdir(), `nowtify-install-${stamp}.sh`);
   const logPath = path.join(os.tmpdir(), 'nowtify-install.log');
   const pid = process.pid;
   const sh = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;

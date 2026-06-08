@@ -43,6 +43,20 @@ class JsmClient {
     if (url.protocol !== 'https:') {
       throw new Error('JSM request blocked: non-https URL ' + url.toString().slice(0, 200));
     }
+    // An absolute URL must point at the configured JSM site - never send the
+    // Basic-auth credentials (email:token) to any other host. Relative paths
+    // are always safe since they are built from this.siteUrl.
+    if (path.startsWith('http')) {
+      let siteHost = '';
+      try {
+        siteHost = new URL(this.siteUrl).host;
+      } catch (_) {
+        siteHost = '';
+      }
+      if (!siteHost || url.host !== siteHost) {
+        throw new Error('JSM request blocked: absolute URL host does not match configured site');
+      }
+    }
     if (query) {
       for (const [k, v] of Object.entries(query)) {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
@@ -308,7 +322,9 @@ class JsmClient {
     }
     if (groupNames && groupNames.length) {
       for (const name of groupNames) {
-        const escaped = String(name).replace(/"/g, '\\"');
+        // Escape backslashes FIRST, then double-quotes, so a group name
+        // containing a backslash cannot escape out of the JQL string literal.
+        const escaped = String(name).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
         clauses.push(`assignee in membersOf("${escaped}")`);
       }
     }
