@@ -1,22 +1,23 @@
 # Nowtify - Security Model
 
 This document describes the security posture of Nowtify, the threat model the
-codebase is built against, and the operational controls required around the
-release pipeline. Maintained for security review.
+codebase is built against, and the operational controls around the release
+pipeline. Maintained for security review; every claim below is verifiable
+against the source.
 
-Last reviewed: 2026-05-25.
+Last reviewed: 2026-06-08 (covers macOS + Windows).
 
 ## What Nowtify holds
 
-Nowtify is a single-user macOS menu-bar app that polls Atlassian JSM on behalf
-of the logged-in user. The only secret it stores is an **Atlassian API
-token**. Everything else (site URL, email, watch list, triggers) is non-secret
-configuration.
+Nowtify is a single-user menu-bar / system-tray app (macOS and Windows) that
+polls Atlassian JSM and, optionally, Microsoft Graph on behalf of the
+logged-in user. The secrets it stores are an **Atlassian API token** and,
+if Microsoft 365 is connected, **MS Graph access + refresh tokens**.
+Everything else (site URL, email, watch list, triggers) is non-secret config.
 
-The token, presented to JSM as HTTP Basic auth (`email:token`), grants the
-authenticating user's full Atlassian REST API access (read tickets, search
-users, list projects, etc.). It does not grant admin operations unless the
-user themselves is an admin.
+The JSM token, presented as HTTP Basic auth (`email:token`), grants the
+authenticating user's Atlassian REST API access. It does not grant admin
+operations unless the user themselves is an admin.
 
 ## In-process protections
 
@@ -24,88 +25,110 @@ user themselves is an admin.
 |---|---|
 | `contextIsolation: true` on every BrowserWindow | `src/main/index.js`, `src/main/overlay-windows.js`, `src/main/tray-manager.js` |
 | `nodeIntegration: false` on every BrowserWindow | same |
+| `sandbox: true` on every BrowserWindow (settings, popover, overlay, rasterizer) | same |
 | Preload scripts expose only typed IPC channels via `contextBridge` | `src/preload/*.js` |
-| Content-Security-Policy on every renderer HTML (`default-src 'self'`, `connect-src 'none'`) | `src/renderer/*/*.html` |
-| API token encrypted at rest via Electron `safeStorage` (macOS Keychain) | `src/main/store.js` |
-| Token never sent to renderer (`getAllForRenderer` redacts) | `src/main/store.js`, `src/main/index.js` |
-| Config file permissions locked to owner (`chmod 0600`) | `src/main/store.js` `lockdownConfigFile` |
-| JSM site URL must be `https://` (Basic auth refuses cleartext) | `src/main/jsm-client.js` `isHttpsSite` |
-| `shell.openExternal` allowlist (configured JSM host, `id.atlassian.com`, `teams.microsoft.com`) | `src/main/index.js` `safeOpenExternal` |
-| `settings:save` whitelists top-level keys | `src/main/index.js` `ALLOWED_SAVE_KEYS` |
+| Content-Security-Policy on every renderer HTML (`default-src 'self'`, `connect-src 'none'`, `frame-ancestors 'none'`) | `src/renderer/*/*.html` |
+| Global `web-contents-created` guard: deny `window.open`, block non-`file://` navigation | `src/main/index.js` |
+| Secrets encrypted at rest via Electron `safeStorage` (macOS Keychain / Windows DPAPI) | `src/main/store.js` |
+| Secrets never sent to renderer (`getAllForRenderer` redacts to `hasApiToken` booleans) | `src/main/store.js`, `src/main/index.js` |
+| Config file locked to owner: `chmod 0600` on macOS, per-user `%APPDATA%` ACLs on Windows (chmod is a no-op there) | `src/main/platform.js` `lockdownFile`, `src/main/store.js` |
+| Sensitive IPC handlers verify the sender frame (`isTrustedSender`) before acting | `src/main/index.js` |
+| `settings:save` whitelists top-level keys + per-key type validators | `src/main/index.js` `ALLOWED_SAVE_KEYS` / `SAVE_VALIDATORS` |
+| JSM site URL must be `https://`; an absolute request URL must match the configured host | `src/main/jsm-client.js` `isHttpsSite` / `request` |
+| `shell.openExternal` allowlist (configured JSM host, `id.atlassian.com`, Microsoft Teams, Outlook web) | `src/main/links.js` `isAllowedExternalHost`, `src/main/index.js` `safeOpenExternal` |
+| Teams links open the desktop app via `msteams:` only after the `teams.microsoft.com` host is validated | `src/main/index.js` `safeOpenExternal` |
 | All user-controlled strings rendered via `textContent` (no `innerHTML` interpolation) | renderer code |
 
-## At-rest token storage
+## At-rest secret storage
 
-The token is encrypted via `safeStorage.encryptString()`, which on macOS
-delegates to the system Keychain. The encrypted blob is base64-stored under
-`jsm.apiTokenEnc` in `~/Library/Application Support/Nowtify/sla-overlay-config.json`,
-and the file itself is chmod 0600.
+Secrets are encrypted via `safeStorage.encryptString()` - on macOS this
+delegates to the system **Keychain**, on Windows to **DPAPI** (the per-user
+Data Protection API). The encrypted blob is base64-stored under
+`jsm.apiTokenEnc` (and `teams.*Enc` for Graph tokens) in the per-user app-data
+directory (`~/Library/Application Support/Nowtify/` on macOS,
+`%APPDATA%\Nowtify\` on Windows).
 
-On first launch after upgrading from a pre-encryption build, any plaintext
-token under `jsm.apiToken` is transparently re-encrypted and the plaintext
-field is deleted. Migration is one-shot and best-effort - if Keychain access
-is denied, the token storage call throws rather than silently downgrading to
-plaintext.
+If the OS keystore is unavailable, the storage call **throws rather than
+silently downgrading to plaintext**. On first launch after upgrading from a
+pre-encryption build, any plaintext token is transparently re-encrypted and
+the plaintext field deleted (one-shot, best-effort).
+
+## Microsoft OAuth
+
+The Microsoft 365 sign-in uses **PKCE with S256**, a generated + validated
+`state` parameter, a 5-minute timeout on pending auth, and in-flight promise
+de-duplication for refresh-token rotation. The callback returns via the
+`nowtify://oauth/callback` custom scheme: on macOS through the `open-url`
+event, on Windows through `process.argv` (cold start) or the single-instance
+`second-instance` event (warm). The `code_verifier` lives only in memory in
+the originating process, so a hijacker who captures the callback URL still
+cannot exchange the code (see "custom URL scheme" under accepted risks).
 
 ## Release pipeline and the unsigned-binary gap
 
-**Known gap**: Nowtify is currently distributed unsigned and unnotarized
-(`package.json` `mac.identity: null`, `hardenedRuntime: false`). This means:
+**Known residual gap:** Nowtify is currently distributed **unsigned** on both
+platforms (`package.json` `mac.identity: null`; Windows NSIS unsigned). This
+means macOS Gatekeeper and Windows SmartScreen warn on first install, and the
+integrity of the auto-update channel rests on GitHub-side controls rather than
+an embedded code signature.
 
-1. macOS Gatekeeper shows the "unidentified developer" warning on first
-   install. Users have to right-click → Open to bypass.
-2. **Auto-update integrity rests entirely on GitHub Releases trust.**
-   `electron-updater` verifies the SHA-512 of each downloaded ZIP against the
-   `latest-mac.yml` manifest published alongside it, so a tampered ZIP in
-   transit is rejected. But the manifest itself is unsigned: anyone who can
-   publish to the GitHub repo's Releases (i.e. anyone holding a write token
-   on `paulg7516/nowtify`) can ship a malicious binary that every installed
-   copy will install on next launch.
+`electron-updater` verifies the SHA-512 of each downloaded artifact against the
+release manifest (`latest-mac.yml` / `latest.yml`), so an artifact tampered in
+transit is rejected. The manifest itself is unsigned, so the controls below
+constrain who can publish a release in the first place.
 
-### Compensating controls (required for production deployment)
+### Compensating controls (in place)
 
-Until Nowtify is signed with an Apple Developer ID, the integrity of the
-update channel depends entirely on GitHub-side controls. These are the
-non-negotiable operational requirements:
+Releases are built by GitHub Actions (`.github/workflows/release.yml`), matrix
+across macOS + Windows runners, triggered by a `v*` tag. The following controls
+gate that pipeline:
 
-- [ ] **2FA enforced** on the `paulg7516` GitHub account (TOTP or hardware key)
-- [ ] **Branch protection** on `main`: require PR review, disallow force-push
-- [ ] **Release tokens scoped narrowly**: classic PAT with `public_repo` only,
-      no `repo` or `admin:org`. Rotate quarterly.
-- [ ] **`GH_TOKEN` stored in shell config only**, never echoed, never pasted
-      into chat, never committed. Treat as production secret.
-- [ ] **Releases gated through `npm run ship`** (which runs locally and
-      requires the local machine's credentials) - no CI write access to
-      `gh-actions` / `GITHUB_TOKEN` with release-publish scope.
+- **Human approval on every publish.** The publish job runs in a protected
+  GitHub **`release` environment with a required reviewer**, so a maintainer
+  must approve each release in the GitHub UI before any bytes ship to clients.
+  (`workflow_dispatch` test builds do not enter that environment and never
+  publish.)
+- **Pinned actions.** All third-party actions are pinned to full commit SHAs,
+  not moveable tags, so a retargeted or compromised action tag cannot inject
+  into the pipeline.
+- **Branch + tag rulesets.** `main` and `v*` release tags are protected against
+  deletion and non-fast-forward (force-push) via repository rulesets, so
+  history and published release tags cannot be rewritten.
+- **Least-privilege, ephemeral token.** The workflow uses the run-scoped
+  `GITHUB_TOKEN` with `contents: write` only - no long-lived PAT, no org scope.
+- **Account 2FA.** 2FA must be enforced on the release-controlling GitHub
+  account (operational; verify in account settings).
 
-### Fix path
+### Fix path (closes the gap entirely)
 
-Buying an Apple Developer ID ($99/yr) closes this gap entirely:
+Code-sign both platforms:
+- **macOS:** Apple Developer ID ($99/yr) - set `mac.identity`,
+  `hardenedRuntime: true`, and notarization env vars. Squirrel.Mac then
+  verifies the signature on every update.
+- **Windows:** an OV/EV code-signing certificate - signs the NSIS installer
+  and removes the SmartScreen warning.
 
-1. Set `mac.identity` to the Developer ID Application certificate name
-2. Set `mac.hardenedRuntime: true` and `mac.gatekeeperAssess: true`
-3. Add notarization step (`electron-builder` does this automatically when
-   `APPLE_ID` / `APPLE_ID_PASS` / `APPLE_TEAM_ID` env vars are set)
-
-Squirrel.Mac then verifies the embedded code signature on every update before
-swapping the binary. A compromise of the GitHub repo would still let an
-attacker push malicious bytes, but those bytes would fail signature
-verification at install time and the update would be rejected.
+With signing in place, a repo compromise could still push bytes, but those
+bytes would fail signature verification at install time and be rejected.
 
 ## Out-of-scope threats
 
 - **Malware running as the same user**: any process running as the user can
-  read the encrypted blob and ask the OS Keychain to decrypt it (`safeStorage`
-  uses an app-scoped key but does not require user reauthentication). This is
-  inherent to per-user Keychain storage and is the same posture as any other
-  Electron app that uses `safeStorage`. Mitigated by EDR, not by Nowtify.
-- **Compromise of the Atlassian account itself**: if the user's Atlassian
-  credentials are phished, attacker gets the same API access whether or not
-  Nowtify exists.
+  ask the OS keystore (Keychain / DPAPI) to decrypt the stored blob; neither
+  requires per-decrypt reauthentication. This is inherent to per-user keystore
+  storage and is the same posture as every other Electron app that uses
+  `safeStorage`. Mitigated by EDR + full-disk encryption, not by Nowtify.
+- **Compromise of the Atlassian / Microsoft account itself**: phished
+  credentials give an attacker the same access whether or not Nowtify exists.
 - **JSM admin embedding malicious URLs in tickets**: the `openExternal`
-  allowlist limits the blast radius to your configured JSM host,
-  `id.atlassian.com`, and `teams.microsoft.com`. A malicious JSM admin can't
-  point Nowtify-clicks at arbitrary attacker URLs.
+  allowlist limits the blast radius to the configured JSM host,
+  `id.atlassian.com`, Microsoft Teams, and Outlook web. Arbitrary
+  attacker-controlled destinations are blocked.
+- **Custom URL scheme (`nowtify://`) claim**: custom schemes are
+  first-come-first-served at the OS level, so a later app could claim it.
+  Mitigated by PKCE (`code_verifier` in-memory only) + `state` validation;
+  worst case is denial-of-service against M365 sign-in. Signing + Universal
+  Links / per-app routes are the full fix.
 
 ## Reporting
 

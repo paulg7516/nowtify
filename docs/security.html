@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <title>Nowtify - Security</title>
+  <style>
+    :root {
+      --bg: #f7f7f8; --surface: #fff; --ink: #16181d; --muted: #5b606b;
+      --line: #e6e7ea; --accent: #4f46e5; --ok: #1a7f4b; --ok-bg: #e7f6ee;
+      --warn: #8a6d1a; --warn-bg: #fbf3dc; --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.55; font-size: 15px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 48px 22px 80px; }
+    a { color: var(--accent); }
+    h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+    h2 { font-size: 18px; letter-spacing: -0.01em; margin: 36px 0 10px; }
+    .lede { color: var(--muted); margin: 0 0 24px; }
+    .status {
+      display: inline-flex; align-items: center; gap: 8px; background: var(--ok-bg);
+      color: var(--ok); font-weight: 600; font-size: 13px; padding: 6px 12px;
+      border-radius: 999px;
+    }
+    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 22px 0 4px; }
+    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+    .stat b { display: block; font-size: 22px; letter-spacing: -0.01em; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 20px; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:last-child td { border-bottom: 0; }
+    code { background: #eef0f3; border-radius: 5px; padding: 1px 5px; font-size: 12.5px; }
+    .note { background: var(--warn-bg); color: var(--warn); border-radius: var(--radius); padding: 14px 16px; font-size: 14px; }
+    ul { padding-left: 20px; }
+    li { margin: 5px 0; }
+    .docs a { display: inline-block; margin-right: 16px; font-weight: 600; }
+    footer { margin-top: 44px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+    .back { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="back"><a href="./index.html">&larr; Nowtify</a></p>
+    <h1>Security</h1>
+    <p class="lede">Nowtify is built and reviewed for deployment inside a managed environment. This page summarizes the security posture and links to the full, source-backed documentation so a reviewer can verify every claim against the code.</p>
+
+    <span class="status"><span class="dot"></span> Internal security review completed - 2026-06-08</span>
+
+    <div class="grid">
+      <div class="stat"><b>0</b><span>Critical findings</span></div>
+      <div class="stat"><b>0</b><span>Open high / medium findings</span></div>
+      <div class="stat"><b>1 secret</b><span>Atlassian API token (encrypted at rest)</span></div>
+      <div class="stat"><b>macOS + Windows</b><span>Both platforms reviewed</span></div>
+    </div>
+
+    <h2>What it is</h2>
+    <p>A single-user menu-bar / system-tray app that polls Atlassian JSM (and optionally Microsoft Graph) on behalf of the signed-in user and shows ticket / SLA state. It stores one secret - the user's Atlassian API token - plus, if Microsoft 365 is connected, Graph tokens. Everything else is non-secret configuration. All network calls run in the main process; the UI windows cannot make outbound requests.</p>
+
+    <h2>Controls in place</h2>
+    <p>Each control is verifiable in the linked source.</p>
+    <div class="card">
+      <table>
+        <thead><tr><th>Control</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td>Secrets encrypted at rest via OS keystore (macOS Keychain / Windows DPAPI); refuses to store if the keystore is unavailable rather than writing plaintext</td><td><code>src/main/store.js</code></td></tr>
+          <tr><td>Secrets never reach the UI process (redacted to presence booleans)</td><td><code>store.js</code> <code>getAllForRenderer</code></td></tr>
+          <tr><td>Every window: <code>contextIsolation</code> + <code>nodeIntegration:false</code> + <code>sandbox:true</code>; strict Content-Security-Policy with <code>connect-src 'none'</code></td><td><code>src/main/*.js</code>, <code>src/renderer/*/*.html</code></td></tr>
+          <tr><td>Sensitive IPC verifies the calling window; <code>settings:save</code> allowlists keys + validates types</td><td><code>index.js</code> <code>isTrustedSender</code></td></tr>
+          <tr><td>Outbound link allowlist (JSM host, Atlassian ID, Teams, Outlook); blocks arbitrary destinations</td><td><code>src/main/links.js</code></td></tr>
+          <tr><td>JSM over HTTPS only; an absolute request URL must match the configured host</td><td><code>src/main/jsm-client.js</code></td></tr>
+          <tr><td>Microsoft OAuth uses PKCE (S256) + validated state; verifier held in memory only</td><td><code>src/main/ms-graph-oauth.js</code></td></tr>
+          <tr><td>Config file restricted to the owner (chmod 0600 on macOS; per-user ACLs on Windows)</td><td><code>src/main/platform.js</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Release integrity</h2>
+    <p>Builds are produced by GitHub Actions and gated so a release cannot ship without human sign-off:</p>
+    <ul>
+      <li><b>Every release requires manual approval</b> via a protected GitHub environment (required reviewer) before any bytes are published.</li>
+      <li><b>Build actions are pinned to commit hashes</b>, so a tampered action cannot enter the pipeline.</li>
+      <li><b>Branch and release-tag rulesets</b> block force-push and deletion, so history and published releases cannot be rewritten.</li>
+      <li><b>Auto-updates are integrity-checked</b> (SHA-512) against the signed-by-transport release manifest before install.</li>
+    </ul>
+
+    <h2>Known, accepted risks (stated plainly)</h2>
+    <div class="note">
+      The app is currently distributed <b>unsigned</b> on both platforms, so first launch shows the OS "unidentified developer" / SmartScreen prompt. Auto-update integrity therefore rests on the release controls above rather than an embedded code signature. The complete fix is code-signing certificates (Apple Developer ID + a Windows certificate); the compensating controls are in place until then. Two further inherent risks are documented: any malware already running <em>as the same user</em> can ask the OS keystore to decrypt stored secrets (true of every app that uses the OS keystore; mitigated by EDR + disk encryption), and the <code>nowtify://</code> sign-in callback scheme could be claimed by another app (mitigated by PKCE + state; worst case is a sign-in denial of service).
+    </div>
+
+    <h2>Full documentation</h2>
+    <p class="docs">
+      <a href="https://github.com/paulg7516/nowtify/blob/main/SECURITY.md">Security model (SECURITY.md)</a>
+      <a href="https://github.com/paulg7516/nowtify/blob/main/docs/security-audit-2026-06-08.md">Audit refresh (2026-06-08)</a>
+      <a href="https://github.com/paulg7516/nowtify/blob/main/docs/security-audit-2026-06-02.md">Original audit (2026-06-02)</a>
+    </p>
+    <p style="color:var(--muted);font-size:13.5px">These are the source of truth and live in the repository, so they can be reviewed directly against the code. To report an issue, open a private security advisory on the GitHub repo or email the maintainer.</p>
+
+    <footer>Nowtify - internal IT operations tooling. Last security review: 2026-06-08.</footer>
+  </div>
+</body>
+</html>
