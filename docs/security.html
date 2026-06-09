@@ -21,17 +21,6 @@
     a { color: var(--accent); }
     h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
     h2 { font-size: 18px; letter-spacing: -0.01em; margin: 36px 0 10px; }
-    .lede { color: var(--muted); margin: 0 0 24px; }
-    .status {
-      display: inline-flex; align-items: center; gap: 8px; background: var(--ok-bg);
-      color: var(--ok); font-weight: 600; font-size: 13px; padding: 6px 12px;
-      border-radius: 999px;
-    }
-    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 22px 0 4px; }
-    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
-    .stat b { display: block; font-size: 22px; letter-spacing: -0.01em; }
-    .stat span { color: var(--muted); font-size: 13px; }
     .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 20px; margin: 12px 0; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -50,16 +39,6 @@
   <div class="wrap">
     <p class="back"><a href="./index.html">&larr; Nowtify</a></p>
     <h1>Security</h1>
-    <p class="lede">Nowtify is built and reviewed for deployment inside a managed environment. This page summarizes the security posture and links to the full, source-backed documentation so a reviewer can verify every claim against the code.</p>
-
-    <span class="status"><span class="dot"></span> Internal security review completed - 2026-06-08</span>
-
-    <div class="grid">
-      <div class="stat"><b>0</b><span>Critical findings</span></div>
-      <div class="stat"><b>0</b><span>Open high / medium findings</span></div>
-      <div class="stat"><b>1 secret</b><span>Atlassian API token (encrypted at rest)</span></div>
-      <div class="stat"><b>macOS + Windows</b><span>Both platforms reviewed</span></div>
-    </div>
 
     <h2>What it is</h2>
     <p>A single-user menu-bar / system-tray app that polls Atlassian JSM (and optionally Microsoft Graph) on behalf of the signed-in user and shows ticket / SLA state. It stores one secret - the user's Atlassian API token - plus, if Microsoft 365 is connected, Graph tokens. Everything else is non-secret configuration. All network calls run in the main process; the UI windows cannot make outbound requests.</p>
@@ -99,10 +78,8 @@
     <h2>Full documentation</h2>
     <p class="docs">
       <a href="https://github.com/paulg7516/nowtify/blob/main/SECURITY.md">Security model (SECURITY.md)</a>
-      <a href="https://github.com/paulg7516/nowtify/blob/main/docs/security-audit-2026-06-08.md">Audit refresh (2026-06-08)</a>
-      <a href="https://github.com/paulg7516/nowtify/blob/main/docs/security-audit-2026-06-02.md">Original audit (2026-06-02)</a>
     </p>
-    <p style="color:var(--muted);font-size:13.5px">These are the source of truth and live in the repository, so they can be reviewed directly against the code. To report an issue, open a private security advisory on the GitHub repo or email the maintainer.</p>
+    <p style="color:var(--muted);font-size:13.5px">This is the source of truth and lives in the repository, so it can be reviewed directly against the code.</p>
 
     <footer>Nowtify - internal IT operations tooling. Last security review: 2026-06-08.</footer>
   </div>
