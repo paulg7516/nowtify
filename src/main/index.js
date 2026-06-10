@@ -244,13 +244,28 @@ function broadcastTriggers(triggers) {
   }
 }
 
+// Bring a window to whichever macOS Space is currently active instead of
+// switching the user over to the Space the window was first shown on. We
+// flip "visible on all workspaces" on, show, then flip it back off so the
+// window lands on the current Space without becoming permanently sticky
+// across every Space. No-op off macOS.
+function showOnCurrentSpace(win) {
+  if (process.platform === 'darwin' && typeof win.setVisibleOnAllWorkspaces === 'function') {
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  win.show();
+  win.focus();
+  if (process.platform === 'darwin' && typeof win.setVisibleOnAllWorkspaces === 'function') {
+    win.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: true });
+  }
+}
+
 function openSettings() {
   if (process.platform === 'darwin' && app.dock && app.dock.show) {
     app.dock.show();
   }
   if (settingsWin && !settingsWin.isDestroyed()) {
-    settingsWin.show();
-    settingsWin.focus();
+    showOnCurrentSpace(settingsWin);
     if (app.focus) app.focus({ steal: true });
     return;
   }
@@ -274,8 +289,7 @@ function openSettings() {
   settingsWin.setMenu(null);
   settingsWin.loadFile(path.join(__dirname, '..', 'renderer', 'settings', 'settings.html'));
   settingsWin.once('ready-to-show', () => {
-    settingsWin.show();
-    settingsWin.focus();
+    showOnCurrentSpace(settingsWin);
     if (app.focus) app.focus({ steal: true });
   });
   settingsWin.on('closed', () => {

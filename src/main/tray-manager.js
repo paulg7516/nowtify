@@ -528,6 +528,13 @@ class TrayManager {
       },
     });
     win.loadFile(path.join(__dirname, '..', 'renderer', 'popover', 'popover.html'));
+    // Render on whichever macOS Space is currently active instead of
+    // dragging the user back to the Space the popover was first shown on.
+    // Without this, opening "View alerts…" from another Space/fullscreen
+    // app makes macOS switch Spaces. Mirrors the overlay windows.
+    if (typeof win.setVisibleOnAllWorkspaces === 'function') {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    }
     win.on('blur', () => {
       if (!win.isDestroyed()) win.hide();
     });
