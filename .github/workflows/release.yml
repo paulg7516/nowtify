@@ -9,20 +9,28 @@ permissions:
   contents: write          # needed to publish GitHub Releases
 
 jobs:
+  # Build the OS matrix dynamically. Windows is gated until it passes manual
+  # acceptance testing, so tag-triggered PUBLISHES (v* tags) build macOS only,
+  # while workflow_dispatch test builds still build + upload Windows artifacts.
+  # Re-add the Windows entry to the tag branch below once Windows is validated.
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo 'matrix={"include":[{"os":"macos-latest","args":"--mac --universal"}]}' >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix={"include":[{"os":"macos-latest","args":"--mac --universal"},{"os":"windows-latest","args":"--win"}]}' >> "$GITHUB_OUTPUT"
+          fi
   build:
-    # Windows is gated until it passes manual acceptance testing: skip the
-    # Windows leg on tag-triggered PUBLISHES so a release ships macOS only.
-    # workflow_dispatch test builds (no tag) still build + upload Windows
-    # artifacts. Remove this guard once Windows is validated for release.
-    if: ${{ !(matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/v')) }}
+    needs: setup
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            args: --mac --universal
-          - os: windows-latest
-            args: --win
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     # Tag (release) runs require approval via the protected 'release'
     # environment (a human must approve each publish - this is the gate that
