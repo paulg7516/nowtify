@@ -70,6 +70,7 @@ module.exports = [
       globals: {
         window: 'readonly',
         document: 'readonly',
+        localStorage: 'readonly',
         console: 'readonly',
         setInterval: 'readonly',
         setTimeout: 'readonly',

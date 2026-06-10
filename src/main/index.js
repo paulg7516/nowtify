@@ -1,5 +1,5 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, shell, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, nativeImage, nativeTheme } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 // macOS dialogs + notifications fall back to a generic icon on
@@ -244,6 +244,25 @@ function broadcastTriggers(triggers) {
   }
 }
 
+// Resolve the stored theme preference ('system' | 'light' | 'dark') into the
+// effective light/dark the UI windows render. 'system' tracks the macOS
+// appearance live via nativeTheme.
+function resolveTheme() {
+  const mode = store.get('theme') || 'system';
+  const effective =
+    mode === 'system' ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light') : mode;
+  return { mode, effective };
+}
+
+// Push the current theme to every UI window (Settings + popover). The overlay
+// windows have no theme listener, so the extra send is a harmless no-op there.
+function broadcastTheme() {
+  const theme = resolveTheme();
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('theme:changed', theme);
+  }
+}
+
 // Show a window on whichever macOS Space is currently active instead of
 // switching the user over to the Space it was first shown on. Mirrors the
 // popover, which sets this once and leaves it on.
@@ -351,6 +370,34 @@ function wireIpc() {
 
   // Settings
   ipcMain.handle('settings:get', () => store.getAll());
+
+  // Theme - shared by both the Settings and popover windows. Its own channel
+  // (rather than settings:save) so the popover can drive it too and so a theme
+  // flip never triggers an engine rebuild.
+  ipcMain.handle('theme:get', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('theme:get', event);
+    }
+    return resolveTheme();
+  });
+  ipcMain.handle('theme:set', (event, mode) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('theme:set', event);
+      return resolveTheme();
+    }
+    if (mode !== 'system' && mode !== 'light' && mode !== 'dark') {
+      console.warn('[theme] rejected invalid mode:', mode);
+      return resolveTheme();
+    }
+    store.set('theme', mode);
+    broadcastTheme();
+    return resolveTheme();
+  });
+  // When following the system appearance, re-push the theme as macOS flips
+  // between light/dark (manual toggle or the Auto sunset switch).
+  nativeTheme.on('updated', () => {
+    if ((store.get('theme') || 'system') === 'system') broadcastTheme();
+  });
   // Per-key value validators. Any settings:save value that fails its
   // validator is rejected with a warning. Prevents a compromised or buggy
   // renderer from writing the wrong-shape value (e.g. `triggers: "foo"`)

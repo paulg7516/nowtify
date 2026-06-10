@@ -4,7 +4,12 @@
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
     <title>Nowtify - Alerts</title>
+    <script src="./theme-boot.js"></script>
     <style>
+      /* Base :root is the dark palette (the popover's original look). The
+         renderer sets data-theme="light|dark" on <html> resolving the user's
+         system/light/dark preference; the light block below mirrors the
+         Settings light palette so both windows match. */
       :root {
         --bg: #14161c;
         --surface: #1b1e26;
@@ -18,12 +23,71 @@
         --text-4: #5a5f69;
         --accent: #8b96ff;
         --accent-soft: rgba(139, 150, 255, 0.16);
+        --hover: rgba(255, 255, 255, 0.06);
         --success: #4ade80;
         --warning: #fbbf24;
         --danger: #f87171;
         --radius: 8px;
         --radius-sm: 6px;
         --transition: 140ms ease;
+      }
+      :root[data-theme='light'] {
+        --bg: #f4f5fb;
+        --surface: #ffffff;
+        --surface-2: #f7f8fc;
+        --surface-3: #eef0f7;
+        --border: #e5e7ef;
+        --border-strong: #d2d5e0;
+        --text: #18181b;
+        --text-2: #52525b;
+        --text-3: #8b8d93;
+        --text-4: #9ca3af;
+        --accent: #4f46e5;
+        --accent-soft: rgba(79, 70, 229, 0.1);
+        --hover: rgba(0, 0, 0, 0.04);
+        --success: #15803d;
+        --warning: #b45309;
+        --danger: #b91c1c;
+      }
+      #themeToggleIcon {
+        display: block;
+        width: 15px;
+        height: 15px;
+      }
+      #themeToggleIcon svg {
+        display: block;
+        width: 15px;
+        height: 15px;
+      }
+      #themeToggle {
+        position: relative;
+      }
+      /* Fast custom tooltip (the native title attribute has a fixed ~1.5s
+         delay). Right-anchored so the bubble stays inside the popover. */
+      #themeToggle[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        white-space: nowrap;
+        background: var(--text);
+        color: var(--surface);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 6px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        transform: translateY(-2px);
+        pointer-events: none;
+        transition: opacity 80ms ease, transform 80ms ease;
+        transition-delay: 40ms;
+        z-index: 50;
+      }
+      #themeToggle[data-tip]:hover::after,
+      #themeToggle[data-tip]:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
       }
       *,
       *::before,
@@ -87,7 +151,7 @@
          per-step failures. Click to see the error message.            */
       .header-engine-warn {
         font-size: 12px;
-        color: #f87171;
+        color: var(--danger);
         cursor: help;
         margin-left: 2px;
         line-height: 1;
@@ -220,7 +284,7 @@
       }
       .banner-action:hover {
         opacity: 1;
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--hover);
       }
 
       /* ============ Tabs ============ */
@@ -393,11 +457,11 @@
       }
       .status-chip[data-kind='breached'] {
         background: rgba(248, 113, 113, 0.18);
-        color: #fca5a5;
+        color: var(--danger);
       }
       .status-chip[data-kind='soon'] {
         background: rgba(251, 191, 36, 0.16);
-        color: #fcd34d;
+        color: var(--warning);
       }
       .status-chip[data-kind='fresh'] {
         background: var(--surface-3);
@@ -646,6 +710,9 @@
           <path d="M 3 10 a 5 5 0 0 0 9 1"/>
           <polyline points="3 14 3 10 7 10"/>
         </svg>
+      </button>
+      <button id="themeToggle" class="icon-btn" type="button" aria-label="Appearance">
+        <span id="themeToggleIcon"></span>
       </button>
     </header>
 

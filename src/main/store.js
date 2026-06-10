@@ -93,6 +93,12 @@ const defaults = {
   // intrusive). 'both' = belt + suspenders. Default 'both' preserves
   // pre-feature behaviour for existing users; new users see the same.
   pulseTarget: 'both',
+
+  // UI appearance for the Settings + View-alerts windows. 'system' follows the
+  // macOS appearance live (the default); 'light'/'dark' lock it. The screen-edge
+  // pulse overlay is unaffected (it renders the trigger's alert color, not a UI
+  // surface).
+  theme: 'system',
 };
 
 const store = new Store({

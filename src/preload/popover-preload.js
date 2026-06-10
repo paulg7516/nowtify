@@ -5,6 +5,11 @@ contextBridge.exposeInMainWorld('popoverApi', {
   onState: (cb) => {
     ipcRenderer.on('popover:state', (_event, state) => cb(state));
   },
+  getTheme: () => ipcRenderer.invoke('theme:get'),
+  setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  onTheme: (cb) => {
+    ipcRenderer.on('theme:changed', (_e, theme) => cb(theme));
+  },
   openTicket: (url) => ipcRenderer.invoke('popover:open-ticket', url),
   snooze: (minutes) => ipcRenderer.invoke('popover:snooze', minutes),
   pokeEngine: () => ipcRenderer.invoke('popover:poke-engine'),

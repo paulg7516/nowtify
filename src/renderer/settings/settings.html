@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
     <title>Nowtify - Settings</title>
+    <script src="./theme-boot.js"></script>
     <link rel="stylesheet" href="./settings.css" />
   </head>
   <body>
@@ -16,9 +17,14 @@
         </svg>
         <span class="brand-name">Nowtify</span>
       </div>
-      <div class="connection-pill" id="connectionPill" data-state="unknown">
-        <span class="pill-dot"></span>
-        <span id="connectionLabel">Not connected</span>
+      <div class="topbar-right">
+        <div class="connection-pill" id="connectionPill" data-state="unknown">
+          <span class="pill-dot"></span>
+          <span id="connectionLabel">Not connected</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Appearance">
+          <span class="theme-toggle-icon" id="themeToggleIcon"></span>
+        </button>
       </div>
     </header>
 

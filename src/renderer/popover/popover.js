@@ -477,3 +477,59 @@ updateSyncTime();
 
 api.onState(render);
 api.getState().then(render).catch(() => {});
+
+// --- Appearance (System / Light / Dark) toggle ---------------------------
+// Cycles on click; the effective light/dark is applied as data-theme on <html>
+// and cached for the boot script. The main process is the source of truth and
+// broadcasts theme:changed (e.g. when the OS appearance flips in System mode).
+const THEME_ICONS = {
+  system:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
+  light:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>',
+};
+const THEME_LABELS = {
+  system: 'Appearance: System (following your Mac)',
+  light: 'Appearance: Light',
+  dark: 'Appearance: Dark',
+};
+const THEME_ORDER = ['system', 'light', 'dark'];
+let themeMode = 'system';
+
+function applyTheme(theme) {
+  if (!theme) return;
+  themeMode = theme.mode || 'system';
+  const effective = theme.effective === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', effective);
+  try {
+    localStorage.setItem('nowtify-theme', effective);
+  } catch {
+    /* ignore */
+  }
+  const icon = el('themeToggleIcon');
+  const btn = el('themeToggle');
+  if (icon) icon.innerHTML = THEME_ICONS[themeMode] || THEME_ICONS.system;
+  if (btn) {
+    const label = THEME_LABELS[themeMode] || 'Appearance';
+    btn.setAttribute('data-tip', label);
+    btn.setAttribute('aria-label', label);
+  }
+}
+
+if (api && api.getTheme) {
+  api.getTheme().then(applyTheme).catch(() => {});
+  if (api.onTheme) api.onTheme(applyTheme);
+  const themeBtn = el('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', async () => {
+      const next = THEME_ORDER[(THEME_ORDER.indexOf(themeMode) + 1) % THEME_ORDER.length];
+      try {
+        applyTheme(await api.setTheme(next));
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+}

@@ -36,6 +36,40 @@
   --transition: 120ms ease;
 }
 
+/* Dark theme. The renderer sets data-theme="light|dark" on <html> (resolving
+   "system" against the OS), so the base :root above is the light palette and
+   this block overrides the color variables for dark. Mirrors the popover's
+   dark palette so both windows match. Brand gradient + semantic accent dots
+   are left to inherit - they read well on both backgrounds. */
+:root[data-theme='dark'] {
+  --bg: #14161c;
+  --surface: #1b1e26;
+  --surface-2: #232733;
+  --surface-3: #2c313e;
+  --border: #2a2e38;
+  --border-strong: #3a4050;
+  --text: #e6e8ec;
+  --text-2: #b5b8bf;
+  --text-3: #8b9098;
+  --text-4: #6b7280;
+
+  --accent: #8b96ff;
+  --accent-hover: #a3acff;
+  --accent-soft: rgba(139, 150, 255, 0.16);
+  --accent-strong: rgba(139, 150, 255, 0.92);
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-brand: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -148,7 +182,7 @@ body {
 }
 .sidebar {
   border-right: 1px solid var(--border);
-  background: #fafbff;
+  background: var(--surface-2);
   padding: 14px 10px;
   display: flex;
   flex-direction: column;
@@ -298,7 +332,7 @@ input[type='number'] {
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 input:hover {
-  border-color: #b6b9c0;
+  border-color: var(--border-strong);
 }
 input:focus {
   outline: none;
@@ -370,7 +404,7 @@ input[type='number'] {
 }
 .btn:hover {
   background: var(--surface-2);
-  border-color: #b6b9c0;
+  border-color: var(--border-strong);
 }
 /* Primary CTA: subtle indigo gradient + brand-tinted shadow. Reserved
    for hero actions (one per panel) - overuse dilutes the signal.       */
@@ -776,7 +810,7 @@ ul.list:empty {
   height: 18px;
   left: 2px;
   top: 2px;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
   transition: transform 180ms ease;
@@ -957,7 +991,7 @@ ul.list:empty {
   gap: 14px;
   padding: 18px 20px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--surface) 0%, #fafbff 100%);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
 }
 .integration-logo {
   width: 40px;
@@ -1100,7 +1134,7 @@ ul.list:empty {
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
   flex-shrink: 0;
   transition: transform 120ms ease;
 }
@@ -1319,5 +1353,73 @@ ul.list:empty {
   font-size: 12px;
   color: var(--text-3);
   line-height: 1.45;
+}
+
+/* Appearance toggle in the topbar. Groups with the connection pill on the
+   right; cycles System -> Light -> Dark. */
+.topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: var(--transition);
+}
+/* Fast custom tooltip (the native title attribute has a fixed ~1.5s delay).
+   Right-anchored so the bubble stays inside the window. */
+.theme-toggle[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  white-space: nowrap;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 80ms ease, transform 80ms ease;
+  transition-delay: 40ms;
+  z-index: 50;
+}
+.theme-toggle[data-tip]:hover::after,
+.theme-toggle[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.theme-toggle-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.theme-toggle-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 

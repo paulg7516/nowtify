@@ -3,6 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('settingsApi', {
   getConfig: () => ipcRenderer.invoke('settings:get'),
   saveConfig: (patch) => ipcRenderer.invoke('settings:save', patch),
+  getTheme: () => ipcRenderer.invoke('theme:get'),
+  setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  onTheme: (cb) => {
+    ipcRenderer.on('theme:changed', (_e, theme) => cb(theme));
+  },
   testConnection: (creds) => ipcRenderer.invoke('settings:test-connection', creds),
   disconnect: () => ipcRenderer.invoke('settings:disconnect'),
   getUpdateStatus: () => ipcRenderer.invoke('settings:get-update-status'),
