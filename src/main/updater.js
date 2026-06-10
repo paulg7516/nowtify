@@ -5,6 +5,25 @@ const { spawn } = require('child_process');
 const { app, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const platform = require('./platform');
+const { isPoisonedCacheError } = require('./updater-errors');
+
+/**
+ * Directory electron-updater stores downloads in, matching the path it logs
+ * ("updater cache dir: .../nowtify-updater"). Used to purge a poisoned cache
+ * so a corrupt/partial download can't fail the checksum forever.
+ *   macOS:        ~/Library/Caches/nowtify-updater
+ *   Windows/Linux: <app cache>/nowtify-updater
+ */
+function updaterCacheDir() {
+  try {
+    if (process.platform === 'darwin') {
+      return path.join(app.getPath('home'), 'Library', 'Caches', 'nowtify-updater');
+    }
+    return path.join(app.getPath('cache'), 'nowtify-updater');
+  } catch (_) {
+    return null;
+  }
+}
 
 /**
  * Install a downloaded update by bypassing Squirrel.Mac entirely.
@@ -132,6 +151,12 @@ function setupAutoUpdater(ctx) {
   // dialog button).
   autoUpdater.autoInstallOnAppQuit = false;
   updaterStatus.currentVersion = app.getVersion();
+
+  // One-shot guard so a poisoned-cache heal (purge + re-check) can't loop. It
+  // is reset only on a genuine success signal (update-downloaded /
+  // update-not-available), so a persistently failing download surfaces the
+  // error after a single heal attempt instead of thrashing.
+  let cacheHealAttempted = false;
   autoUpdater.on('checking-for-update', () => {
     updaterStatus.result = { type: 'checking', message: 'Checking for updates…', version: '' };
     broadcastUpdaterStatus();
@@ -147,6 +172,7 @@ function setupAutoUpdater(ctx) {
   });
   autoUpdater.on('update-not-available', () => {
     console.log('[updater] up to date');
+    cacheHealAttempted = false;
     updaterStatus.lastCheckedAt = Date.now();
     updaterStatus.result = { type: 'up-to-date', message: 'You are on the latest version', version: '' };
     broadcastUpdaterStatus();
@@ -162,6 +188,7 @@ function setupAutoUpdater(ctx) {
   });
   autoUpdater.on('update-downloaded', async (info) => {
     console.log('[updater] downloaded:', info.version);
+    cacheHealAttempted = false;
     updaterStatus.lastCheckedAt = Date.now();
     updaterStatus.downloadedFile = info && (info.downloadedFile || info.path);
     updaterStatus.result = {
@@ -244,11 +271,48 @@ function setupAutoUpdater(ctx) {
     }
   });
   autoUpdater.on('error', (err) => {
-    console.warn('[updater] error:', err.message || err);
+    const msg = (err && (err.message || String(err))) || 'Update failed';
+    console.warn('[updater] error:', msg);
+
+    // Self-heal a poisoned download cache. A partial/corrupt pending download
+    // fails the sha512 check on every retry, which reads to the user as "can't
+    // download the update". Purge the cache once and re-check so the next
+    // download starts clean - guarded so a genuinely persistent failure can't
+    // loop (see cacheHealAttempted).
+    if (isPoisonedCacheError(msg) && !cacheHealAttempted) {
+      cacheHealAttempted = true;
+      const dir = updaterCacheDir();
+      let purged = false;
+      if (dir) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+          purged = true;
+        } catch (e) {
+          console.warn('[updater] cache purge failed:', e.message);
+        }
+      }
+      console.warn(
+        '[updater] poisoned update cache', purged ? 'purged' : 'not purged', '- re-checking'
+      );
+      updaterStatus.result = {
+        type: 'checking',
+        message: 'Update cache was reset - retrying…',
+        version: '',
+      };
+      broadcastUpdaterStatus();
+      // Kick the re-check off the current stack so the failed download fully
+      // unwinds first. Swallow its rejection; a second failure surfaces via
+      // this same handler (now with cacheHealAttempted=true).
+      Promise.resolve().then(() => autoUpdater.checkForUpdates()).catch((e) => {
+        console.warn('[updater] retry check failed:', e && e.message);
+      });
+      return;
+    }
+
     updaterStatus.lastCheckedAt = Date.now();
     updaterStatus.result = {
       type: 'error',
-      message: err.message || String(err),
+      message: msg,
       version: '',
     };
     broadcastUpdaterStatus();

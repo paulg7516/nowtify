@@ -244,29 +244,26 @@ function broadcastTriggers(triggers) {
   }
 }
 
-// Bring a window to whichever macOS Space is currently active instead of
-// switching the user over to the Space the window was first shown on. We
-// flip "visible on all workspaces" on, show, then flip it back off so the
-// window lands on the current Space without becoming permanently sticky
-// across every Space. No-op off macOS.
+// Show a window on whichever macOS Space is currently active instead of
+// switching the user over to the Space it was first shown on. Mirrors the
+// popover, which sets this once and leaves it on.
+//
+// An earlier version flipped "visible on all workspaces" back to false right
+// after show() to avoid the window being sticky across Spaces - but that
+// synchronous revert re-bound the window to a single Space before it actually
+// appeared, so Settings still jumped. Leaving the flag ON is what keeps it on
+// the current Space (the popover proves this works). No-op off macOS.
 function showOnCurrentSpace(win) {
   if (process.platform === 'darwin' && typeof win.setVisibleOnAllWorkspaces === 'function') {
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
   win.show();
   win.focus();
-  if (process.platform === 'darwin' && typeof win.setVisibleOnAllWorkspaces === 'function') {
-    win.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: true });
-  }
 }
 
 function openSettings() {
-  if (process.platform === 'darwin' && app.dock && app.dock.show) {
-    app.dock.show();
-  }
   if (settingsWin && !settingsWin.isDestroyed()) {
     showOnCurrentSpace(settingsWin);
-    if (app.focus) app.focus({ steal: true });
     return;
   }
   settingsWin = new BrowserWindow({
@@ -275,6 +272,15 @@ function openSettings() {
     title: 'Nowtify - Settings',
     icon: BRAND_ICON_PATH,
     skipTaskbar: true,
+    // Float as an auxiliary panel (like the popover) so macOS can composite
+    // Settings over the CURRENT Space - including a full-screen app's Space -
+    // instead of switching the user to a regular desktop to show it. A normal
+    // (non-floating) window can't be drawn over a full-screen Space, which is
+    // what caused Settings to "jump screens". Paired with the
+    // setVisibleOnAllWorkspaces({visibleOnFullScreen:true}) call in
+    // showOnCurrentSpace, and with NO app.dock.show()/app.focus() (becoming a
+    // regular/dock app or activating would itself leave the full-screen Space).
+    alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'settings-preload.js'),
       contextIsolation: true,
@@ -290,13 +296,9 @@ function openSettings() {
   settingsWin.loadFile(path.join(__dirname, '..', 'renderer', 'settings', 'settings.html'));
   settingsWin.once('ready-to-show', () => {
     showOnCurrentSpace(settingsWin);
-    if (app.focus) app.focus({ steal: true });
   });
   settingsWin.on('closed', () => {
     settingsWin = null;
-    if (process.platform === 'darwin' && app.dock && app.dock.hide) {
-      app.dock.hide();
-    }
   });
 }
 
