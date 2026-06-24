@@ -100,37 +100,6 @@ gate that pipeline:
   authenticator app, confirmed 2026-06-08). A hardware security key is an
   optional phishing-resistant upgrade.
 
-### Fix path (closes the gap entirely)
-
-Code-sign both platforms:
-- **macOS:** Apple Developer ID ($99/yr) - set `mac.identity`,
-  `hardenedRuntime: true`, and notarization env vars. Squirrel.Mac then
-  verifies the signature on every update.
-- **Windows:** an OV/EV code-signing certificate - signs the NSIS installer
-  and removes the SmartScreen warning.
-
-With signing in place, a repo compromise could still push bytes, but those
-bytes would fail signature verification at install time and be rejected.
-
-## Out-of-scope threats
-
-- **Malware running as the same user**: any process running as the user can
-  ask the OS keystore (Keychain / DPAPI) to decrypt the stored blob; neither
-  requires per-decrypt reauthentication. This is inherent to per-user keystore
-  storage and is the same posture as every other Electron app that uses
-  `safeStorage`. Mitigated by EDR + full-disk encryption, not by Nowtify.
-- **Compromise of the Atlassian / Microsoft account itself**: phished
-  credentials give an attacker the same access whether or not Nowtify exists.
-- **JSM admin embedding malicious URLs in tickets**: the `openExternal`
-  allowlist limits the blast radius to the configured JSM host,
-  `id.atlassian.com`, Microsoft Teams, and Outlook web. Arbitrary
-  attacker-controlled destinations are blocked.
-- **Custom URL scheme (`nowtify://`) claim**: custom schemes are
-  first-come-first-served at the OS level, so a later app could claim it.
-  Mitigated by PKCE (`code_verifier` in-memory only) + `state` validation;
-  worst case is denial-of-service against M365 sign-in. Signing + Universal
-  Links / per-app routes are the full fix.
-
 ## Reporting
 
 Found something? Email the maintainer (see `package.json` author field) or

@@ -50,6 +50,7 @@ Save and you're done. Nowtify polls every 30 seconds and pulses the screen edge 
 ## Settings you'll want to know about
 
 - **Display.** Choose where the pulse renders: the screen edge, the menu-bar icon, or both. Same color either way.
+- **Appearance.** Switch the Settings window and the menu-bar popover between light and dark. The screen-edge pulse is unaffected; it always shows in the trigger's color.
 - **Triggers.** Turn each trigger on or off individually. Each one has its own color picker.
 - **Snooze.** Right-click the menu-bar icon, pick "Until I resume" to silence the pulse, then "Resume now" when you're ready. Alerts still accumulate in the menu-bar popover while snoozed, so you can see what fired.
 - **Dismiss.** Per ticket per condition. Dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
@@ -60,7 +61,8 @@ Honest list of stuff that doesn't work yet, so you know what to expect:
 
 - **Screen-share auto-hide.** If you share your whole desktop and a Major Incident fires, the border is visible to viewers. On the to-do list.
 - **Central watchlist sync.** Your watchlist is local to each Mac. There's no shared "team watchlist" yet.
-- **Windows and Linux.** macOS only. The peripheral-pulse experience is built on macOS-specific window APIs.
+- **Windows.** Built and in final testing before release. Not downloadable yet; the macOS `.dmg` is the only published build for now.
+- **Linux.** Not planned. The peripheral-pulse experience is built on platform-specific window APIs.
 
 ## Building from source
 
