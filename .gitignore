@@ -7,3 +7,6 @@ dist/
 # the .icns itself is committed (electron-builder needs it), the iconset
 # is just scratch.
 build/icon.iconset/
+
+# Internal docs - never publish (public repo + GitHub Pages)
+internal/
