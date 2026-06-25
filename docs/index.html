@@ -821,29 +821,19 @@
     padding: 2px 6px;
     line-height: 1;
   }
+  /* Small illustrated portrait avatars (inline SVG, no network/CSP cost).
+     Varied skin tone / hair / clothing so the watchlist reads as real,
+     distinct people. */
   .tc-av {
-    width: 16px;
-    height: 16px;
+    width: 17px;
+    height: 17px;
     border-radius: 50%;
     border: 1.5px solid #fff;
-    margin-left: -5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    font-weight: 700;
-    color: #fff;
-    user-select: none;
+    margin-left: -6px;
+    display: block;
+    overflow: hidden;
   }
   .tc-av:first-child { margin-left: 0; }
-  /* Avatar palette kept distinct from the trigger dots
-     (red/amber/indigo/blue) so the people don't read as triggers. */
-  .tc-av.c1 { background: #ec4899; }
-  .tc-av.c2 { background: #14b8a6; }
-  .tc-av.c3 { background: #8b5cf6; }
-  .tc-av.c4 { background: #f97316; }
-  .tc-av.c5 { background: #06b6d4; }
-  .tc-av.c6 { background: #10b981; }
   .trigger-chip:nth-child(2) { animation-delay: 1s; }
   .trigger-chip:nth-child(3) { animation-delay: 2s; }
   .trigger-chip:nth-child(4) { animation-delay: 3s; }
@@ -1554,15 +1544,15 @@
           </span>
           <span class="trigger-chip" aria-label="SLA breach watchlist: 2 people">
             <span class="tc-head"><span class="tc-dot sla"></span>SLA</span>
-            <span class="tc-people"><span class="tc-av c1">D</span><span class="tc-av c2">R</span></span>
+            <span class="tc-people"><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#fce7f3"/><circle cx="16" cy="29" r="10" fill="#ec4899"/><circle cx="16" cy="10" r="6.6" fill="#3f2d23"/><circle cx="16" cy="13" r="6.3" fill="#f0c8a0"/><circle cx="13.7" cy="13" r=".9" fill="#3b3b3b"/><circle cx="18.3" cy="13" r=".9" fill="#3b3b3b"/></svg><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#ccfbf1"/><circle cx="16" cy="29" r="10" fill="#14b8a6"/><circle cx="16" cy="10" r="6.6" fill="#14181f"/><circle cx="16" cy="13" r="6.3" fill="#e0a87e"/><circle cx="13.7" cy="13" r=".9" fill="#2a2a2a"/><circle cx="18.3" cy="13" r=".9" fill="#2a2a2a"/></svg></span>
           </span>
           <span class="trigger-chip checked" aria-label="Teams VIPs: 3 people">
             <span class="tc-head"><span class="tc-dot teams"></span>Teams VIP</span>
-            <span class="tc-people"><span class="tc-av c3">M</span><span class="tc-av c4">J</span><span class="tc-av c5">A</span></span>
+            <span class="tc-people"><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#ede9fe"/><circle cx="16" cy="29" r="10" fill="#8b5cf6"/><circle cx="16" cy="10" r="6.6" fill="#6b3f23"/><circle cx="16" cy="13" r="6.3" fill="#f2d2b6"/><circle cx="13.7" cy="13" r=".9" fill="#3b3b3b"/><circle cx="18.3" cy="13" r=".9" fill="#3b3b3b"/></svg><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#ffedd5"/><circle cx="16" cy="29" r="10" fill="#f97316"/><circle cx="16" cy="10" r="6.6" fill="#1f2937"/><circle cx="16" cy="13" r="6.3" fill="#c98a5e"/><circle cx="13.7" cy="13" r=".9" fill="#241a12"/><circle cx="18.3" cy="13" r=".9" fill="#241a12"/></svg><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#cffafe"/><circle cx="16" cy="29" r="10" fill="#06b6d4"/><circle cx="16" cy="10" r="6.6" fill="#2b2b2b"/><circle cx="16" cy="13" r="6.3" fill="#a96b3f"/><circle cx="13.7" cy="13" r=".9" fill="#23150c"/><circle cx="18.3" cy="13" r=".9" fill="#23150c"/></svg></span>
           </span>
           <span class="trigger-chip" aria-label="Email senders: 1 person">
             <span class="tc-head"><span class="tc-dot mail"></span>Email</span>
-            <span class="tc-people"><span class="tc-av c6">S</span></span>
+            <span class="tc-people"><svg class="tc-av" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#d1fae5"/><circle cx="16" cy="29" r="10" fill="#10b981"/><circle cx="16" cy="10" r="6.6" fill="#8a5a2b"/><circle cx="16" cy="13" r="6.3" fill="#f0c8a0"/><circle cx="13.7" cy="13" r=".9" fill="#3b3b3b"/><circle cx="18.3" cy="13" r=".9" fill="#3b3b3b"/></svg></span>
           </span>
         </div>
         <h3>Tell Nowtify what's urgent to you</h3>
