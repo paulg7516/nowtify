@@ -722,115 +722,136 @@
   .brand-now {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
+    /* Nowtify visibly "ingests" the streamed packets: the center tile
+       breathes in sync with the flow so both sources read as converging
+       into it. */
+    animation: nowReceive 1.6s ease-in-out infinite;
+  }
+  @keyframes nowReceive {
+    0%, 100% { box-shadow: 0 0 0 3px var(--accent-soft); }
+    55%      { box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.28),
+                           0 0 16px 3px rgba(79, 70, 229, 0.32); }
   }
   .flow-line {
-    width: 28px;
-    height: 2px;
-    background: linear-gradient(to right, transparent, var(--accent) 25%, var(--accent) 75%, transparent);
-    opacity: 0.35;
-    border-radius: 2px;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--accent) 16%, var(--accent) 84%, transparent);
+    opacity: 0.5;
+    border-radius: 3px;
     position: relative;
     overflow: hidden;
   }
+  /* Moving "data packets" - short capsules that glide along the line
+     toward Nowtify. Bigger, brighter and denser than the old 4px dots so
+     the direction of flow reads at a glance. */
   .flow-line .flow-dot {
     position: absolute;
-    top: -1px;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
+    top: 0;
+    width: 11px;
+    height: 3px;
+    border-radius: 2px;
     background: var(--accent);
     opacity: 0;
   }
-  .flow-left .flow-dot { animation: flow-toward-right 2.4s ease-in-out infinite; }
-  .flow-right .flow-dot { animation: flow-toward-left 2.4s ease-in-out infinite; }
+  .flow-left .flow-dot  { animation: flow-toward-right 1.6s linear infinite; }
+  .flow-right .flow-dot { animation: flow-toward-left 1.6s linear infinite; }
   .flow-line .flow-dot:nth-child(1) { animation-delay: 0s; }
-  .flow-line .flow-dot:nth-child(2) { animation-delay: 0.4s; }
-  .flow-line .flow-dot:nth-child(3) { animation-delay: 0.8s; }
+  .flow-line .flow-dot:nth-child(2) { animation-delay: 0.53s; }
+  .flow-line .flow-dot:nth-child(3) { animation-delay: 1.06s; }
   @keyframes flow-toward-right {
-    0%   { left: -4px; opacity: 0; }
-    25%  { opacity: 1; }
-    75%  { opacity: 1; }
-    100% { left: 32px; opacity: 0; }
+    0%   { left: -11px; opacity: 0; }
+    18%  { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { left: 40px; opacity: 0; }
   }
   @keyframes flow-toward-left {
-    0%   { left: 32px; opacity: 0; }
-    25%  { opacity: 1; }
-    75%  { opacity: 1; }
-    100% { left: -4px; opacity: 0; }
+    0%   { left: 40px; opacity: 0; }
+    18%  { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { left: -11px; opacity: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .flow-line .flow-dot { animation: none; opacity: 0.5; left: 50%; }
+    .flow-line .flow-dot { animation: none; opacity: 0.6; left: 14px; }
+    .brand-now { animation: none; }
   }
-  .how-illus-watch { gap: 16px; }
-  /* Step 2 illustration: 4 mini "person rows" - avatar above first
-     name - representing the people on a watchlist (Jira assignees,
-     Teams VIPs, Outlook senders all map to "people you care about").
-     The names provide the missing context that bare avatars lacked
-     so the row reads as "people I'm picking" rather than a tab
-     switcher. The selected state walks left-to-right across the row
-     using the brand indigo accent. Reduced-motion falls back to the
-     `.checked` avatar staying statically selected. */
-  .watch-person {
+  .how-illus-watch { gap: 6px; }
+  /* Step 2 illustration: three "trigger" chips, each with its own color
+     dot and its own little stack of watchlist avatars. Maps 1:1 to the
+     card copy - which users count for SLA, which colleagues are Teams
+     VIPs, which senders' emails matter - so it shows the real capability
+     (per-trigger watchlists, each its own color) rather than a flat row
+     of names. A selection ring walks across the chips; reduced-motion
+     pins the `.checked` chip. */
+  .trigger-chip {
     display: inline-flex;
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    align-items: flex-start;
+    gap: 7px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 9px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    animation: chipSelect 4s linear infinite;
   }
-  .avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
+  .tc-head {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 11px;
+    gap: 5px;
+    font-size: 10.5px;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    background: #f3f4f6;
     color: var(--ink-2);
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    flex-shrink: 0;
-    user-select: none;
-    animation: avatarSelect 3.2s linear infinite;
-  }
-  .watch-name {
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--ink-3);
-    letter-spacing: 0.01em;
     line-height: 1;
-    animation: watchNameSelect 3.2s linear infinite;
+    white-space: nowrap;
   }
-  .watch-person:nth-child(2) .avatar,
-  .watch-person:nth-child(2) .watch-name { animation-delay: 0.8s; }
-  .watch-person:nth-child(3) .avatar,
-  .watch-person:nth-child(3) .watch-name { animation-delay: 1.6s; }
-  .watch-person:nth-child(4) .avatar,
-  .watch-person:nth-child(4) .watch-name { animation-delay: 2.4s; }
-  @keyframes avatarSelect {
-    0%, 22% {
-      background: var(--accent);
-      color: #fff;
+  .tc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .tc-dot.major { background: #dc2626; }
+  .tc-dot.sla   { background: #f59e0b; }
+  .tc-dot.teams { background: #6366f1; }
+  .tc-dot.mail  { background: #0078d4; }
+  .tc-people { display: inline-flex; align-items: center; padding-left: 12px; }
+  /* Major Incident has no watchlist - it fires on any ticket - so its
+     sub-row shows an "Any" tag instead of chosen people. */
+  .tc-any {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--ink-3);
+    background: #f1f2f4;
+    border-radius: 5px;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+  .tc-av {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #e6e7ec;
+    border: 1.5px solid #fff;
+    margin-left: -4px;
+  }
+  .tc-av:first-child { margin-left: 0; }
+  .trigger-chip:nth-child(2) { animation-delay: 1s; }
+  .trigger-chip:nth-child(3) { animation-delay: 2s; }
+  .trigger-chip:nth-child(4) { animation-delay: 3s; }
+  @keyframes chipSelect {
+    0%, 18% {
       border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
-    25%, 100% {
-      background: #f3f4f6;
-      color: var(--ink-2);
-      border-color: rgba(0, 0, 0, 0.04);
+    22%, 100% {
+      border-color: var(--border);
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
-  }
-  @keyframes watchNameSelect {
-    0%, 22%   { color: var(--ink); font-weight: 600; }
-    25%, 100% { color: var(--ink-3); font-weight: 500; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .avatar, .watch-name { animation: none; }
-    .watch-person.checked .avatar {
-      background: var(--accent);
-      color: #fff;
+    .trigger-chip { animation: none; }
+    .trigger-chip.checked {
       border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
-    .watch-person.checked .watch-name { color: var(--ink); font-weight: 600; }
   }
   .mini-screen {
     width: 90px; height: 56px;
@@ -1175,7 +1196,7 @@
     .alert-title { font-size: 11.5px; }
     /* Step 1 illustration: tighter tile spacing on small screens. */
     .how-illus { padding: 0 12px; }
-    .flow-line { width: 20px; }
+    .flow-line { width: 30px; }
     .brand-tile { width: 34px; height: 34px; }
     .brand-tile svg, .brand-tile img { width: 19px; height: 19px; }
     /* Mobile browsers either drop backdrop-filter or leave the nav too
@@ -1513,10 +1534,22 @@
       <li class="how-card">
         <div class="how-num">2</div>
         <div class="how-illus how-illus-watch">
-          <span class="watch-person"><span class="avatar">JS</span><span class="watch-name">John</span></span>
-          <span class="watch-person"><span class="avatar">AK</span><span class="watch-name">Alex</span></span>
-          <span class="watch-person checked"><span class="avatar">JL</span><span class="watch-name">Jordan</span></span>
-          <span class="watch-person"><span class="avatar">TB</span><span class="watch-name">Taylor</span></span>
+          <span class="trigger-chip" aria-label="Major Incident: fires on any ticket">
+            <span class="tc-head"><span class="tc-dot major"></span>Incident</span>
+            <span class="tc-people"><span class="tc-any">Any</span></span>
+          </span>
+          <span class="trigger-chip" aria-label="SLA breach watchlist: 2 people">
+            <span class="tc-head"><span class="tc-dot sla"></span>SLA</span>
+            <span class="tc-people"><span class="tc-av"></span><span class="tc-av"></span></span>
+          </span>
+          <span class="trigger-chip checked" aria-label="Teams VIPs: 3 people">
+            <span class="tc-head"><span class="tc-dot teams"></span>Teams VIP</span>
+            <span class="tc-people"><span class="tc-av"></span><span class="tc-av"></span><span class="tc-av"></span></span>
+          </span>
+          <span class="trigger-chip" aria-label="Email senders: 1 person">
+            <span class="tc-head"><span class="tc-dot mail"></span>Email</span>
+            <span class="tc-people"><span class="tc-av"></span></span>
+          </span>
         </div>
         <h3>Tell Nowtify what's urgent to you</h3>
         <p>Per-trigger watchlists. Pick which users' tickets count for SLA, which colleagues are Teams VIPs, which senders' emails matter.</p>
