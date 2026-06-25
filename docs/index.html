@@ -822,14 +822,28 @@
     line-height: 1;
   }
   .tc-av {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: #e6e7ec;
     border: 1.5px solid #fff;
-    margin-left: -4px;
+    margin-left: -5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fff;
+    user-select: none;
   }
   .tc-av:first-child { margin-left: 0; }
+  /* Avatar palette kept distinct from the trigger dots
+     (red/amber/indigo/blue) so the people don't read as triggers. */
+  .tc-av.c1 { background: #ec4899; }
+  .tc-av.c2 { background: #14b8a6; }
+  .tc-av.c3 { background: #8b5cf6; }
+  .tc-av.c4 { background: #f97316; }
+  .tc-av.c5 { background: #06b6d4; }
+  .tc-av.c6 { background: #10b981; }
   .trigger-chip:nth-child(2) { animation-delay: 1s; }
   .trigger-chip:nth-child(3) { animation-delay: 2s; }
   .trigger-chip:nth-child(4) { animation-delay: 3s; }
@@ -1540,15 +1554,15 @@
           </span>
           <span class="trigger-chip" aria-label="SLA breach watchlist: 2 people">
             <span class="tc-head"><span class="tc-dot sla"></span>SLA</span>
-            <span class="tc-people"><span class="tc-av"></span><span class="tc-av"></span></span>
+            <span class="tc-people"><span class="tc-av c1">D</span><span class="tc-av c2">R</span></span>
           </span>
           <span class="trigger-chip checked" aria-label="Teams VIPs: 3 people">
             <span class="tc-head"><span class="tc-dot teams"></span>Teams VIP</span>
-            <span class="tc-people"><span class="tc-av"></span><span class="tc-av"></span><span class="tc-av"></span></span>
+            <span class="tc-people"><span class="tc-av c3">M</span><span class="tc-av c4">J</span><span class="tc-av c5">A</span></span>
           </span>
           <span class="trigger-chip" aria-label="Email senders: 1 person">
             <span class="tc-head"><span class="tc-dot mail"></span>Email</span>
-            <span class="tc-people"><span class="tc-av"></span></span>
+            <span class="tc-people"><span class="tc-av c6">S</span></span>
           </span>
         </div>
         <h3>Tell Nowtify what's urgent to you</h3>
