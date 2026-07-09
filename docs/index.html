@@ -918,6 +918,7 @@
   }
   .feature-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
   .feature-icon {
+    position: relative;
     display: inline-flex;
     align-items: center; justify-content: center;
     width: 40px; height: 40px;
@@ -928,6 +929,21 @@
   }
   .feature-icon svg,
   .feature-icon img { width: 22px; height: 22px; display: block; }
+  /* Source-app badge: the feature glyph stays the main icon, with a small
+     product mark in the corner so the Jira-sourced cards show where they
+     come from - matching how the Teams/Outlook cards carry their mark. */
+  .feature-badge {
+    position: absolute;
+    right: -5px; bottom: -5px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1.5px solid var(--surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+    display: inline-flex;
+    align-items: center; justify-content: center;
+  }
+  .feature-badge svg { width: 11px; height: 11px; display: block; }
   /* Brand-coloured logos (Teams, Outlook) override the card's accent tint
      so users see the marks they recognise from Microsoft, not a
      desaturated currentColor outline. Container background still picks
@@ -1586,6 +1602,7 @@
             <path d="M12 9v4"/>
             <path d="M12 17h.01"/>
           </svg>
+          <span class="feature-badge" aria-label="Jira"><svg viewBox="0 0 24 24" fill="#0052cc"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"/></svg></span>
         </span>
         <h3>Major Incident</h3>
         <p>Any Jira ticket flagged as a Major Incident. Lights up the moment one opens, stops when the flag is removed or you dismiss it.</p>
@@ -1604,6 +1621,7 @@
             <path d="m6 19-2 2"/>
             <path d="m20 19 2 2"/>
           </svg>
+          <span class="feature-badge" aria-label="Jira"><svg viewBox="0 0 24 24" fill="#0052cc"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"/></svg></span>
         </span>
         <h3>SLA breach imminent</h3>
         <p>Tickets assigned to people you're watching whose SLA is about to expire. You decide how close to the deadline counts as urgent (e.g. under 30 minutes).</p>
@@ -1624,6 +1642,7 @@
             <path d="M12 9.5v4"/>
             <path d="M12 16.5h.01"/>
           </svg>
+          <span class="feature-badge" aria-label="Jira"><svg viewBox="0 0 24 24" fill="#0052cc"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"/></svg></span>
         </span>
         <h3>SLA breached</h3>
         <p>Tickets assigned to people you're watching whose SLA has already expired. Stays on until you dismiss it.</p>
@@ -1638,6 +1657,7 @@
             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
             <path d="m9 14 2 2 4-4"/>
           </svg>
+          <span class="feature-badge" aria-label="Jira"><svg viewBox="0 0 24 24" fill="#0052cc"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"/></svg></span>
         </span>
         <h3>My pending approvals</h3>
         <p>Jira service-desk requests waiting on your approval. Only counts the ones assigned to you, not your whole team's queue.</p>
