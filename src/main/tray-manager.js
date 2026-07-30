@@ -256,7 +256,11 @@ class TrayManager {
   loadTrayIcon(name, { template = false } = {}) {
     const key = `${name}:${template ? 't' : 'c'}`;
     if (this.iconCache[key]) return this.iconCache[key];
-    const file = path.join(TRAY_DIR, `${name}.png`);
+    const file = platform.safeIconPath(TRAY_DIR, `${name}.png`);
+    if (!file) {
+      console.warn('[tray] refused unsafe icon name:', name);
+      return nativeImage.createEmpty();
+    }
     const img = nativeImage.createFromPath(file);
     if (img.isEmpty()) {
       console.warn('[tray] image is empty:', file);
@@ -272,7 +276,11 @@ class TrayManager {
     const spec = platform.trayIconSpec(process.platform, status);
     const key = `fallback:${spec.dir}/${spec.file}:${spec.template ? 't' : 'c'}`;
     if (this.iconCache[key]) return this.iconCache[key];
-    const file = path.join(TRAY_DIR, spec.dir, spec.file);
+    const file = platform.safeIconPath(TRAY_DIR, spec.dir, spec.file);
+    if (!file) {
+      console.warn('[tray] refused unsafe fallback spec:', spec);
+      return nativeImage.createEmpty();
+    }
     const img = nativeImage.createFromPath(file);
     if (img.isEmpty()) console.warn('[tray] fallback image is empty:', file);
     if (!img.isEmpty() && spec.template) img.setTemplateImage(true);

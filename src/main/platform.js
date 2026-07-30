@@ -4,6 +4,7 @@
 // (and other inputs) explicitly so they can be unit-tested without mocking
 // process.platform; thin wrappers at the bottom apply the real values.
 const fs = require('fs');
+const path = require('path');
 
 const PLATFORM = process.platform;
 const isMac = PLATFORM === 'darwin';
@@ -27,6 +28,25 @@ function trayIconSpec(platform, status) {
   }
   const template = base === 'idle' || base === 'paused';
   return { dir: '.', file: `${base}.png`, template };
+}
+
+// Guard against path traversal when building a tray-icon path. The segments
+// are derived from internal status/variant state (never remote input), but the
+// 2026-07 security assessment flagged the raw path.join calls, so we refuse any
+// segment that isn't a plain filename component and verify the joined path
+// stays inside baseDir. Returns the safe joined path, or null if unsafe.
+const SAFE_ICON_SEGMENT = /^[A-Za-z0-9._-]+$/;
+function safeIconPath(baseDir, ...segments) {
+  for (const seg of segments) {
+    if (typeof seg !== 'string' || seg === '..' || !SAFE_ICON_SEGMENT.test(seg)) {
+      return null;
+    }
+  }
+  const joined = path.join(baseDir, ...segments);
+  const root = path.resolve(baseDir);
+  const resolved = path.resolve(joined);
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) return null;
+  return joined;
 }
 
 // Fill color for the tray mark in a given state. Alerting uses the live
@@ -70,6 +90,7 @@ module.exports = {
   isMac,
   isWin,
   trayIconSpec,
+  safeIconPath,
   trayStateColor,
   protocolClientArgs,
   shouldLockdownFile,

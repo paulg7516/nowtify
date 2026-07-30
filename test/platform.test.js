@@ -1,6 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile } = require('../src/main/platform');
+const path = require('node:path');
+const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile, safeIconPath } = require('../src/main/platform');
 
 describe('trayIconSpec', () => {
   test('windows uses colored png per state, never template', () => {
@@ -17,6 +18,26 @@ describe('trayIconSpec', () => {
   });
   test('unknown status falls back to idle', () => {
     assert.equal(trayIconSpec('win32', 'bogus').file, 'idle.png');
+  });
+});
+
+describe('safeIconPath (tray path-traversal guard)', () => {
+  const base = path.join('/tmp', 'tray');
+  test('allows plain filename components inside baseDir', () => {
+    assert.equal(safeIconPath(base, 'idle.png'), path.join(base, 'idle.png'));
+    assert.equal(safeIconPath(base, 'alert-dim.png'), path.join(base, 'alert-dim.png'));
+    assert.equal(safeIconPath(base, 'win', 'alert.png'), path.join(base, 'win', 'alert.png'));
+    assert.equal(safeIconPath(base, '.', 'idle.png'), path.join(base, 'idle.png'));
+  });
+  test('rejects traversal, separators, and non-filename input', () => {
+    assert.equal(safeIconPath(base, '../secret.png'), null);
+    assert.equal(safeIconPath(base, '..'), null);
+    assert.equal(safeIconPath(base, 'a/b.png'), null);
+    assert.equal(safeIconPath(base, 'a\\b.png'), null);
+    assert.equal(safeIconPath(base, '/etc/passwd'), null);
+    assert.equal(safeIconPath(base, 'win', '../../etc/passwd'), null);
+    assert.equal(safeIconPath(base, undefined), null);
+    assert.equal(safeIconPath(base, ''), null);
   });
 });
 
