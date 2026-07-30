@@ -51,7 +51,7 @@ class AlertEngine extends EventEmitter {
 
   recordStepError(step, err) {
     const message = (err && err.message) || String(err);
-    console.warn(`[engine ${step}] error:`, message);
+    console.warn('[engine %s] error:', step, message);
     this.health.stepErrors[step] = { message, at: Date.now() };
     this.health.isHealthy = false;
     this.emit('error', err);
@@ -81,7 +81,14 @@ class AlertEngine extends EventEmitter {
     if (this.running) return;
     this.running = true;
     this.rebuildClient();
-    const intervalSec = store.get('pollIntervalSeconds') || 30;
+    // Clamp the poll interval to a hard floor so a tampered config can't set
+    // a tiny value and hammer the Atlassian/Graph APIs (security assessment
+    // MED: client-side config tampering / self-DoS).
+    const MIN_POLL_SECONDS = 30;
+    const configured = Number(store.get('pollIntervalSeconds'));
+    const intervalSec = Number.isFinite(configured) && configured >= MIN_POLL_SECONDS
+      ? configured
+      : MIN_POLL_SECONDS;
     this.tick().catch((err) => this.emit('error', err));
     this.timer = setInterval(() => {
       this.tick().catch((err) => this.emit('error', err));

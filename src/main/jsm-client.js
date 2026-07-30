@@ -302,7 +302,7 @@ class JsmClient {
     try {
       const data = await this.request('/rest/api/3/search/jql', { method: 'POST', body });
       const issues = (data && data.issues) || [];
-      console.log(`[jsm-client] fallback JQL approver=currentUser -> ${issues.length}`);
+      console.log('[jsm-client] fallback JQL approver=currentUser ->', issues.length);
       return issues;
     } catch (err) {
       console.warn('[jsm-client] approver JQL fallback also failed:', err.message);
