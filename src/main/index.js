@@ -623,6 +623,9 @@ function wireIpc() {
 
 app.whenReady().then(() => {
   applyBrandIcon();
+  // Encrypt any legacy plaintext watchlist PII at rest now that the OS keystore
+  // is guaranteed available. Idempotent + best-effort (see store.js).
+  store.migratePiiEncryption();
   // Minimal app menu - needed on macOS so Cmd+C/V/X/A keyboard shortcuts
   // work inside renderer windows (they're wired through Edit role items).
   Menu.setApplicationMenu(
