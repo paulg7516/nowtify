@@ -1,6 +1,46 @@
 const { safeStorage } = require('electron');
 const Store = require('electron-store');
 const platform = require('./platform');
+const secureFields = require('./secure-fields');
+
+// Adapter that binds the pure secure-fields helpers to the real OS keystore.
+// PII (watchlist display names + email addresses) is encrypted at rest via
+// this the same way the API/OAuth tokens are; see secure-fields.js for the
+// read-both / verify-before-delete / graceful-degrade guarantees.
+const encAdapter = {
+  available: () => safeStorage.isEncryptionAvailable(),
+  encrypt: (s) => safeStorage.encryptString(s),
+  decrypt: (buf) => safeStorage.decryptString(buf),
+};
+
+// Centralized trigger persistence. ALL reads of triggers go through
+// loadTriggers() (which hydrates each trigger's `scope` back to plaintext for
+// the engine + renderer) and ALL writes go through saveTriggers() (which
+// encrypts each `scope` to `scopeEnc` before hitting disk). Routing every
+// access through this single pair is what keeps ciphertext from ever leaking
+// to a consumer or plaintext from ever being written by a missed call site.
+function loadTriggers() {
+  const raw = store.get('triggers');
+  if (!Array.isArray(raw)) return raw || [];
+  return secureFields.hydrateEach(raw, 'scope', encAdapter);
+}
+
+function saveTriggers(list) {
+  const encoded = secureFields.secureEncodeEach(list, 'scope', encAdapter);
+  store.set('triggers', encoded);
+}
+
+// Centralized teams persistence: the same, but the secured field is
+// `watchedUsers` on the single teams object.
+function loadTeamsObject() {
+  const raw = store.get('teams') || {};
+  return secureFields.hydrateField(raw, 'watchedUsers', encAdapter);
+}
+
+function saveTeamsObject(teams) {
+  const encoded = secureFields.secureEncode(teams, 'watchedUsers', encAdapter);
+  store.set('teams', encoded);
+}
 
 const defaults = {
   jsm: {
@@ -350,14 +390,47 @@ function setJsm(patch) {
   lockdownConfigFile();
 }
 
+// Load/save a top-level secured array (watchList / watchGroups). Same
+// read-both / verify-before-delete guarantees as triggers, applied to a
+// standalone key: the plaintext `${key}` is replaced at rest by `${key}Enc`.
+function loadList(key) {
+  const container = { [key]: store.get(key), [`${key}Enc`]: store.get(`${key}Enc`) };
+  const hydrated = secureFields.hydrateField(container, key, encAdapter);
+  return Array.isArray(hydrated[key]) ? hydrated[key] : [];
+}
+
+function saveList(key, value) {
+  const encoded = secureFields.secureEncode({ [key]: value }, key, encAdapter);
+  const encKey = `${key}Enc`;
+  if (encoded[encKey] !== undefined) {
+    store.set(encKey, encoded[encKey]);
+    store.delete(key); // drop plaintext (verified round-trip inside secureEncode)
+  } else {
+    // Degraded (no keystore) - keep plaintext, ensure no stale ciphertext.
+    store.set(key, value);
+    store.delete(encKey);
+  }
+  lockdownConfigFile();
+}
+
 function get(key) {
   if (key === 'jsm') return getJsm();
+  if (key === 'triggers') return loadTriggers();
+  if (key === 'watchList' || key === 'watchGroups') return loadList(key);
   return store.get(key);
 }
 
 function set(key, value) {
   if (key === 'jsm') {
     setJsm(value || {});
+    return;
+  }
+  if (key === 'triggers') {
+    saveTriggers(value || []);
+    return;
+  }
+  if (key === 'watchList' || key === 'watchGroups') {
+    saveList(key, value || []);
     return;
   }
   store.set(key, value);
@@ -367,13 +440,22 @@ function set(key, value) {
 // Renderer code uses hasApiToken for UI state and never receives the real
 // secret. The actual token value never leaves the main process.
 function getAllForRenderer() {
-  const all = store.store;
+  const all = { ...store.store };
+  // Never let at-rest ciphertext blobs reach the renderer. Triggers,
+  // watchList and watchGroups are re-added below in hydrated (plaintext) form;
+  // strip their encrypted counterparts here.
+  delete all.watchListEnc;
+  delete all.watchGroupsEnc;
   const jsm = all.jsm || {};
   const teams = all.teams || {};
+  const teamsHydrated = secureFields.hydrateField(teams, 'watchedUsers', encAdapter);
   const hasApiToken = Boolean(jsm.apiTokenEnc || jsm.apiToken);
   const teamsConnected = Boolean(teams.accessTokenEnc);
   return {
     ...all,
+    triggers: loadTriggers(),
+    watchList: loadList('watchList'),
+    watchGroups: loadList('watchGroups'),
     jsm: {
       siteUrl: jsm.siteUrl || '',
       email: jsm.email || '',
@@ -387,38 +469,38 @@ function getAllForRenderer() {
       isConnected: teamsConnected,
       userId: teams.userId || '',
       userDisplayName: teams.userDisplayName || '',
-      watchedUsers: Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [],
+      watchedUsers: Array.isArray(teamsHydrated.watchedUsers) ? teamsHydrated.watchedUsers : [],
     },
   };
 }
 
 function addWatchee(user) {
-  const list = store.get('watchList') || [];
+  const list = loadList('watchList');
   if (list.some((u) => u.accountId === user.accountId)) return list;
   const next = [...list, user];
-  store.set('watchList', next);
+  saveList('watchList', next);
   return next;
 }
 
 function removeWatchee(accountId) {
-  const list = store.get('watchList') || [];
+  const list = loadList('watchList');
   const next = list.filter((u) => u.accountId !== accountId);
-  store.set('watchList', next);
+  saveList('watchList', next);
   return next;
 }
 
 function addGroup(group) {
-  const list = store.get('watchGroups') || [];
+  const list = loadList('watchGroups');
   if (list.some((g) => g.name === group.name)) return list;
   const next = [...list, group];
-  store.set('watchGroups', next);
+  saveList('watchGroups', next);
   return next;
 }
 
 function removeGroup(groupName) {
-  const list = store.get('watchGroups') || [];
+  const list = loadList('watchGroups');
   const next = list.filter((g) => g.name !== groupName);
-  store.set('watchGroups', next);
+  saveList('watchGroups', next);
   return next;
 }
 
@@ -439,31 +521,31 @@ function isSnoozed() {
 }
 
 function setTriggerEnabled(triggerId, enabled) {
-  const list = store.get('triggers') || [];
+  const list = loadTriggers();
   const next = list.map((t) => (t.id === triggerId ? { ...t, enabled: Boolean(enabled) } : t));
-  store.set('triggers', next);
+  saveTriggers(next);
   return next;
 }
 
 function updateTrigger(triggerId, patch) {
-  const list = store.get('triggers') || [];
+  const list = loadTriggers();
   const next = list.map((t) => (t.id === triggerId ? { ...t, ...patch } : t));
-  store.set('triggers', next);
+  saveTriggers(next);
   return next;
 }
 
 function addTrigger(trigger) {
-  const list = store.get('triggers') || [];
+  const list = loadTriggers();
   const id = trigger.id || `trigger-${Date.now()}`;
   const next = [...list, { ...trigger, id }];
-  store.set('triggers', next);
+  saveTriggers(next);
   return next;
 }
 
 function removeTrigger(triggerId) {
-  const list = store.get('triggers') || [];
+  const list = loadTriggers();
   const next = list.filter((t) => t.id !== triggerId);
-  store.set('triggers', next);
+  saveTriggers(next);
   return next;
 }
 
@@ -520,7 +602,7 @@ function writeEncryptedTeamsField(fieldName, value) {
 }
 
 function getTeams() {
-  const teams = store.get('teams') || {};
+  const teams = loadTeamsObject(); // hydrates watchedUsers back to plaintext
   return {
     accessToken: readEncryptedTeamsField('accessTokenEnc'),
     refreshToken: readEncryptedTeamsField('refreshTokenEnc'),
@@ -552,11 +634,11 @@ function clearTeams() {
   // to re-add their colleagues when they re-auth (e.g. to pick up a new
   // OAuth scope, switch accounts, or recover from a token rotation
   // problem). Only the tokens + cached user identity are wiped.
-  const teams = store.get('teams') || {};
+  const teams = loadTeamsObject();
   const preservedWatched = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
   writeEncryptedTeamsField('accessTokenEnc', '');
   writeEncryptedTeamsField('refreshTokenEnc', '');
-  store.set('teams', {
+  saveTeamsObject({
     expiresAt: 0,
     userId: '',
     userDisplayName: '',
@@ -566,26 +648,62 @@ function clearTeams() {
 }
 
 function addTeamsWatchedUser(user) {
-  const teams = store.get('teams') || {};
+  const teams = loadTeamsObject();
   const list = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
   if (list.some((u) => u.id === user.id)) return list;
   const next = [...list, { id: user.id, displayName: user.displayName, mail: user.mail || '' }];
-  store.set('teams', { ...teams, watchedUsers: next });
+  saveTeamsObject({ ...teams, watchedUsers: next });
   return next;
 }
 
 function removeTeamsWatchedUser(userId) {
-  const teams = store.get('teams') || {};
+  const teams = loadTeamsObject();
   const list = Array.isArray(teams.watchedUsers) ? teams.watchedUsers : [];
   const next = list.filter((u) => u.id !== userId);
-  store.set('teams', { ...teams, watchedUsers: next });
+  saveTeamsObject({ ...teams, watchedUsers: next });
   return next;
+}
+
+// One-time, idempotent migration: encrypt any plaintext watchlist PII left in
+// the config from before this feature shipped. Called from index.js AFTER
+// app.whenReady, because safeStorage.isEncryptionAvailable() is only reliable
+// once the app is ready. Guarded so it only writes when there is actually
+// plaintext to convert, and degrades to a no-op (leaving plaintext + the 0600
+// file mode as the control) if the keystore is unavailable - it retries on the
+// next launch rather than ever risking data loss or a crash.
+function migratePiiEncryption() {
+  if (!encAdapter.available()) {
+    console.warn(
+      '[store] OS keystore unavailable - watchlist PII stays plaintext this ' +
+        'session (0600 file perms apply); will retry on next launch.',
+    );
+    return;
+  }
+  try {
+    const triggers = store.get('triggers');
+    if (Array.isArray(triggers) && triggers.some((t) => t && t.scope !== undefined)) {
+      saveTriggers(secureFields.hydrateEach(triggers, 'scope', encAdapter));
+    }
+    const teams = store.get('teams');
+    if (teams && teams.watchedUsers !== undefined) {
+      saveTeamsObject(secureFields.hydrateField(teams, 'watchedUsers', encAdapter));
+    }
+    for (const key of ['watchList', 'watchGroups']) {
+      const plain = store.get(key);
+      if (plain !== undefined) saveList(key, Array.isArray(plain) ? plain : []);
+    }
+    lockdownConfigFile();
+    console.log('[store] watchlist PII encryption migration complete');
+  } catch (err) {
+    console.warn('[store] PII encryption migration error (non-fatal):', err.message);
+  }
 }
 
 module.exports = {
   get,
   set,
   getAll: getAllForRenderer,
+  migratePiiEncryption,
   clearApiToken,
   setUserDisplayName,
   getTeams,

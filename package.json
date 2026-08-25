@@ -11,6 +11,7 @@
     "release": "electron-builder --mac --universal --publish always",
     "lint": "eslint .",
     "test": "node --test 'test/**/*.test.js'",
+    "itest": "node --test 'test/**/*.itest.js'",
     "ship": "bash scripts/ship.sh patch",
     "ship:minor": "bash scripts/ship.sh minor",
     "ship:major": "bash scripts/ship.sh major",
