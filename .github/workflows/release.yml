@@ -9,35 +9,18 @@ permissions:
   contents: write          # needed to publish GitHub Releases
 
 jobs:
-  # Build the OS matrix dynamically. Windows is gated until it passes manual
-  # acceptance testing, so tag-triggered PUBLISHES (v* tags) build macOS only,
-  # while workflow_dispatch test builds still build + upload Windows artifacts.
-  # Re-add the Windows entry to the tag branch below once Windows is validated.
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set.outputs.matrix }}
-    steps:
-      - id: set
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo 'matrix={"include":[{"os":"macos-latest","args":"--mac --universal"}]}' >> "$GITHUB_OUTPUT"
-          else
-            echo 'matrix={"include":[{"os":"macos-latest","args":"--mac --universal"},{"os":"windows-latest","args":"--win"}]}' >> "$GITHUB_OUTPUT"
-          fi
+  # Build both platforms. macOS (universal) + Windows (nsis). Runs for tag
+  # pushes (release) and workflow_dispatch (downloadable test artifacts).
   build:
-    needs: setup
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      matrix:
+        include:
+          - os: macos-latest
+            args: --mac --universal
+          - os: windows-latest
+            args: --win
     runs-on: ${{ matrix.os }}
-    # Tag (release) runs require approval via the protected 'release'
-    # environment (a human must approve each publish - this is the gate that
-    # keeps an unsigned auto-update build from shipping to clients without
-    # sign-off). workflow_dispatch test builds get no environment, so on-demand
-    # artifact builds stay friction-free.
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     steps:
       # Third-party actions pinned to commit SHAs (not moveable tags) so a
       # compromised/retargeted tag cannot inject into the release pipeline.
@@ -84,48 +67,13 @@ jobs:
       - run: npm test
       # Always build WITHOUT electron-builder publishing. Its own GitHub
       # publisher (--publish always) raced to create the release and produced
-      # duplicate / partial releases (bit v0.6.0 and v0.6.1). We build the
-      # artifacts here and publish them deterministically with gh below.
+      # duplicate / partial releases (bit v0.6.0 and v0.6.1). We build here and
+      # a single downstream job publishes deterministically with gh.
       - name: Build (no publish)
         run: npx electron-builder ${{ matrix.args }} --publish never
-      # Guard: refuse to publish a release without its auto-update manifest, so
-      # a bad build can never ship a release that breaks or stalls auto-update
-      # (exactly the broken-partial-release failure mode we just cleaned up).
-      - name: Verify update manifest (tag builds)
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          shopt -s nullglob
-          ymls=(dist/latest*.yml)
-          if [ ${#ymls[@]} -eq 0 ]; then
-            echo "::error::No latest*.yml update manifest in dist/; refusing to publish."
-            ls -la dist || true
-            exit 1
-          fi
-      # Deterministic publish: exactly one release object per tag, uploaded in a
-      # single sequential step. Idempotent on re-run (create-if-absent + clobber),
-      # so there is no create race and re-runs never duplicate a release.
-      # NOTE: tag builds are macOS-only today (see the setup matrix). If Windows
-      # is later un-gated so two build jobs run in parallel, move this into a
-      # dedicated publish job (needs: build) to keep a single release writer.
-      - name: Publish to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --verify-tag --title "$TAG" \
-              --notes "Automated release $TAG. Release notes pending."
-          fi
-          shopt -s nullglob
-          assets=(dist/*.dmg dist/*.zip dist/*.exe dist/*.blockmap dist/latest*.yml)
-          echo "Uploading ${#assets[@]} assets to $TAG:"
-          printf '  %s\n' "${assets[@]}"
-          gh release upload "$TAG" "${assets[@]}" --clobber
-      - name: Upload artifacts (manual runs)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      # Upload every build output so the single publish job can attach them.
+      # Runs for tag AND dispatch builds (dispatch = a downloadable test build).
+      - name: Upload build artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: nowtify-${{ matrix.os }}
@@ -133,4 +81,54 @@ jobs:
             dist/*.dmg
             dist/*.zip
             dist/*.exe
+            dist/*.blockmap
+            dist/latest*.yml
           if-no-files-found: ignore
+
+  # SINGLE publish job = a single release writer, so the parallel macOS +
+  # Windows build jobs can never race to create the release (the electron-
+  # builder failure mode we hit on v0.6.0/v0.6.1). Runs only for tag pushes,
+  # and only after BOTH platform builds succeed (needs: build) - so a broken
+  # platform build blocks the whole release rather than shipping a partial one.
+  # The 'release' environment gate here is the human sign-off before users get
+  # the update.
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Download all platform artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run download "${{ github.run_id }}" -R "${{ github.repository }}" --dir artifacts
+      - name: Publish single GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Guard: refuse to publish without an auto-update manifest, so a bad
+          # build can never ship a release that stalls auto-update (the broken
+          # partial-release failure mode). Require BOTH platforms' manifests.
+          macyml=$(find artifacts -type f -name 'latest-mac.yml' | head -1)
+          winyml=$(find artifacts -type f -name 'latest.yml' | head -1)
+          if [ -z "$macyml" ] || [ -z "$winyml" ]; then
+            echo "::error::Missing an update manifest (mac='$macyml' win='$winyml'); refusing to publish."
+            find artifacts -type f | sort
+            exit 1
+          fi
+          # Create the release exactly once (idempotent on re-run).
+          if ! gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" \
+              --notes "Automated release $TAG. Release notes pending."
+          fi
+          # Upload all installers + blockmaps + update manifests for both
+          # platforms, clobbering so re-runs are idempotent.
+          mapfile -t assets < <(find artifacts -type f \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \
+            -o -name '*.blockmap' -o -name 'latest*.yml' \))
+          echo "Uploading ${#assets[@]} assets to $TAG:"
+          printf '  %s\n' "${assets[@]}"
+          gh release upload "$TAG" "${assets[@]}" -R "$GITHUB_REPOSITORY" --clobber
