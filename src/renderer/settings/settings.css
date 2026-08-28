@@ -823,6 +823,17 @@ ul.list:empty {
   transform: translateX(16px);
 }
 
+/* General-section setting row: text on the left, a toggle switch on the right. */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.setting-row-text { min-width: 0; }
+.setting-row-text h3 { margin: 0 0 4px; }
+.setting-row .switch { flex-shrink: 0; }
+
 /* Body fills remaining width; min-width: 0 prevents flex from clipping
    the dropdown if its option text is long.                              */
 .trigger-body {

@@ -87,6 +87,7 @@ function safeOpenExternal(url) {
 const BRAND_ICON_PATH = path.join(__dirname, '..', '..', 'build', 'icon.png');
 
 const store = require('./store');
+const { shouldApplyDefaultOnLaunch, loginItemOptions } = require('./login-item');
 const { AlertEngine } = require('./alert-engine');
 const { OverlayWindows } = require('./overlay-windows');
 const { TrayManager } = require('./tray-manager');
@@ -455,6 +456,36 @@ function wireIpc() {
     engine.pokeNow();
     return store.getAll();
   });
+  // Launch-at-login (autostart) - reads/writes the OS login-items state so the
+  // toggle always reflects reality even if changed outside the app.
+  ipcMain.handle('login-item:get', (event) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('login-item:get', event);
+      return { openAtLogin: false };
+    }
+    try {
+      return { openAtLogin: Boolean(app.getLoginItemSettings().openAtLogin) };
+    } catch (err) {
+      console.warn('[login-item] get failed:', err.message);
+      return { openAtLogin: false };
+    }
+  });
+  ipcMain.handle('login-item:set', (event, enabled) => {
+    if (!isTrustedSender(event)) {
+      denyUntrusted('login-item:set', event);
+      return { openAtLogin: false };
+    }
+    try {
+      app.setLoginItemSettings(loginItemOptions(Boolean(enabled), process.platform));
+      // An explicit choice counts as "initialized" so the startup default never
+      // overrides it later.
+      store.set('autoLaunchInitialized', true);
+      return { openAtLogin: Boolean(app.getLoginItemSettings().openAtLogin) };
+    } catch (err) {
+      console.warn('[login-item] set failed:', err.message);
+      return { openAtLogin: false };
+    }
+  });
   ipcMain.handle('settings:test-connection', async (_e, creds) => {
     try {
       // If the renderer omits the token (because the field is blank and a
@@ -626,6 +657,17 @@ app.whenReady().then(() => {
   // Encrypt any legacy plaintext watchlist PII at rest now that the OS keystore
   // is guaranteed available. Idempotent + best-effort (see store.js).
   store.migratePiiEncryption();
+  // Launch-at-login: enable autostart by default ONCE (see login-item.js),
+  // then leave the user's choice alone forever. Best-effort - never block
+  // startup if the OS refuses.
+  try {
+    if (shouldApplyDefaultOnLaunch(store.get('autoLaunchInitialized'))) {
+      app.setLoginItemSettings(loginItemOptions(true, process.platform));
+      store.set('autoLaunchInitialized', true);
+    }
+  } catch (err) {
+    console.warn('[login-item] failed to apply default autostart:', err.message);
+  }
   // Minimal app menu - needed on macOS so Cmd+C/V/X/A keyboard shortcuts
   // work inside renderer windows (they're wired through Edit role items).
   Menu.setApplicationMenu(

@@ -139,6 +139,13 @@ const defaults = {
   // pulse overlay is unaffected (it renders the trigger's alert color, not a UI
   // surface).
   theme: 'system',
+
+  // One-time bookkeeping flag for launch-at-login (autostart). On first launch
+  // (new install, or existing users on the update that introduces this) we
+  // enable autostart by default ONCE, then set this true so we never re-force
+  // it if the user later turns it off. The live on/off state lives in the OS
+  // login items, not here - see src/main/login-item.js.
+  autoLaunchInitialized: false,
 };
 
 const store = new Store({

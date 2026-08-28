@@ -104,6 +104,29 @@ function applyPulseTargetFromConfig() {
   }
 }
 
+/* ---------------- General > Launch at login ----------------
+   Reads/writes the OS login-items state directly (not the config store), so
+   the toggle always reflects reality even if changed outside the app. */
+(function initLaunchAtLogin() {
+  const toggle = document.getElementById('autoLaunchToggle');
+  if (!toggle || !api.getLoginItem) return;
+  api
+    .getLoginItem()
+    .then((res) => {
+      toggle.checked = Boolean(res && res.openAtLogin);
+    })
+    .catch((err) => console.warn('[general] failed to read login item', err));
+  toggle.addEventListener('change', async () => {
+    try {
+      const res = await api.setLoginItem(toggle.checked);
+      toggle.checked = Boolean(res && res.openAtLogin);
+    } catch (err) {
+      console.warn('[general] failed to set login item', err);
+      toggle.checked = !toggle.checked; // revert on failure
+    }
+  });
+})();
+
 /* ---------------- Connection pill ---------------- */
 function setConnectionState(state, label) {
   const pill = el('connectionPill');

@@ -68,6 +68,14 @@
           </svg>
           Updates
         </button>
+        <div class="nav-divider"></div>
+        <button class="nav-item" data-section="general">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="8" cy="8" r="2.4"/>
+            <path d="M8 1.4v2.2 M8 12.4v2.2 M1.4 8h2.2 M12.4 8h2.2 M3.6 3.6l1.5 1.5 M10.9 10.9l1.5 1.5 M12.4 3.6l-1.5 1.5 M5.1 10.9l-1.5 1.5"/>
+          </svg>
+          General
+        </button>
       </nav>
 
       <main class="content">
@@ -267,6 +275,29 @@
                   <span class="pulse-target-title">Both</span>
                   <span class="pulse-target-hint">Screen edge and menu-bar icon together. Hardest to miss.</span>
                 </span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- GENERAL: app-level preferences (autostart, and future app-wide
+             settings). Kept separate from Display, which is about how alerts
+             render, not app lifecycle. -->
+        <section id="section-general" class="panel" hidden>
+          <div class="panel-header">
+            <h2>General</h2>
+            <p class="panel-sub">App-level preferences.</p>
+          </div>
+
+          <div class="card">
+            <div class="setting-row">
+              <div class="setting-row-text">
+                <h3>Launch at login</h3>
+                <p class="card-sub">Start Nowtify automatically when you sign in, so your alerts are always on.</p>
+              </div>
+              <label class="switch" title="Toggle launch at login">
+                <input type="checkbox" id="autoLaunchToggle">
+                <span class="slider"></span>
               </label>
             </div>
           </div>

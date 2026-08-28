@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('settingsApi', {
   },
   testConnection: (creds) => ipcRenderer.invoke('settings:test-connection', creds),
   disconnect: () => ipcRenderer.invoke('settings:disconnect'),
+  getLoginItem: () => ipcRenderer.invoke('login-item:get'),
+  setLoginItem: (enabled) => ipcRenderer.invoke('login-item:set', enabled),
   getUpdateStatus: () => ipcRenderer.invoke('settings:get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('settings:check-for-updates'),
   installUpdateNow: () => ipcRenderer.invoke('settings:install-update-now'),
