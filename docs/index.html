@@ -1879,7 +1879,9 @@
     <details class="faq-item">
       <summary>How do I uninstall?</summary>
       <div class="faq-body">
-        <p>Open Finder, go to your Applications folder, and drag Nowtify to the Trash.</p>
+        <p><strong>macOS:</strong> quit Nowtify from the menu bar, then open Finder → Applications and drag <strong>Nowtify</strong> to the Trash.</p>
+        <p><strong>Windows:</strong> open <strong>Settings → Apps → Installed apps</strong>, find <strong>Nowtify</strong>, and choose <strong>Uninstall</strong> (or use the uninstaller in the Start menu).</p>
+        <p>To also remove saved settings, delete the <code>Nowtify</code> folder in <code>~/Library/Application Support</code> (macOS) or <code>%APPDATA%</code> (Windows).</p>
       </div>
     </details>
   </div>
@@ -1922,6 +1924,23 @@
     };
   }
   if (typeof module !== 'undefined') { module.exports = { nowtifyParseRelease }; }
+
+  // Make the visitor's own platform the primary (filled) button and the other
+  // the secondary (outlined) one - so neither platform feels second-class, but
+  // there's still a single clear primary CTA. Defaults to macOS (the primary
+  // audience) when detection is inconclusive.
+  (function orderDownloadButtons() {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+    const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+    if (!/Win/i.test(ua)) return; // non-Windows keeps the macOS-primary default
+    const macBtn = document.getElementById('downloadBtn');
+    const winBtn = document.getElementById('downloadWinBtn');
+    const row = macBtn && macBtn.parentElement;
+    if (!macBtn || !winBtn || !row) return;
+    macBtn.classList.replace('btn-primary', 'btn-secondary');
+    winBtn.classList.replace('btn-secondary', 'btn-primary');
+    row.insertBefore(winBtn, macBtn); // Windows first for Windows visitors
+  })();
 
   (async function patchDownload() {
     if (typeof window === 'undefined') return;
