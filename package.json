@@ -72,6 +72,9 @@
       "target": [
         {
           "target": "nsis"
+        },
+        {
+          "target": "msi"
         }
       ],
       "icon": "build/icon.png"
@@ -82,6 +85,11 @@
       "allowToChangeInstallationDirectory": false,
       "deleteAppDataOnUninstall": false,
       "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "msi": {
+      "artifactName": "${productName}-${version}.${ext}",
+      "perMachine": true,
+      "runAfterFinish": false
     },
     "publish": {
       "provider": "github",

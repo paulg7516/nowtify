@@ -81,6 +81,7 @@ jobs:
             dist/*.dmg
             dist/*.zip
             dist/*.exe
+            dist/*.msi
             dist/*.blockmap
             dist/latest*.yml
           if-no-files-found: ignore
@@ -134,7 +135,7 @@ jobs:
           # Upload the installers + blockmaps + update manifests that exist,
           # clobbering so re-runs (e.g. after fixing a platform) are idempotent.
           mapfile -t assets < <(find artifacts -type f \
-            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.msi' \
             -o -name '*.blockmap' -o -name 'latest*.yml' \))
           echo "Uploading ${#assets[@]} assets to $TAG:"
           printf '  %s\n' "${assets[@]}"
