@@ -127,4 +127,6 @@ Both are part of the pre-ship gate so a PR that doesn't pass them won't be relea
 
 ## License
 
-Source available, no formal open-source license yet. Personal and internal use is fine. If you want to use this in a commercial product, open an issue and we'll talk.
+Copyright © 2026 Paul Gerios. All rights reserved.
+
+Nowtify is proprietary software - it is **not** open source. The source is public for transparency, but that does not grant a license to use it: no permission is given to copy, modify, redistribute, or use Nowtify commercially without a written license from the copyright holder. For licensing inquiries, open an issue on this repository.
