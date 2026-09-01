@@ -5,7 +5,7 @@ codebase is built against, and the operational controls around the release
 pipeline. Maintained for security review; every claim below is verifiable
 against the source.
 
-Last reviewed: 2026-06-08 (covers macOS + Windows).
+Last updated: 2026-09-01 (covers macOS + Windows; reflects the 2026-07 security assessment and its remediations).
 
 ## What Nowtify holds
 
@@ -13,7 +13,10 @@ Nowtify is a single-user menu-bar / system-tray app (macOS and Windows) that
 polls Atlassian JSM and, optionally, Microsoft Graph on behalf of the
 logged-in user. The secrets it stores are an **Atlassian API token** and,
 if Microsoft 365 is connected, **MS Graph access + refresh tokens**.
-Everything else (site URL, email, watch list, triggers) is non-secret config.
+The **watch list** - the display names and email addresses of the people you
+watch - is treated as sensitive PII and is encrypted at rest alongside the
+tokens (see below). Other config (site URL, the signed-in user's own email,
+trigger settings) is non-secret.
 
 The JSM token, presented as HTTP Basic auth (`email:token`), grants the
 authenticating user's Atlassian REST API access. It does not grant admin
@@ -30,6 +33,7 @@ operations unless the user themselves is an admin.
 | Content-Security-Policy on every renderer HTML (`default-src 'self'`, `connect-src 'none'`, `frame-ancestors 'none'`) | `src/renderer/*/*.html` |
 | Global `web-contents-created` guard: deny `window.open`, block non-`file://` navigation | `src/main/index.js` |
 | Secrets encrypted at rest via Electron `safeStorage` (macOS Keychain / Windows DPAPI) | `src/main/store.js` |
+| Watchlist PII (watched-user display names + emails) encrypted at rest via `safeStorage`, migrated from any prior plaintext on upgrade | `src/main/secure-fields.js`, `src/main/store.js` |
 | Secrets never sent to renderer (`getAllForRenderer` redacts to `hasApiToken` booleans) | `src/main/store.js`, `src/main/index.js` |
 | Config file locked to owner: `chmod 0600` on macOS, per-user `%APPDATA%` ACLs on Windows (chmod is a no-op there) | `src/main/platform.js` `lockdownFile`, `src/main/store.js` |
 | Sensitive IPC handlers verify the sender frame (`isTrustedSender`) before acting | `src/main/index.js` |
@@ -52,6 +56,16 @@ If the OS keystore is unavailable, the storage call **throws rather than
 silently downgrading to plaintext**. On first launch after upgrading from a
 pre-encryption build, any plaintext token is transparently re-encrypted and
 the plaintext field deleted (one-shot, best-effort).
+
+**Watchlist PII** (the display names and email addresses of watched users -
+in each trigger's `scope` and the Teams watch list) is encrypted the same way
+via `safeStorage`, stored as `*Enc` fields, and migrated from any pre-existing
+plaintext on first launch after upgrade. The migration verifies each encrypted
+value round-trips before removing the plaintext, and degrades safely (leaving
+plaintext + the 0600 file mode) if the keystore is unavailable, so it can never
+lose a user's watch list. See `src/main/secure-fields.js` and
+`src/main/store.js`. Only the signed-in user's own name/email and dismissed
+ticket keys remain in plaintext - their own data, not other people's PII.
 
 ## Microsoft OAuth
 
