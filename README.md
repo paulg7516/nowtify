@@ -1,8 +1,8 @@
 # Nowtify
 
-Ambient alerts for Jira and Microsoft 365 on macOS.
+Ambient alerts for Jira and Microsoft 365 on macOS and Windows.
 
-Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around the edge of your screen. Available when you want it, invisible when you don't. Lives in the menu bar. No dock icon, no browser tab, no dashboard.
+Nowtify watches your Jira tickets and Microsoft 365 messages for the signals you've marked as urgent, and surfaces them as a thin colored pulse around the edge of your screen. Available when you want it, invisible when you don't. Lives in the menu bar (Mac) or system tray (Windows). No dock icon, no browser tab, no dashboard.
 
 Website: [paulg7516.github.io/nowtify](https://paulg7516.github.io/nowtify/)
 
@@ -10,26 +10,35 @@ Website: [paulg7516.github.io/nowtify](https://paulg7516.github.io/nowtify/)
 
 You turn on the triggers that matter to you. Each one has its own color, its own watchlist, and its own threshold.
 
-- **Major Incident.** Any Jira ticket flagged as a Major Incident. Lights up the moment one opens, stops when the flag is removed or you dismiss it.
+- **Major Incident.** Any Jira ticket flagged as a Major Incident. Lights up the moment one opens, stops when the ticket resolves or the flag is removed. Acknowledge it to stop the pulse sooner.
 - **SLA breach imminent.** Tickets assigned to people you're watching whose SLA is about to expire. You decide how close to the deadline counts as urgent.
-- **SLA breached.** Tickets assigned to people you're watching whose SLA has already expired. Stays on until you dismiss it.
+- **SLA breached.** Tickets assigned to people you're watching whose SLA has already expired. Stays on until the ticket resolves or you acknowledge it.
 - **My pending approvals.** Jira Service Desk requests waiting on your approval. Only counts the ones assigned to you, not your whole team's queue.
 - **Teams VIP messages.** Unread Teams chats from people you've added to your VIP list. Stops as soon as you read them.
 - **Outlook email from watched senders.** Unread Outlook emails from people you've added to your VIP list. Stops as soon as you read them.
 
 ## Install
 
-Download the latest `.dmg` from the [Releases page](https://github.com/paulg7516/nowtify/releases/latest).
+Download the latest build from the [Releases page](https://github.com/paulg7516/nowtify/releases/latest).
+
+**Mac** (`.dmg`)
 
 1. Double-click the `.dmg` and drag Nowtify into your Applications folder.
-2. The first time you run it, right-click the app and choose **Open** instead of double-clicking. macOS will warn you about an unidentified developer; click **Open**. You only have to do this once.
+2. The first time you run it, macOS warns about an unidentified developer. Right-click the app and choose **Open**, then **Open** again. On newer macOS versions, if there's no Open button, go to System Settings, Privacy & Security, and click **Open Anyway**. You only have to do this once.
 3. Nowtify lives in the menu bar. There's no dock icon.
 
-To launch it automatically when you sign in: System Settings, General, Login Items, click `+`, and pick Nowtify.
+**Windows**
+
+- `Nowtify-Setup-<version>.exe`: install it yourself. It installs for your account only and updates itself. If Windows SmartScreen warns you, click **More info**, then **Run anyway**.
+- `Nowtify-<version>.msi`: for IT to deploy to many machines (for example through Intune). It installs for the whole machine; IT rolls out new versions.
+
+Nowtify lives in the system tray (you may need to click the `^` arrow to see it).
+
+Nowtify starts automatically when you sign in. Turn that off in Settings with **Launch at login**.
 
 ## First-time setup
 
-Open Settings from the menu bar icon.
+Open Settings from the Nowtify icon (menu bar on Mac, system tray on Windows).
 
 **For Jira:**
 
@@ -49,19 +58,19 @@ Save and you're done. Nowtify polls every 30 seconds and pulses the screen edge 
 
 ## Settings you'll want to know about
 
-- **Display.** Choose where the pulse renders: the screen edge, the menu-bar icon, or both. Same color either way.
-- **Appearance.** Switch the Settings window and the menu-bar popover between light and dark. The screen-edge pulse is unaffected; it always shows in the trigger's color.
+- **Display.** Choose where the pulse renders: the screen edge, the Nowtify icon, or both. Same color either way.
+- **Appearance.** Switch the Settings window and the alert list between light and dark. The screen-edge pulse is unaffected; it always shows in the trigger's color.
 - **Triggers.** Turn each trigger on or off individually. Each one has its own color picker.
-- **Snooze.** Right-click the menu-bar icon, pick "Until I resume" to silence the pulse, then "Resume now" when you're ready. Alerts still accumulate in the menu-bar popover while snoozed, so you can see what fired.
-- **Acknowledge.** For long-running Major Incidents and SLA alerts. Click Acknowledge on a row in the popover and that alert stops pulsing on both the screen edge and the menu-bar icon, so other alerts show through. It stays in the popover, dimmed, until the ticket resolves; click Acknowledged to undo. Per ticket per condition: acknowledging the Major Incident on `INC-123` doesn't affect its SLA alerts.
+- **Pause.** Right-click the Nowtify icon, pick **Pause pulse alerts**, and choose how long (or "Until I resume"). Alerts still collect in the alert list while paused, so you can see what fired.
+- **Acknowledge.** For long-running Major Incidents and SLA alerts. Click Acknowledge on a row in the alert list and that alert stops pulsing on both the screen edge and the Nowtify icon, so other alerts show through. It stays in the list, dimmed, until the ticket resolves; click Acknowledged to undo. Per ticket per condition: acknowledging the Major Incident on `INC-123` doesn't affect its SLA alerts.
+- **Alert list size.** Drag any edge of the alert list to resize it. Nowtify remembers the size.
+- **Screen sharing.** The screen-edge pulse is hidden from screen shares and recordings, so the people watching don't see it. Windows needs Windows 10 (version 2004) or later for this; on older versions the pulse still shows in shares.
 
 ## What's not implemented yet
 
 Honest list of stuff that doesn't work yet, so you know what to expect:
 
-- **Screen-share auto-hide.** If you share your whole desktop and a Major Incident fires, the border is visible to viewers. On the to-do list.
-- **Central watchlist sync.** Your watchlist is local to each Mac. There's no shared "team watchlist" yet.
-- **Windows.** Built and in final testing before release. Not downloadable yet; the macOS `.dmg` is the only published build for now.
+- **Central watchlist sync.** Your watchlist is local to each computer. There's no shared "team watchlist" yet.
 - **Linux.** Not planned. The peripheral-pulse experience is built on platform-specific window APIs.
 
 ## Building from source
