@@ -1,7 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile, safeIconPath } = require('../src/main/platform');
+const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile, safeIconPath, shouldHideFromCapture } = require('../src/main/platform');
 
 describe('trayIconSpec', () => {
   test('windows uses colored png per state, never template', () => {
@@ -72,5 +72,22 @@ describe('trayStateColor', () => {
     assert.equal(trayStateColor('paused'), '#6b7280');
     assert.equal(trayStateColor('idle'), '#9aa0aa');
     assert.equal(trayStateColor('bogus'), '#9aa0aa');
+  });
+});
+
+describe('shouldHideFromCapture', () => {
+  test('macOS always hides the border from screen shares', () => {
+    assert.equal(shouldHideFromCapture('darwin', '24.6.0'), true);
+  });
+  test('Windows 10 2004+ and Windows 11 hide it', () => {
+    assert.equal(shouldHideFromCapture('win32', '10.0.19041'), true);
+    assert.equal(shouldHideFromCapture('win32', '10.0.22631'), true);
+  });
+  test('older Windows does not (it would black out the whole shared screen)', () => {
+    assert.equal(shouldHideFromCapture('win32', '10.0.18363'), false);
+    assert.equal(shouldHideFromCapture('win32', 'garbage'), false);
+  });
+  test('other platforms do nothing', () => {
+    assert.equal(shouldHideFromCapture('linux', '6.1.0'), false);
   });
 });

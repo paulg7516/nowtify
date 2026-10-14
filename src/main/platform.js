@@ -86,6 +86,19 @@ function lockdownFile(filePath) {
   }
 }
 
+// Keep the screen-edge border out of screen shares / recordings while it
+// stays visible to the user. macOS: always. Windows: only on Windows 10
+// 2004 (build 19041) and later, which support "exclude from capture".
+// Older Windows can only black the window out in captures, and since the
+// overlay covers the whole display that would black out the entire shared
+// screen - far worse than a visible border.
+function shouldHideFromCapture(platform, osRelease) {
+  if (platform === 'darwin') return true;
+  if (platform !== 'win32') return false;
+  const build = Number(String(osRelease || '').split('.')[2]);
+  return Number.isFinite(build) && build >= 19041;
+}
+
 // Popover sizing + placement next to the tray icon. Same rules on both
 // platforms; the difference is where the tray lives. macOS menu bar is at
 // the top, so the popover opens BELOW the icon. The Windows taskbar is
@@ -122,6 +135,7 @@ function popoverPosition(trayBounds, size, workArea) {
 }
 
 module.exports = {
+  shouldHideFromCapture,
   POPOVER_MIN_SIZE,
   clampPopoverSize,
   popoverPosition,

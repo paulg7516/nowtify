@@ -1,5 +1,7 @@
+const os = require('os');
 const path = require('path');
 const { BrowserWindow, screen } = require('electron');
+const platform = require('./platform');
 
 /**
  * Manages one transparent click-through always-on-top window per display.
@@ -107,6 +109,11 @@ class OverlayWindows {
     // 18+ exposes this; guard for older builds just in case.
     if (typeof win.setHiddenInMissionControl === 'function') {
       win.setHiddenInMissionControl(true);
+    }
+    // Hide the border from screen shares and recordings: you see the
+    // pulse, the people watching your share don't.
+    if (platform.shouldHideFromCapture(process.platform, os.release())) {
+      win.setContentProtection(true);
     }
 
     win.loadFile(path.join(__dirname, '..', 'renderer', 'overlay', 'overlay.html'));
