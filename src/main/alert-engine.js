@@ -620,6 +620,7 @@ class AlertEngine extends EventEmitter {
       alert.ackId = acks.ackIdFor(alert);
       alert.acknowledged = Boolean(stored[alert.ackId]) && !expired.includes(alert.ackId);
     }
+    if (expired.length) console.log(`[engine] acks expired: ${expired.join(', ')}`);
     store.removeAcks(expired);
   }
 
@@ -629,6 +630,7 @@ class AlertEngine extends EventEmitter {
     const alert = (this.lastState.alerts || []).find((a) => a.ackId === id);
     if (!alert || !acks.isAckable(alert)) return false;
     store.setAck(id, acks.buildAck(alert));
+    console.log(`[engine] acknowledged ${id}`);
     this.recomputeAcks();
     return true;
   }
@@ -636,6 +638,7 @@ class AlertEngine extends EventEmitter {
   unacknowledge(id) {
     if (typeof id !== 'string') return false;
     store.removeAcks([id]);
+    console.log(`[engine] unacknowledged ${id}`);
     this.recomputeAcks();
     return true;
   }
