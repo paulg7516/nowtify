@@ -88,9 +88,19 @@ function pollUpdateStatus() {
       const type = s.result && s.result.type;
       if (type === 'downloaded') {
         updatePillEl.hidden = false;
+        updatePillEl.disabled = false;
+        updatePillEl.dataset.managed = 'false';
         const v = s.result.version;
         updatePillLabel.textContent = v ? `Update v${v} ready` : 'Update ready';
         updatePillEl.title = `Click to install ${v ? 'v' + v : 'the update'}. Nowtify will restart.`;
+      } else if (type === 'managed') {
+        // IT-managed install: show the new version, grayed out, not clickable.
+        updatePillEl.hidden = false;
+        updatePillEl.disabled = true;
+        updatePillEl.dataset.managed = 'true';
+        const v = s.result.version;
+        updatePillLabel.textContent = v ? `v${v} from IT` : 'Update from IT';
+        updatePillEl.title = 'Kept up to date by your IT administrator';
       } else {
         updatePillEl.hidden = true;
       }

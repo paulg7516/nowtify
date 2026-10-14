@@ -1098,8 +1098,20 @@ function renderUpdaterStatus(status) {
   }
 
   // Show "Restart + install now" only when an update has been downloaded
-  // and is ready to apply. Hidden in all other states.
-  el('updaterInstallBtn').hidden = type !== 'downloaded';
+  // and is ready to apply. On IT-managed installs a found update shows the
+  // same button grayed out, with the version, next to the IT note.
+  const installBtn = el('updaterInstallBtn');
+  const managed = Boolean(status.managed);
+  installBtn.hidden = !(type === 'downloaded' || type === 'managed');
+  installBtn.dataset.managed = String(type === 'managed');
+  if (type === 'managed') {
+    installBtn.disabled = true;
+    installBtn.textContent = `Install v${status.result.version || ''}`;
+  } else if (type === 'downloaded') {
+    installBtn.disabled = false;
+    installBtn.textContent = 'Install now';
+  }
+  el('updaterManagedNote').hidden = !managed;
 
   // Disable Check button while a check or download is in flight to avoid
   // racing requests.

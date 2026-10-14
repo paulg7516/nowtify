@@ -1,7 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile, safeIconPath, shouldHideFromCapture } = require('../src/main/platform');
+const { trayIconSpec, trayStateColor, protocolClientArgs, shouldLockdownFile, safeIconPath, shouldHideFromCapture, isMachineWideInstall } = require('../src/main/platform');
 
 describe('trayIconSpec', () => {
   test('windows uses colored png per state, never template', () => {
@@ -89,5 +89,29 @@ describe('shouldHideFromCapture', () => {
   });
   test('other platforms do nothing', () => {
     assert.equal(shouldHideFromCapture('linux', '6.1.0'), false);
+  });
+});
+
+describe('isMachineWideInstall', () => {
+  const env = {
+    ProgramFiles: 'C:\\Program Files',
+    ProgramW6432: 'C:\\Program Files',
+    'ProgramFiles(x86)': 'C:\\Program Files (x86)',
+  };
+  test('MSI install under Program Files is IT-managed', () => {
+    assert.equal(isMachineWideInstall('win32', 'C:\\Program Files\\Nowtify\\Nowtify.exe', env), true);
+    assert.equal(isMachineWideInstall('win32', 'c:\\program files (x86)\\Nowtify\\Nowtify.exe', env), true);
+  });
+  test('per-user .exe install under LOCALAPPDATA is not', () => {
+    const exe = 'C:\\Users\\pat\\AppData\\Local\\Programs\\nowtify\\Nowtify.exe';
+    assert.equal(isMachineWideInstall('win32', exe, env), false);
+  });
+  test('a folder that only starts with the same letters is not', () => {
+    assert.equal(isMachineWideInstall('win32', 'C:\\Program Files Extra\\Nowtify.exe', { ProgramFiles: 'C:\\Program Files' }), false);
+  });
+  test('macOS and missing data are never managed', () => {
+    assert.equal(isMachineWideInstall('darwin', '/Applications/Nowtify.app/Contents/MacOS/Nowtify', env), false);
+    assert.equal(isMachineWideInstall('win32', '', env), false);
+    assert.equal(isMachineWideInstall('win32', 'C:\\Program Files\\Nowtify\\Nowtify.exe', {}), false);
   });
 });

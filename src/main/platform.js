@@ -86,6 +86,20 @@ function lockdownFile(filePath) {
   }
 }
 
+// IT-managed install: the MSI installs per-machine under Program Files
+// (Intune / IT deploys new versions). The self-service .exe installs
+// per-user under %LOCALAPPDATA%. On a managed install Nowtify must not
+// self-update - that would drop a second, per-user copy next to IT's.
+function isMachineWideInstall(platform, execPath, env) {
+  if (platform !== 'win32' || !execPath) return false;
+  const e = env || {};
+  const exe = String(execPath).toLowerCase().replace(/\//g, '\\');
+  const roots = [e.ProgramFiles, e.ProgramW6432, e['ProgramFiles(x86)']]
+    .filter(Boolean)
+    .map((r) => String(r).toLowerCase().replace(/\//g, '\\').replace(/\\+$/, '') + '\\');
+  return roots.some((root) => exe.startsWith(root));
+}
+
 // Keep the screen-edge border out of screen shares / recordings while it
 // stays visible to the user. macOS: always. Windows: only on Windows 10
 // 2004 (build 19041) and later, which support "exclude from capture".
@@ -135,6 +149,7 @@ function popoverPosition(trayBounds, size, workArea) {
 }
 
 module.exports = {
+  isMachineWideInstall,
   shouldHideFromCapture,
   POPOVER_MIN_SIZE,
   clampPopoverSize,

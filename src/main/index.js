@@ -231,6 +231,9 @@ const updaterStatus = {
   // type values: never | checking | up-to-date | available | downloading
   //              | downloaded | error
   result: { type: 'never', message: 'Never checked this session', version: '' },
+  // True on IT-managed (per-machine MSI) installs: updates are found and
+  // shown, but never downloaded or installed here - IT rolls them out.
+  managed: platform.isMachineWideInstall(process.platform, process.execPath, process.env),
 };
 
 function broadcastUpdaterStatus() {

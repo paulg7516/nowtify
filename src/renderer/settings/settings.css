@@ -1441,3 +1441,25 @@ ul.list:empty {
   height: 16px;
 }
 
+
+/* IT-managed install (per-machine MSI): the install button shows the new
+   version but stays grayed out; IT rolls updates out. */
+.updater-dot[data-state='managed'] {
+  background: #8b8d93;
+}
+#updaterInstallBtn[data-managed='true'],
+#updaterInstallBtn[data-managed='true']:hover {
+  background: var(--surface-3, #e5e7eb);
+  background-image: none;
+  border-color: transparent;
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.updater-managed-note {
+  font-size: 12px;
+  color: var(--text-3);
+}
+#updaterCheckBtn,
+#updaterInstallBtn {
+  white-space: nowrap;
+}
