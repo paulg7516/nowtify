@@ -6,6 +6,7 @@ const { app, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const platform = require('./platform');
 const { isPoisonedCacheError } = require('./updater-errors');
+const macInstall = require('./mac-install');
 
 /**
  * Directory electron-updater stores downloads in, matching the path it logs
@@ -46,65 +47,22 @@ function updaterCacheDir() {
  * re-validate it here.
  */
 function performUnsignedUpdateMac(zipPath, newVersion) {
-  // process.execPath is /Applications/Nowtify.app/Contents/MacOS/Nowtify
-  // - climb three dirs to get the .app bundle root.
-  const appBundlePath = path.dirname(path.dirname(path.dirname(process.execPath)));
+  const appBundlePath = macInstall.appBundlePathFrom(process.execPath);
   // One timestamp for both paths so the staging dir and helper script always
-  // share a suffix (two separate Date.now() calls could desync them and leave
-  // the helper orphaned by the cleanup step). os.tmpdir() is per-user on macOS
-  // (/var/folders/...), not the shared /tmp, so there is no cross-user race.
+  // share a suffix. os.tmpdir() is per-user on macOS (/var/folders/...), not
+  // the shared /tmp, so there is no cross-user race.
   const stamp = Date.now();
   const tmpDir = path.join(os.tmpdir(), `nowtify-install-${stamp}`);
   const helperPath = path.join(os.tmpdir(), `nowtify-install-${stamp}.sh`);
-  const logPath = path.join(os.tmpdir(), 'nowtify-install.log');
-  const pid = process.pid;
-  const sh = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
-
-  const script = `#!/bin/bash
-exec >>${sh(logPath)} 2>&1
-echo "[$(date)] install helper starting v${newVersion}"
-echo "  pid=${pid} bundle=${appBundlePath} zip=${zipPath}"
-
-# Wait for parent to exit (up to 30s)
-for i in $(seq 1 60); do
-  if ! kill -0 ${pid} 2>/dev/null; then break; fi
-  sleep 0.5
-done
-sleep 1
-
-# Extract to staging dir
-mkdir -p ${sh(tmpDir)}
-cd ${sh(tmpDir)} || exit 1
-if ! unzip -q -o ${sh(zipPath)}; then
-  echo "FAILED: unzip ${zipPath}"
-  exit 1
-fi
-if [ ! -d ${sh(path.join(tmpDir, 'Nowtify.app'))} ]; then
-  echo "FAILED: Nowtify.app not found in extracted ZIP"
-  ls -la ${sh(tmpDir)}
-  exit 1
-fi
-
-# Swap bundle
-rm -rf ${sh(appBundlePath)}
-mv ${sh(path.join(tmpDir, 'Nowtify.app'))} ${sh(appBundlePath)}
-xattr -dr com.apple.quarantine ${sh(appBundlePath)} 2>/dev/null || true
-
-# Force macOS Launch Services to re-scan the new bundle so URL scheme
-# handlers (nowtify://) are correctly re-registered after the swap.
-# Without this, OAuth callbacks break after every auto-update because the
-# new binary's hash doesn't match what LS had registered for the old one.
-LSREGISTER='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister'
-if [ -x "\${LSREGISTER}" ]; then
-  "\${LSREGISTER}" -f ${sh(appBundlePath)} 2>/dev/null || true
-fi
-
-rm -rf ${sh(tmpDir)}
-
-# Launch new version
-open ${sh(appBundlePath)}
-echo "[$(date)] install helper done"
-`;
+  const script = macInstall.buildInstallScript({
+    pid: process.pid,
+    bundlePath: appBundlePath,
+    zipPath,
+    newVersion,
+    tmpDir,
+    logPath: path.join(os.tmpdir(), 'nowtify-install.log'),
+    resultPath: installResultPath(),
+  });
 
   fs.writeFileSync(helperPath, script, { mode: 0o755 });
 
@@ -114,6 +72,11 @@ echo "[$(date)] install helper done"
   });
   child.unref();
   console.log('[updater] manual install helper spawned, pid', child.pid);
+}
+
+// Where the Mac install helper records "ok <version>" / "failed <version> <reason>".
+function installResultPath() {
+  return path.join(app.getPath('userData'), 'last-update-install.txt');
 }
 
 /**
@@ -157,6 +120,13 @@ function setupAutoUpdater(ctx) {
   // dialog button).
   autoUpdater.autoInstallOnAppQuit = false;
   updaterStatus.currentVersion = app.getVersion();
+
+  // If the Mac helper couldn't install a version, never offer that same
+  // version again (that was the "Restart now" loop). Cleared once a newer
+  // version shows up or an install succeeds.
+  const lastInstall = process.platform === 'darwin' ? macInstall.readInstallResult(installResultPath()) : null;
+  const failedVersion = lastInstall && !lastInstall.ok && lastInstall.version !== app.getVersion() ? lastInstall.version : null;
+  if (lastInstall) console.log('[updater] last install attempt:', lastInstall);
 
   // One-shot guard so a poisoned-cache heal (purge + re-check) can't loop. It
   // is reset only on a genuine success signal (update-downloaded /
@@ -209,6 +179,16 @@ function setupAutoUpdater(ctx) {
   });
   autoUpdater.on('update-downloaded', async (info) => {
     console.log('[updater] downloaded:', info.version);
+    if (failedVersion && info.version === failedVersion) {
+      updaterStatus.lastCheckedAt = Date.now();
+      updaterStatus.result = {
+        type: 'error',
+        message: `Version ${info.version} couldn't be installed automatically on this Mac. Ask IT to install it, or download it from the Nowtify releases page.`,
+        version: info.version,
+      };
+      broadcastUpdaterStatus();
+      return;
+    }
     cacheHealAttempted = false;
     updaterStatus.lastCheckedAt = Date.now();
     updaterStatus.downloadedFile = info && (info.downloadedFile || info.path);

@@ -100,6 +100,7 @@ const msGraphOAuth = require('./ms-graph-oauth');
 const msGraphClient = require('./ms-graph-client');
 const platform = require('./platform');
 const { setupAutoUpdater, installDownloadedUpdate } = require('./updater');
+const macInstall = require('./mac-install');
 
 // macOS: keep app running when all windows are closed (we live in the menu bar)
 app.on('window-all-closed', (e) => {
@@ -233,7 +234,14 @@ const updaterStatus = {
   result: { type: 'never', message: 'Never checked this session', version: '' },
   // True on IT-managed (per-machine MSI) installs: updates are found and
   // shown, but never downloaded or installed here - IT rolls them out.
-  managed: platform.isMachineWideInstall(process.platform, process.execPath, process.env),
+  // Mac: a copy the signed-in user can't replace (installed by IT / an
+  // admin account, or run from the disk image) is managed the same way -
+  // offering "Restart now" there looped forever.
+  managed:
+    platform.isMachineWideInstall(process.platform, process.execPath, process.env) ||
+    (process.platform === 'darwin' &&
+      app.isPackaged &&
+      !macInstall.canReplaceAppBundle(macInstall.appBundlePathFrom(process.execPath))),
 };
 
 function broadcastUpdaterStatus() {
