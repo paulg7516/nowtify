@@ -86,7 +86,45 @@ function lockdownFile(filePath) {
   }
 }
 
+// Popover sizing + placement next to the tray icon. Same rules on both
+// platforms; the difference is where the tray lives. macOS menu bar is at
+// the top, so the popover opens BELOW the icon. The Windows taskbar is
+// usually at the bottom, so it opens ABOVE (and a left/right/top taskbar
+// still lands inside the screen via the clamp).
+const POPOVER_DEFAULT_SIZE = { width: 460, height: 600 };
+const POPOVER_MIN_SIZE = { width: 420, height: 440 };
+const POPOVER_GAP = 4;
+
+// Saved size -> usable size: falls back to the default for missing/garbage
+// values, never smaller than the minimum, never bigger than the screen.
+function clampPopoverSize(saved, workArea) {
+  const pick = (v, def) => (Number.isFinite(v) && v > 0 ? Math.round(v) : def);
+  const s = saved || {};
+  const maxW = workArea ? workArea.width - POPOVER_GAP * 2 : Infinity;
+  const maxH = workArea ? workArea.height - POPOVER_GAP * 2 : Infinity;
+  const width = Math.min(Math.max(pick(s.width, POPOVER_DEFAULT_SIZE.width), POPOVER_MIN_SIZE.width), maxW);
+  const height = Math.min(Math.max(pick(s.height, POPOVER_DEFAULT_SIZE.height), POPOVER_MIN_SIZE.height), maxH);
+  return { width, height };
+}
+
+// Top-left position for a popover of `size` anchored to the tray icon.
+function popoverPosition(trayBounds, size, workArea) {
+  const { x: dx, y: dy, width: dw, height: dh } = workArea;
+  const trayCenterY = trayBounds.y + trayBounds.height / 2;
+  const trayAtBottom = trayCenterY > dy + dh / 2;
+  let x = Math.round(trayBounds.x + trayBounds.width / 2 - size.width / 2);
+  let y = trayAtBottom
+    ? Math.round(trayBounds.y - size.height - POPOVER_GAP)
+    : Math.round(trayBounds.y + trayBounds.height + POPOVER_GAP);
+  x = Math.min(Math.max(x, dx + POPOVER_GAP), dx + dw - size.width - POPOVER_GAP);
+  y = Math.min(Math.max(y, dy + POPOVER_GAP), dy + dh - size.height - POPOVER_GAP);
+  return { x, y };
+}
+
 module.exports = {
+  POPOVER_MIN_SIZE,
+  clampPopoverSize,
+  popoverPosition,
   isMac,
   isWin,
   trayIconSpec,

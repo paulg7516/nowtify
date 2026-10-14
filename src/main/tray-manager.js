@@ -195,6 +195,8 @@ class TrayManager {
     getTriggers,
     getUpdateStatus,
     getPulseTarget,
+    getPopoverSize,
+    savePopoverSize,
   }) {
     this.onOpenSettings = onOpenSettings;
     this.onSnooze = onSnooze;
@@ -209,6 +211,9 @@ class TrayManager {
     // in Settings takes effect without restarting. Falls back to 'both'
     // if the host forgot to wire it.
     this.getPulseTarget = getPulseTarget || (() => 'both');
+    // User-resized popover size, remembered across opens and restarts.
+    this.getPopoverSize = getPopoverSize || (() => null);
+    this.savePopoverSize = savePopoverSize || (() => {});
     this.tray = null;
     this.popover = null;
     this.iconCache = {};
@@ -523,11 +528,17 @@ class TrayManager {
   }
 
   createPopover() {
+    const size = platform.clampPopoverSize(this.getPopoverSize(), null);
     const win = new BrowserWindow({
-      width: 420,
-      height: 440,
+      width: size.width,
+      height: size.height,
+      minWidth: platform.POPOVER_MIN_SIZE.width,
+      minHeight: platform.POPOVER_MIN_SIZE.height,
       frame: false,
-      resizable: false,
+      // Drag an edge to resize (macOS + Windows); the size is remembered.
+      resizable: true,
+      maximizable: false,
+      fullscreenable: false,
       alwaysOnTop: true,
       skipTaskbar: true,
       show: false,
@@ -553,28 +564,32 @@ class TrayManager {
     win.on('blur', () => {
       if (!win.isDestroyed()) win.hide();
     });
+    // 'resized' fires once when the user lets go of the edge (macOS +
+    // Windows), so this is one write per resize, not one per frame.
+    win.on('resized', () => {
+      if (win.isDestroyed()) return;
+      const [width, height] = win.getSize();
+      this.savePopoverSize({ width, height });
+    });
     return win;
   }
 
   positionPopover() {
     if (!this.popover || !this.tray) return;
     const trayBounds = this.tray.getBounds();
-    const winBounds = this.popover.getBounds();
     const display = screen.getDisplayNearestPoint({
       x: trayBounds.x,
       y: trayBounds.y,
     });
-
-    let x = Math.round(trayBounds.x + trayBounds.width / 2 - winBounds.width / 2);
-    let y = Math.round(trayBounds.y + trayBounds.height + 4);
-
-    // Keep within display bounds
-    const { x: dx, y: dy, width: dw, height: dh } = display.workArea;
-    if (x < dx + 4) x = dx + 4;
-    if (x + winBounds.width > dx + dw - 4) x = dx + dw - winBounds.width - 4;
-    if (y + winBounds.height > dy + dh - 4) y = dy + dh - winBounds.height - 4;
-    if (y < dy + 4) y = dy + 4;
-
+    const { workArea } = display;
+    // Re-clamp on every open: the remembered size may have come from a
+    // bigger monitor than the one the tray is on now.
+    const [curW, curH] = this.popover.getSize();
+    const size = platform.clampPopoverSize({ width: curW, height: curH }, workArea);
+    if (size.width !== curW || size.height !== curH) {
+      this.popover.setSize(size.width, size.height, false);
+    }
+    const { x, y } = platform.popoverPosition(trayBounds, size, workArea);
     this.popover.setPosition(x, y, false);
   }
 }

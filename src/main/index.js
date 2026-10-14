@@ -716,6 +716,8 @@ app.whenReady().then(() => {
       engine.pokeNow();
     },
     onPoke: () => engine.pokeNow(),
+    getPopoverSize: () => store.get('popoverSize'),
+    savePopoverSize: (size) => store.set('popoverSize', size),
     onQuit: () => app.quit(),
     onToggleTrigger: (triggerId, enabled) => {
       const next = store.setTriggerEnabled(triggerId, enabled);

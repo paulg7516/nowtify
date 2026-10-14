@@ -138,6 +138,10 @@ const defaults = {
   // pre-feature behaviour for existing users; new users see the same.
   pulseTarget: 'both',
 
+  // Popover window size after the user drags an edge. null = use the
+  // default (src/main/platform.js POPOVER_DEFAULT_SIZE).
+  popoverSize: null,
+
   // UI appearance for the Settings + View-alerts windows. 'system' follows the
   // macOS appearance live (the default); 'light'/'dark' lock it. The screen-edge
   // pulse overlay is unaffected (it renders the trigger's alert color, not a UI
