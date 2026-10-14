@@ -53,7 +53,7 @@ Save and you're done. Nowtify polls every 30 seconds and pulses the screen edge 
 - **Appearance.** Switch the Settings window and the menu-bar popover between light and dark. The screen-edge pulse is unaffected; it always shows in the trigger's color.
 - **Triggers.** Turn each trigger on or off individually. Each one has its own color picker.
 - **Snooze.** Right-click the menu-bar icon, pick "Until I resume" to silence the pulse, then "Resume now" when you're ready. Alerts still accumulate in the menu-bar popover while snoozed, so you can see what fired.
-- **Dismiss.** Per ticket per condition. Dismissing the Major Incident on `INC-123` doesn't affect its SLA alerts.
+- **Acknowledge.** For long-running Major Incidents and SLA alerts. Click Acknowledge on a row in the popover and that alert stops pulsing on both the screen edge and the menu-bar icon, so other alerts show through. It stays in the popover, dimmed, until the ticket resolves; click Acknowledged to undo. Per ticket per condition: acknowledging the Major Incident on `INC-123` doesn't affect its SLA alerts.
 
 ## What's not implemented yet
 

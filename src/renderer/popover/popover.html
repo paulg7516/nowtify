@@ -467,6 +467,40 @@
         background: var(--surface-3);
         color: var(--text-2);
       }
+      /* Acknowledge: per-row "stop pulsing this" toggle for incident and
+         SLA rows. Acknowledged rows stay listed but dim, so the eye goes
+         to whatever is still live. */
+      .ack-btn {
+        font: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 6px;
+        border: 1px solid var(--border-strong);
+        background: transparent;
+        color: var(--text-2);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+      }
+      .ack-btn:hover {
+        background: var(--hover);
+        color: var(--text);
+      }
+      .ack-btn[data-acked='true'] {
+        border-color: transparent;
+        background: var(--surface-3);
+        color: var(--text-3);
+      }
+      .ack-btn[data-acked='true']:hover {
+        color: var(--text);
+      }
+      .alerts li.acked .swatch {
+        opacity: 0.35;
+      }
+      .alerts li.acked .meta {
+        opacity: 0.6;
+      }
       /* Per-row medium badge (Teams vs Outlook) in the Messages tab.
          Uses the official Iconify brand SVGs - same logos that appear on
          the Integrations cards - just sized down. Logos carry brand

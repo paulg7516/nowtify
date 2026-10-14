@@ -394,8 +394,12 @@ class TrayManager {
   setState(state) {
     if (!this.tray) return;
     this.tray.setImage(this.iconFor(state, 0));
-    const activeCount = (state.alerts || []).filter((a) => !a.dismissed).length;
-    let tip = 'Nowtify - all quiet';
+    const activeCount = (state.alerts || []).filter((a) => !a.acknowledged).length;
+    const ackCount = (state.alerts || []).length - activeCount;
+    // Idle with acknowledged alerts open is "nothing new", not "all clear".
+    let tip = ackCount
+      ? `Nowtify - ${ackCount} acknowledged`
+      : 'Nowtify - all quiet';
     if (state.status === 'alerting') tip = `Nowtify - ${activeCount} alert${activeCount === 1 ? '' : 's'}`;
     else if (state.status === 'snoozed') tip = 'Nowtify - paused';
     else if (state.status === 'paused') tip = 'Nowtify - all triggers off';
@@ -425,7 +429,8 @@ class TrayManager {
   }
 
   rebuildMenu(state) {
-    const activeCount = (state.alerts || []).filter((a) => !a.dismissed).length;
+    const activeCount = (state.alerts || []).filter((a) => !a.acknowledged).length;
+    const ackCount = (state.alerts || []).length - activeCount;
     const triggers = this.getTriggers ? this.getTriggers() : [];
     const statusLabel =
       state.status === 'alerting'
@@ -434,7 +439,9 @@ class TrayManager {
           ? 'Paused'
           : state.status === 'paused'
             ? 'All triggers off'
-            : 'All quiet';
+            : ackCount
+              ? `${ackCount} acknowledged`
+              : 'All quiet';
 
     const triggerItems = triggers.map((t) => ({
       label: t.label,
