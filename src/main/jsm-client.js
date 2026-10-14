@@ -182,50 +182,6 @@ class JsmClient {
   }
 
   /**
-   * Every status this issue has been in, oldest first, from its changelog.
-   * Used by Acknowledge to tell a status regression from forward progress.
-   * Best-effort: returns [] on any error.
-   */
-  async getStatusHistory(issueKey) {
-    try {
-      const statuses = [];
-      let startAt = 0;
-      for (let page = 0; page < 10; page++) {
-        const res = await this.request(
-          `/rest/api/3/issue/${encodeURIComponent(issueKey)}/changelog`,
-          { query: { startAt, maxResults: 100 } },
-        );
-        const values = (res && res.values) || [];
-        for (const entry of values) {
-          for (const item of entry.items || []) {
-            if (item.field !== 'status') continue;
-            if (item.fromString) statuses.push(item.fromString);
-            if (item.toString) statuses.push(item.toString);
-          }
-        }
-        startAt += values.length;
-        if (!values.length || res.isLast || startAt >= (res.total || 0)) break;
-      }
-      return [...new Set(statuses)];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /**
-   * Priority names in the instance's own order, most urgent first.
-   * Best-effort: returns [] on any error.
-   */
-  async getPriorityOrder() {
-    try {
-      const res = await this.request('/rest/api/3/priority');
-      return Array.isArray(res) ? res.map((p) => p && p.name).filter(Boolean) : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /**
    * Resolve the field IDs we care about from the JSM instance.
    * Returns { majorIncidentFieldId, majorIncidentSchema, slaFieldIds: [{id, name}] }
    */

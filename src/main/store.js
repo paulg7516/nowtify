@@ -129,7 +129,7 @@ const defaults = {
   snoozeUntil: 0,
   // Acknowledged alerts, keyed by "<ticketKey>|<conditionId>". An
   // acknowledged alert stops pulsing on screen edge + tray but stays in the
-  // popover until the ticket gets worse. See src/main/acknowledgements.js.
+  // popover until the ticket resolves. See src/main/acknowledgements.js.
   acknowledged: {},
   // Where the per-trigger pulse renders. 'screen' = thin colored stroke
   // around every display (the original ambient UX). 'tray' = pulse the

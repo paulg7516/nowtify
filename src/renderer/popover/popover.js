@@ -454,7 +454,7 @@ function renderAlertRow(a) {
   }
 
   // Acknowledge (incident + SLA rows): stops this alert pulsing on the
-  // screen edge and tray until its ticket gets worse. Click again to undo.
+  // screen edge and tray until the ticket resolves. Click again to undo.
   if (a.ackId) {
     if (a.acknowledged) li.classList.add('acked');
     const ackBtn = document.createElement('button');
@@ -463,8 +463,8 @@ function renderAlertRow(a) {
     ackBtn.dataset.acked = a.acknowledged ? 'true' : 'false';
     ackBtn.textContent = a.acknowledged ? 'Acknowledged' : 'Acknowledge';
     ackBtn.title = a.acknowledged
-      ? 'Not pulsing. Pulses again if priority goes up or the status moves back. Click to undo.'
-      : 'Stop pulsing for this alert. It pulses again if priority goes up or the status moves back.';
+      ? 'Not pulsing until the ticket resolves. Click to undo.'
+      : 'Stop pulsing for this alert until the ticket resolves.';
     ackBtn.onclick = async (e) => {
       e.stopPropagation();
       ackBtn.disabled = true;

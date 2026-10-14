@@ -23,7 +23,7 @@ class AlertEngine extends EventEmitter {
   constructor() {
     super();
     this.client = null;
-    this.fieldCache = null; // { majorIncidentFieldId, slaFieldIds: [{id,name}], priorityOrder }
+    this.fieldCache = null; // { majorIncidentFieldId, slaFieldIds: [{id,name}] }
     this.timer = null;
     this.lastState = { status: 'idle', color: null, pulse: false, alerts: [] };
     this.running = false;
@@ -74,9 +74,6 @@ class AlertEngine extends EventEmitter {
     const overrideId = cfg.majorIncidentFieldId;
     const resolved = await this.client.resolveFieldIds();
     if (overrideId) resolved.majorIncidentFieldId = overrideId;
-    // Instance priority order (most urgent first) so Acknowledge can tell
-    // "priority went up" on custom priority schemes.
-    resolved.priorityOrder = await this.client.getPriorityOrder();
     this.fieldCache = resolved;
     return resolved;
   }
@@ -386,7 +383,6 @@ class AlertEngine extends EventEmitter {
           trigType: 'major',
           meetingUrl: conn ? conn.url : null,
           meetingType: conn ? conn.type : null,
-          ackSnapshot: acks.snapshotFromFields(fmap),
         });
       }
     }
@@ -560,13 +556,12 @@ class AlertEngine extends EventEmitter {
             sortMs: slaCreatedMs || 0,
             jsmUrl,
             trigType: 'sla',
-            ackSnapshot: acks.snapshotFromFields(fmap),
           });
         }
       }
     }
 
-    this.applyAcks(alerts, fields.priorityOrder);
+    this.applyAcks(alerts);
     const state = computeOverallState(alerts, { snoozed, snoozeUntilMs, anyEnabled });
     this.emitState(state);
 
@@ -615,38 +610,25 @@ class AlertEngine extends EventEmitter {
     );
   }
 
-  // Mark acknowledged alerts and re-arm any whose ticket got worse
-  // (priority up / status backwards). Mutates alerts in place.
-  applyAcks(alerts, priorityOrder) {
+  // Mark acknowledged alerts (and drop expired acks). Mutates in place.
+  applyAcks(alerts) {
     const stored = store.getAcks();
     const now = Date.now();
     const expired = Object.keys(stored).filter((id) => acks.isExpired(stored[id], now));
-    const rearmed = [];
     for (const alert of alerts) {
       if (!acks.isAckable(alert)) continue;
-      const id = acks.ackIdFor(alert);
-      alert.ackId = id;
-      const ack = stored[id];
-      if (!ack || expired.includes(id)) continue;
-      const result = acks.evaluateAck(ack, alert.ackSnapshot, priorityOrder);
-      if (result.rearm) {
-        rearmed.push(id);
-        console.log(`[engine] ack re-armed ${id}: ${result.reason}`);
-        continue;
-      }
-      if (result.next) store.setAck(id, result.next);
-      alert.acknowledged = true;
+      alert.ackId = acks.ackIdFor(alert);
+      alert.acknowledged = Boolean(stored[alert.ackId]) && !expired.includes(alert.ackId);
     }
-    store.removeAcks([...expired, ...rearmed]);
+    store.removeAcks(expired);
   }
 
   // Popover "Acknowledge" on one alert. The id must match an alert in the
   // current state - the renderer can't write arbitrary keys.
-  async acknowledge(id) {
+  acknowledge(id) {
     const alert = (this.lastState.alerts || []).find((a) => a.ackId === id);
     if (!alert || !acks.isAckable(alert)) return false;
-    const statusHistory = this.client ? await this.client.getStatusHistory(alert.ticketKey) : [];
-    store.setAck(id, acks.buildAck(alert, { statusHistory }));
+    store.setAck(id, acks.buildAck(alert));
     this.recomputeAcks();
     return true;
   }

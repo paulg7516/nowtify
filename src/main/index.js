@@ -564,7 +564,7 @@ function wireIpc() {
     if (value === 'indefinite') store.setSnooze('indefinite');
     else store.setSnooze(Number(value) || 0);
   });
-  // Acknowledge: stop one alert pulsing until its ticket gets worse.
+  // Acknowledge: stop one alert pulsing until its ticket resolves.
   // The engine only accepts ids of alerts currently in its state.
   ipcMain.handle('popover:acknowledge', (_e, id) =>
     typeof id === 'string' && id.length <= 512 ? engine.acknowledge(id) : false,
