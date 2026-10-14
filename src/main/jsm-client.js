@@ -285,7 +285,9 @@ class JsmClient {
       console.log(
         `[jsm-client] servicedeskapi APPROVER/MY_PENDING_APPROVAL -> ${values.length}`,
       );
-      return values.map((v) => mapServiceDeskRequestToIssue(v));
+      const issues = values.map((v) => mapServiceDeskRequestToIssue(v));
+      await this.backfillSummaries(issues);
+      return issues;
     } catch (err) {
       console.warn(
         '[jsm-client] servicedeskapi approvals query failed, falling back to JQL:',
@@ -307,6 +309,31 @@ class JsmClient {
     } catch (err) {
       console.warn('[jsm-client] approver JQL fallback also failed:', err.message);
       return [];
+    }
+  }
+
+  /**
+   * The servicedesk request API only returns fields that are on the
+   * request type's portal form, so requests whose form has no Summary come
+   * back untitled (and show as a blank row). Fill those in from the issue
+   * itself with one JQL lookup. Best-effort: leaves them blank on error.
+   */
+  async backfillSummaries(issues) {
+    const missing = issues.filter((i) => i && i.key && !(i.fields && i.fields.summary));
+    if (!missing.length) return;
+    try {
+      const keys = missing.map((i) => `"${String(i.key).replace(/"/g, '')}"`).join(',');
+      const data = await this.request('/rest/api/3/search/jql', {
+        method: 'POST',
+        body: { jql: `key in (${keys})`, fields: ['summary'], maxResults: missing.length },
+      });
+      const byKey = new Map(((data && data.issues) || []).map((i) => [i.key, i.fields && i.fields.summary]));
+      for (const issue of missing) {
+        const summary = byKey.get(issue.key);
+        if (summary) issue.fields.summary = summary;
+      }
+    } catch (err) {
+      console.warn('[jsm-client] approval summary backfill failed:', err.message);
     }
   }
 
