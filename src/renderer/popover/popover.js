@@ -453,6 +453,31 @@ function renderAlertRow(a) {
     aside.appendChild(meetingBtn);
   }
 
+  // Acknowledge (incident + SLA rows): stops this alert pulsing on the
+  // screen edge and tray until its ticket gets worse. Click again to undo.
+  if (a.ackId) {
+    if (a.acknowledged) li.classList.add('acked');
+    const ackBtn = document.createElement('button');
+    ackBtn.className = 'ack-btn';
+    ackBtn.type = 'button';
+    ackBtn.dataset.acked = a.acknowledged ? 'true' : 'false';
+    ackBtn.textContent = a.acknowledged ? 'Acknowledged' : 'Acknowledge';
+    ackBtn.title = a.acknowledged
+      ? 'Not pulsing. Pulses again if priority goes up or the status moves back. Click to undo.'
+      : 'Stop pulsing for this alert. It pulses again if priority goes up or the status moves back.';
+    ackBtn.onclick = async (e) => {
+      e.stopPropagation();
+      ackBtn.disabled = true;
+      try {
+        if (a.acknowledged) await api.unacknowledge(a.ackId);
+        else await api.acknowledge(a.ackId);
+      } finally {
+        ackBtn.disabled = false;
+      }
+    };
+    aside.appendChild(ackBtn);
+  }
+
   if (aside.childNodes.length) li.appendChild(aside);
 
   return li;

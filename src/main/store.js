@@ -127,6 +127,10 @@ const defaults = {
   ],
   pollIntervalSeconds: 30,
   snoozeUntil: 0,
+  // Acknowledged alerts, keyed by "<ticketKey>|<conditionId>". An
+  // acknowledged alert stops pulsing on screen edge + tray but stays in the
+  // popover until the ticket gets worse. See src/main/acknowledgements.js.
+  acknowledged: {},
   // Where the per-trigger pulse renders. 'screen' = thin colored stroke
   // around every display (the original ambient UX). 'tray' = pulse the
   // menu-bar icon in the trigger's color only (no screen border, less
@@ -453,6 +457,8 @@ function getAllForRenderer() {
   // strip their encrypted counterparts here.
   delete all.watchListEnc;
   delete all.watchGroupsEnc;
+  // Engine-owned state; Settings has no use for it.
+  delete all.acknowledged;
   const jsm = all.jsm || {};
   const teams = all.teams || {};
   const teamsHydrated = secureFields.hydrateField(teams, 'watchedUsers', encAdapter);
@@ -525,6 +531,27 @@ function setSnooze(minutes) {
 function isSnoozed() {
   const until = store.get('snoozeUntil') || 0;
   return until > Date.now();
+}
+
+function getAcks() {
+  const acks = store.get('acknowledged');
+  return acks && typeof acks === 'object' ? acks : {};
+}
+
+function setAck(id, ack) {
+  store.set('acknowledged', { ...getAcks(), [id]: ack });
+}
+
+function removeAcks(ids) {
+  const acks = getAcks();
+  let changed = false;
+  for (const id of ids) {
+    if (id in acks) {
+      delete acks[id];
+      changed = true;
+    }
+  }
+  if (changed) store.set('acknowledged', acks);
 }
 
 function setTriggerEnabled(triggerId, enabled) {
@@ -725,6 +752,9 @@ module.exports = {
   removeGroup,
   setSnooze,
   isSnoozed,
+  getAcks,
+  setAck,
+  removeAcks,
   setTriggerEnabled,
   updateTrigger,
   addTrigger,

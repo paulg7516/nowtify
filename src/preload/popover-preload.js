@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('popoverApi', {
   },
   openTicket: (url) => ipcRenderer.invoke('popover:open-ticket', url),
   snooze: (minutes) => ipcRenderer.invoke('popover:snooze', minutes),
+  acknowledge: (id) => ipcRenderer.invoke('popover:acknowledge', id),
+  unacknowledge: (id) => ipcRenderer.invoke('popover:unacknowledge', id),
   pokeEngine: () => ipcRenderer.invoke('popover:poke-engine'),
   openSettings: () => ipcRenderer.invoke('popover:open-settings'),
   getVersion: () => ipcRenderer.invoke('popover:get-version'),

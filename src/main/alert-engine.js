@@ -9,10 +9,11 @@ const {
 const msGraphClient = require('./ms-graph-client');
 const msGraphOAuth = require('./ms-graph-oauth');
 const store = require('./store');
+const acks = require('./acknowledgements');
 
 /**
  * Alert engine: polls JSM on an interval, evaluates triggers against the
- * watch list, applies snooze/dismiss state, emits an overall overlay state.
+ * watch list, applies snooze/acknowledge state, emits an overall overlay state.
  *
  * Emits:
  *   'state'  -> { status, color, pulse, alerts: [...] }
@@ -22,7 +23,7 @@ class AlertEngine extends EventEmitter {
   constructor() {
     super();
     this.client = null;
-    this.fieldCache = null; // { majorIncidentFieldId, slaFieldIds: [{id,name}] }
+    this.fieldCache = null; // { majorIncidentFieldId, slaFieldIds: [{id,name}], priorityOrder }
     this.timer = null;
     this.lastState = { status: 'idle', color: null, pulse: false, alerts: [] };
     this.running = false;
@@ -73,6 +74,9 @@ class AlertEngine extends EventEmitter {
     const overrideId = cfg.majorIncidentFieldId;
     const resolved = await this.client.resolveFieldIds();
     if (overrideId) resolved.majorIncidentFieldId = overrideId;
+    // Instance priority order (most urgent first) so Acknowledge can tell
+    // "priority went up" on custom priority schemes.
+    resolved.priorityOrder = await this.client.getPriorityOrder();
     this.fieldCache = resolved;
     return resolved;
   }
@@ -382,6 +386,7 @@ class AlertEngine extends EventEmitter {
           trigType: 'major',
           meetingUrl: conn ? conn.url : null,
           meetingType: conn ? conn.type : null,
+          ackSnapshot: acks.snapshotFromFields(fmap),
         });
       }
     }
@@ -555,11 +560,13 @@ class AlertEngine extends EventEmitter {
             sortMs: slaCreatedMs || 0,
             jsmUrl,
             trigType: 'sla',
+            ackSnapshot: acks.snapshotFromFields(fmap),
           });
         }
       }
     }
 
+    this.applyAcks(alerts, fields.priorityOrder);
     const state = computeOverallState(alerts, { snoozed, snoozeUntilMs, anyEnabled });
     this.emitState(state);
 
@@ -584,6 +591,12 @@ class AlertEngine extends EventEmitter {
         }),
       );
       if (resolvedKeys.length > 0) {
+        // A resolved ticket's acks are done with; a reopen starts fresh.
+        const resolvedSet = new Set(resolvedKeys);
+        const stored = store.getAcks();
+        store.removeAcks(
+          Object.keys(stored).filter((id) => resolvedSet.has(stored[id] && stored[id].ticketKey)),
+        );
         this.emit('resolved', { keys: resolvedKeys });
       }
     }
@@ -599,6 +612,68 @@ class AlertEngine extends EventEmitter {
     };
     console.log(
       `[engine tick] mi=${majorIssues.length} sla=${slaIssues.length} appr=${approvalIssues.length} teams=${teamsHitsTotal} email=${emailHitsTotal} alerts=${alerts.length} disappeared=${disappeared.length} snoozed=${snoozed} status=${state.status}`,
+    );
+  }
+
+  // Mark acknowledged alerts and re-arm any whose ticket got worse
+  // (priority up / status backwards). Mutates alerts in place.
+  applyAcks(alerts, priorityOrder) {
+    const stored = store.getAcks();
+    const now = Date.now();
+    const expired = Object.keys(stored).filter((id) => acks.isExpired(stored[id], now));
+    const rearmed = [];
+    for (const alert of alerts) {
+      if (!acks.isAckable(alert)) continue;
+      const id = acks.ackIdFor(alert);
+      alert.ackId = id;
+      const ack = stored[id];
+      if (!ack || expired.includes(id)) continue;
+      const result = acks.evaluateAck(ack, alert.ackSnapshot, priorityOrder);
+      if (result.rearm) {
+        rearmed.push(id);
+        console.log(`[engine] ack re-armed ${id}: ${result.reason}`);
+        continue;
+      }
+      if (result.next) store.setAck(id, result.next);
+      alert.acknowledged = true;
+    }
+    store.removeAcks([...expired, ...rearmed]);
+  }
+
+  // Popover "Acknowledge" on one alert. The id must match an alert in the
+  // current state - the renderer can't write arbitrary keys.
+  async acknowledge(id) {
+    const alert = (this.lastState.alerts || []).find((a) => a.ackId === id);
+    if (!alert || !acks.isAckable(alert)) return false;
+    const statusHistory = this.client ? await this.client.getStatusHistory(alert.ticketKey) : [];
+    store.setAck(id, acks.buildAck(alert, { statusHistory }));
+    this.recomputeAcks();
+    return true;
+  }
+
+  unacknowledge(id) {
+    if (typeof id !== 'string') return false;
+    store.removeAcks([id]);
+    this.recomputeAcks();
+    return true;
+  }
+
+  // Re-emit the cached state with the latest ack set so the pulse stops
+  // (or resumes) the instant the user clicks, not on the next poll.
+  recomputeAcks() {
+    const last = this.lastState;
+    if (!last) return;
+    const stored = store.getAcks();
+    const alerts = (last.alerts || []).map((a) => ({
+      ...a,
+      acknowledged: Boolean(a.ackId && stored[a.ackId]),
+    }));
+    this.emitState(
+      computeOverallState(alerts, {
+        snoozed: store.isSnoozed(),
+        snoozeUntilMs: store.get('snoozeUntil') || 0,
+        anyEnabled: Boolean(last.anyEnabled),
+      }),
     );
   }
 
@@ -695,14 +770,17 @@ function computeOverallState(alerts, { snoozed, snoozeUntilMs, anyEnabled }) {
   if (!anyEnabled) {
     return { status: 'paused', color: null, pulse: false, ...base };
   }
-  if (alerts.length === 0) {
+  // Acknowledged alerts stay in the list but never drive the screen edge
+  // or tray: when only acknowledged alerts remain, both surfaces go idle.
+  const active = alerts.filter((a) => !a.acknowledged);
+  if (active.length === 0) {
     return { status: 'idle', color: null, pulse: false, ...base };
   }
   if (snoozed) {
     return { status: 'snoozed', color: null, pulse: false, ...base };
   }
-  const top = alerts.slice().sort((a, b) => b.severity - a.severity)[0];
-  const pulse = alerts.some((a) => a.pulse);
+  const top = active.slice().sort((a, b) => b.severity - a.severity)[0];
+  const pulse = active.some((a) => a.pulse);
   return { status: 'alerting', color: top.color, pulse, ...base };
 }
 
