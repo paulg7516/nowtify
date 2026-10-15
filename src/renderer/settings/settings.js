@@ -1097,21 +1097,20 @@ function renderUpdaterStatus(status) {
     statusText.textContent = (status.result && status.result.message) || '-';
   }
 
-  // Show "Restart + install now" only when an update has been downloaded
-  // and is ready to apply. On IT-managed installs a found update shows the
-  // same button grayed out, with the version, next to the IT note.
-  const installBtn = el('updaterInstallBtn');
+  // IT-managed installs: Nowtify doesn't check or install updates there, so
+  // only the version and the IT note show - no buttons, no last check.
   const managed = Boolean(status.managed);
-  installBtn.hidden = !(type === 'downloaded' || type === 'managed');
-  installBtn.dataset.managed = String(type === 'managed');
-  if (type === 'managed') {
-    installBtn.disabled = true;
-    installBtn.textContent = `Install v${status.result.version || ''}`;
-  } else if (type === 'downloaded') {
+  el('updaterLastCheckRow').hidden = managed;
+  el('updaterActions').hidden = managed;
+
+  // Show "Restart + install now" only when an update has been downloaded
+  // and is ready to apply.
+  const installBtn = el('updaterInstallBtn');
+  installBtn.hidden = type !== 'downloaded';
+  if (type === 'downloaded') {
     installBtn.disabled = false;
     installBtn.textContent = 'Install now';
   }
-  el('updaterManagedNote').hidden = !managed;
 
   // Disable Check button while a check or download is in flight to avoid
   // racing requests.

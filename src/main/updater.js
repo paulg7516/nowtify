@@ -93,7 +93,7 @@ function installResultPath() {
  * to install (no downloaded file on macOS).
  */
 function installDownloadedUpdate(updaterStatus) {
-  // IT-managed installs never install here (see setupAutoUpdater).
+  // IT-managed installs never install here (the updater doesn't run there).
   if (updaterStatus.managed) return false;
   if (platform.isWin) {
     // NSIS installs unsigned updates natively; this is the supported path.
@@ -108,13 +108,11 @@ function installDownloadedUpdate(updaterStatus) {
   return false;
 }
 
-const MANAGED_NOTE = 'Kept up to date by your IT administrator';
+const MANAGED_NOTE =
+  'Kept up to date by your organization. If a new version exists, your IT administrator will install it.';
 
 function setupAutoUpdater(ctx) {
   const { updaterStatus, broadcastUpdaterStatus, getSettingsWin, refreshTrayForUpdate, getAppDialogIcon } = ctx;
-  // IT-managed (per-machine MSI) installs: still check, so the user can see
-  // a newer version exists, but never download or install - IT deploys it.
-  autoUpdater.autoDownload = !updaterStatus.managed;
   // Squirrel.Mac can't install unsigned updates on quit either - disable so
   // updates only apply via our manual helper (triggered by the Restart-now
   // dialog button).
@@ -139,18 +137,6 @@ function setupAutoUpdater(ctx) {
   });
   autoUpdater.on('update-available', (info) => {
     console.log('[updater] update available:', info.version);
-    if (updaterStatus.managed) {
-      cacheHealAttempted = false;
-      updaterStatus.lastCheckedAt = Date.now();
-      updaterStatus.result = {
-        type: 'managed',
-        message: `Version ${info.version} is available. ${MANAGED_NOTE}.`,
-        version: info.version,
-      };
-      broadcastUpdaterStatus();
-      refreshTrayForUpdate();
-      return;
-    }
     updaterStatus.result = {
       type: 'available',
       message: `Update v${info.version} found - downloading…`,
@@ -164,9 +150,6 @@ function setupAutoUpdater(ctx) {
     updaterStatus.lastCheckedAt = Date.now();
     updaterStatus.result = { type: 'up-to-date', message: 'You are on the latest version', version: '' };
     broadcastUpdaterStatus();
-    // Clears a stale "managed update available" tray item once IT has
-    // rolled the new version out.
-    refreshTrayForUpdate();
   });
   autoUpdater.on('download-progress', (progress) => {
     updaterStatus.result = {

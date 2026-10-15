@@ -99,7 +99,7 @@ const {
 const msGraphOAuth = require('./ms-graph-oauth');
 const msGraphClient = require('./ms-graph-client');
 const platform = require('./platform');
-const { setupAutoUpdater, installDownloadedUpdate } = require('./updater');
+const { setupAutoUpdater, installDownloadedUpdate, MANAGED_NOTE } = require('./updater');
 const macInstall = require('./mac-install');
 
 // macOS: keep app running when all windows are closed (we live in the menu bar)
@@ -232,8 +232,8 @@ const updaterStatus = {
   // type values: never | checking | up-to-date | available | downloading
   //              | downloaded | error
   result: { type: 'never', message: 'Never checked this session', version: '' },
-  // True on IT-managed (per-machine MSI) installs: updates are found and
-  // shown, but never downloaded or installed here - IT rolls them out.
+  // True on IT-managed (per-machine MSI) installs: Nowtify never checks,
+  // downloads or installs updates there - IT rolls them out.
   // Mac: a copy the signed-in user can't replace (installed by IT / an
   // admin account, or run from the disk image) is managed the same way -
   // offering "Restart now" there looped forever.
@@ -243,6 +243,9 @@ const updaterStatus = {
       app.isPackaged &&
       !macInstall.canReplaceAppBundle(macInstall.appBundlePathFrom(process.execPath))),
 };
+if (updaterStatus.managed) {
+  updaterStatus.result = { type: 'managed', message: MANAGED_NOTE, version: '' };
+}
 
 function broadcastUpdaterStatus() {
   if (settingsWin && !settingsWin.isDestroyed()) {
@@ -644,6 +647,8 @@ function wireIpc() {
       broadcastUpdaterStatus();
       return updaterStatus;
     }
+    // IT-managed installs never check (the button is hidden there too).
+    if (updaterStatus.managed) return updaterStatus;
     updaterStatus.result = { type: 'checking', message: 'Checking for updates…', version: '' };
     broadcastUpdaterStatus();
     try {
@@ -769,9 +774,10 @@ app.whenReady().then(() => {
     openSettings();
   }
 
-  // Auto-updates: check on launch, then again every 6 hours.
-  // Only meaningful when running a packaged build (skipped in `npm start` dev).
-  if (app.isPackaged) {
+  // Auto-updates: check on launch, then again every hour.
+  // Only meaningful when running a packaged build (skipped in `npm start` dev),
+  // and never on IT-managed installs - IT rolls updates out there.
+  if (app.isPackaged && !updaterStatus.managed) {
     setupAutoUpdater({
       updaterStatus,
       broadcastUpdaterStatus,

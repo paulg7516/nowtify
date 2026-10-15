@@ -1442,22 +1442,14 @@ ul.list:empty {
 }
 
 
-/* IT-managed install (per-machine MSI): the install button shows the new
-   version but stays grayed out; IT rolls updates out. */
+/* IT-managed install (MSI, or a Mac copy IT owns): gray dot next to the
+   IT note; IT rolls updates out. */
 .updater-dot[data-state='managed'] {
   background: #8b8d93;
 }
-#updaterInstallBtn[data-managed='true'],
-#updaterInstallBtn[data-managed='true']:hover {
-  background: var(--surface-3, #e5e7eb);
-  background-image: none;
-  border-color: transparent;
-  color: var(--text-3);
-  cursor: not-allowed;
-}
-.updater-managed-note {
-  font-size: 12px;
-  color: var(--text-3);
+.updater-row[hidden],
+#updaterActions[hidden] {
+  display: none;
 }
 #updaterCheckBtn,
 #updaterInstallBtn {

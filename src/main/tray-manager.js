@@ -464,8 +464,6 @@ class TrayManager {
     const updateStatus = this.getUpdateStatus ? this.getUpdateStatus() : null;
     const updateReady =
       updateStatus && updateStatus.result && updateStatus.result.type === 'downloaded';
-    const managedUpdate =
-      updateStatus && updateStatus.result && updateStatus.result.type === 'managed';
     const updateItems = updateReady
       ? [
           {
@@ -474,16 +472,7 @@ class TrayManager {
           },
           { type: 'separator' },
         ]
-      : managedUpdate
-        ? [
-            // IT-managed install: show the new version, grayed out.
-            {
-              label: `Update v${updateStatus.result.version || ''} - kept up to date by your IT administrator`,
-              enabled: false,
-            },
-            { type: 'separator' },
-          ]
-        : [];
+      : [];
 
     this.menu = Menu.buildFromTemplate([
       ...updateItems,
