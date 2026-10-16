@@ -5,7 +5,7 @@
 # IT-managed (owned by root, so users never get update pop-ups), and quietly
 # reopens it in the menu bar if the signed-in user had it running.
 # Safe to run again: a Mac already on this version is left alone.
-VERSION="0.7.2"
+VERSION="0.7.3"
 
 REPO="https://github.com/paulg7516/nowtify/releases/download/v$VERSION"
 DMG_NAME="Nowtify-$VERSION-universal.dmg"
