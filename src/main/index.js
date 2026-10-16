@@ -227,7 +227,7 @@ let settingsWin;
 // panel can show a useful diagnostic readout. Mutated by autoUpdater event
 // listeners (see setupAutoUpdater) and queried via settings:get-update-status.
 const updaterStatus = {
-  currentVersion: '',
+  currentVersion: app.getVersion(),
   lastCheckedAt: 0, // epoch ms; 0 = never checked this session
   // type values: never | checking | up-to-date | available | downloading
   //              | downloaded | error
