@@ -42,8 +42,8 @@ fi
 # Download and verify against the checksum GitHub publishes with the release
 curl -fsSL -o "$WORK/$DMG_NAME" "$REPO/$DMG_NAME" || fail "could not download $DMG_NAME"
 curl -fsSL -o "$WORK/latest-mac.yml" "$REPO/latest-mac.yml" || fail "could not download checksum file"
-EXPECTED_SHA=$(awk -v f="$DMG_NAME" '$0 ~ "url: "f {getline; sub(/^ *sha512: */,""); print; exit}' "$WORK/latest-mac.yml")
-ACTUAL_SHA=$(openssl dgst -sha512 -binary "$WORK/$DMG_NAME" | base64 | tr -d '\n')
+EXPECTED_SHA=$(grep -A1 "url: $DMG_NAME" "$WORK/latest-mac.yml" | sed -n "s/.*sha512: //p" | head -1)
+ACTUAL_SHA=$(openssl dgst -sha512 -binary "$WORK/$DMG_NAME" | base64 | tr -d '[:space:]')
 [ -n "$EXPECTED_SHA" ] && [ "$EXPECTED_SHA" = "$ACTUAL_SHA" ] || fail "download checksum mismatch"
 
 mkdir -p "$MNT"
